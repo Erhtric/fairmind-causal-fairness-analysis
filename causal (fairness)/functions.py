@@ -134,14 +134,14 @@ def build_probabilities_multi(df, x_col="X", y_col="Y",
 
 #Decompose indirect effect
 
-def decompose_nie_by_mediator(nie_subset_fn, w_cols):
+def decompose_ie_by_mediator(ie_subset_fn, w_cols):
     contrib = {}
     prev = 0.0
     active = []
 
     for w in w_cols:
         active.append(w)
-        curr = nie_subset_fn(active)   
+        curr = ie_subset_fn(active)   
         contrib[w] = curr - prev       
         prev = curr
 
@@ -162,11 +162,11 @@ def decompose_se_by_confounder(se_subset_fn, z_cols):
     return contrib
 
 
-def make_nie_subset_fn(df, x0, x1, y,
+def make_ie_subset_fn(df, x0, x1, y,
                        all_w_cols, z_cols,
                        W_values=(0, 1),
                        x_col="X", y_col="Y"):
-    def nie_subset(active_w_cols):
+    def ie_subset(active_w_cols):
         active_w_cols = list(active_w_cols)
 
         (
@@ -185,7 +185,7 @@ def make_nie_subset_fn(df, x0, x1, y,
             z_cols=z_cols,
         )
 
-        nie_val = ind_effect(
+        ie_val = ind_effect(
             x0=x0,
             x1=x1,
             y=y,
@@ -194,9 +194,9 @@ def make_nie_subset_fn(df, x0, x1, y,
             P_w_given_x_z=P_w_given_x_z,
             P_z=P_z,
         )
-        return nie_val
+        return ie_val
 
-    return nie_subset
+    return ie_subset
 
 #Decompose spuroius effects
 def make_se_subset_fn(df, x0, x1, y,
@@ -309,7 +309,7 @@ def compute_effects_multi(
     tv = te + se
 
     #Direct effect 
-    nde = dir_effect(
+    de = dir_effect(
         x0=x0,
         x1=x1,
         y=y,
@@ -320,7 +320,7 @@ def compute_effects_multi(
     )
 
     #Indirect effect (reverse)
-    nie = ind_effect(
+    ie = ind_effect(
         x1=x1,
         x0=x0,
         y=y,
@@ -331,7 +331,7 @@ def compute_effects_multi(
     )
 
     #Iindirect effect (forward)
-    nie_f = ind_f_effect(
+    ie_f = ind_f_effect(
         x0=x0,
         x1=x1,
         y=y,
@@ -341,14 +341,14 @@ def compute_effects_multi(
         P_z=P_z,
     )
 
-    te_linear = nde + nie_f 
+    te_linear = de + ie_f 
 
-    nie_decomp = {}
+    ie_decomp = {}
     se_decomp = {}
 
     if do_decomposition:
         if len(w_cols_list) > 1:
-            nie_subset_fn = make_nie_subset_fn(
+            ie_subset_fn = make_ie_subset_fn(
                 df,
                 x0=x0,
                 x1=x1,
@@ -359,7 +359,7 @@ def compute_effects_multi(
                 x_col=x_col,
                 y_col=y_col,
             )
-            nie_decomp = decompose_nie_by_mediator(nie_subset_fn, w_cols_list)
+            ie_decomp = decompose_ie_by_mediator(ie_subset_fn, w_cols_list)
 
         if len(z_cols_list) > 1:
             se_subset_fn = make_se_subset_fn(
@@ -381,10 +381,10 @@ def compute_effects_multi(
         "se": se,
         "se_x1": se_x1,
         "se_x0": se_x0,
-        "nde": nde,
-        "nie":nie,
-        "nie_f": nie_f,
-        "nie_decomp": nie_decomp,
+        "de": de,
+        "ie":ie,
+        "ie_f": ie_f,
+        "ie_decomp": ie_decomp,
         "se_decomp": se_decomp,
     }
     
@@ -449,25 +449,25 @@ def compute_x_specific_effects(
             - P_y_given_x_z(y_val, x0, z)
         ) * P_z_given_x(z, x_cond)
 
-    #x-NDE_x: Ctf-DE_{x0,x1}(y | x_cond) -----
-    nde_x = 0.0
+    #x-DE_x
+    de_x = 0.0
     for z in z_tuples:
         for w in w_tuples:
-            nde_x += (
+            de_x += (
                 P_y_given_x_z_w(y_val, x1, z, w)
                 - P_y_given_x_z_w(y_val, x0, z, w)
             ) * P_w_given_x_z(x0, z, w) * P_z_given_x(z, x_cond)
 
-    #x-NIE
-    nie_x = 0.0
+    #x-IE
+    ie_x = 0.0
     for z in z_tuples:
         for w in w_tuples:
-            nie_x += (
+            ie_x += (
                 P_y_given_x_z_w(y_val, x1, z, w)
                 * (P_w_given_x_z(x0, z, w) - P_w_given_x_z(x1, z, w))
                 * P_z_given_x(z, x_cond)
             )
-            #sto calcolando il nie x1,x0 (reverse)
+            #sto calcolando il ie x1,x0 (reverse)
     #x-SE
     se_x = 0.0
     for z in z_tuples:
@@ -475,7 +475,7 @@ def compute_x_specific_effects(
             P_z_given_x(z, x0) - P_z_given_x(z, x1)
         )
 
-    return te_x, nie_x, nde_x, se_x
+    return te_x, ie_x, de_x, se_x
 
 #z-specific effect
 

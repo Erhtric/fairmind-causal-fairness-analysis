@@ -3,15 +3,15 @@ from libraries import *
 def plot_effect_sankey_percent(
     te,
     se,
-    nie,  
-    nde,
+    ie,  
+    de,
     se_decomp=None,
-    nie_decomp=None,
+    ie_decomp=None,
     title="Causal decomposition (percent of |TV|)",
 ):
 
     se_decomp = se_decomp or {}
-    nie_decomp = nie_decomp or {}
+    ie_decomp = ie_decomp or {}
 
 
     abs_te = abs(te)
@@ -22,12 +22,12 @@ def plot_effect_sankey_percent(
     tv_to_se = abs_se / total_lv1
 
 
-    abs_nie = abs(nie)
-    abs_nde = abs(nde)
-    total_te_children = abs_nie + abs_nde if abs_nie + abs_nde > 0 else 1.0
+    abs_ie = abs(ie)
+    abs_de = abs(de)
+    total_te_children = abs_ie + abs_de if abs_ie + abs_de > 0 else 1.0
 
-    te_to_nie = tv_to_te * (abs_nie / total_te_children)
-    te_to_nde = tv_to_te * (abs_nde   / total_te_children)
+    te_to_ie = tv_to_te * (abs_ie / total_te_children)
+    te_to_de = tv_to_te * (abs_de   / total_te_children)
 
 
     se_vals = list(se_decomp.values())
@@ -37,24 +37,24 @@ def plot_effect_sankey_percent(
     se_child_shares = [tv_to_se * (a / total_se_child) for a in abs_se_vals]
 
 
-    nie_vals = list(nie_decomp.values())
-    abs_nie_vals = [abs(v) for v in nie_vals]
-    total_nie_child = sum(abs_nie_vals) if abs_nie_vals else 1.0
+    ie_vals = list(ie_decomp.values())
+    abs_ie_vals = [abs(v) for v in ie_vals]
+    total_ie_child = sum(abs_ie_vals) if abs_ie_vals else 1.0
 
-    nie_child_shares = [te_to_nie * (a / total_nie_child) for a in abs_nie_vals]
+    ie_child_shares = [te_to_ie * (a / total_ie_child) for a in abs_ie_vals]
 
 
     flows = []
     flows.append(("TV", "TE", tv_to_te, te))
     flows.append(("TV", "SE", tv_to_se, se))
-    flows.append(("TE", "NIE", te_to_nie, nie))  #I'm using nie reverse 
-    flows.append(("TE", "NDE",   te_to_nde, nde))
+    flows.append(("TE", "IE", te_to_ie, ie))  #I'm using ie reverse 
+    flows.append(("TE", "DE",   te_to_de, de))
 
     for (z, eff), share in zip(se_decomp.items(), se_child_shares):
         flows.append(("SE", f"SE[{z}]", share, eff))
 
-    for (w, eff), share in zip(nie_decomp.items(), nie_child_shares):
-        flows.append(("NIE", f"NIE[{w}]", share, eff))
+    for (w, eff), share in zip(ie_decomp.items(), ie_child_shares):
+        flows.append(("IE", f"IE[{w}]", share, eff))
 
 
     labels = sorted({s for s, _, _, _ in flows} | {t for _, t, _, _ in flows})
@@ -121,10 +121,10 @@ def plot_effect_sankey_percent(
 def plot_xspecific_sankey_percent(
     te_x,
     se_x,
-    nie_x,
-    nde_x,
+    ie_x,
+    de_x,
     se_decomp_x=None,  
-    nie_decomp_x=None,  
+    ie_decomp_x=None,  
     x_label="x*",
     exposure_name="Race",
     outcome_name="Income",
@@ -132,7 +132,7 @@ def plot_xspecific_sankey_percent(
 ):
 
     se_decomp_x = se_decomp_x or {}
-    nie_decomp_x = nie_decomp_x or {}
+    ie_decomp_x = ie_decomp_x or {}
 
     if title is None:
         title = f"{outcome_name}: x-specific decomposition for {exposure_name}={x_label}"
@@ -146,12 +146,12 @@ def plot_xspecific_sankey_percent(
     tv_to_se = abs_se / total_lv1
 
     #2
-    abs_nie = abs(nie_x)
-    abs_nde = abs(nde_x)
-    total_te_children = abs_nie + abs_nde if abs_nie + abs_nde > 0 else 1.0
+    abs_ie = abs(ie_x)
+    abs_de = abs(de_x)
+    total_te_children = abs_ie + abs_de if abs_ie + abs_de > 0 else 1.0
 
-    te_to_nie = tv_to_te * (abs_nie / total_te_children)
-    te_to_nde = tv_to_te * (abs_nde / total_te_children)
+    te_to_ie = tv_to_te * (abs_ie / total_te_children)
+    te_to_de = tv_to_te * (abs_de / total_te_children)
 
     #3
     se_vals = list(se_decomp_x.values())
@@ -160,10 +160,10 @@ def plot_xspecific_sankey_percent(
     se_child_shares = [tv_to_se * (a / total_se_child) for a in abs_se_vals]
 
     #4
-    nie_vals = list(nie_decomp_x.values())
-    abs_nie_vals = [abs(v) for v in nie_vals]
-    total_nie_child = sum(abs_nie_vals) if abs_nie_vals else 1.0
-    nie_child_shares = [te_to_nie * (a / total_nie_child) for a in abs_nie_vals]
+    ie_vals = list(ie_decomp_x.values())
+    abs_ie_vals = [abs(v) for v in ie_vals]
+    total_ie_child = sum(abs_ie_vals) if abs_ie_vals else 1.0
+    ie_child_shares = [te_to_ie * (a / total_ie_child) for a in abs_ie_vals]
 
     
     tv_label = f"TV | X={x_label}"
@@ -171,19 +171,19 @@ def plot_xspecific_sankey_percent(
     flows.append((tv_label, "TE_x", tv_to_te, te_x, None))
     flows.append((tv_label, "SE_x", tv_to_se, se_x, None))
 
-    nde_path = f"{exposure_name}→{outcome_name}"
-    flows.append(("TE_x", "NIE_x", te_to_nie, nie_x, None))
-    flows.append(("TE_x", "NDE_x", te_to_nde, nde_x, nde_path))
+    de_path = f"{exposure_name}→{outcome_name}"
+    flows.append(("TE_x", "IE_x", te_to_ie, ie_x, None))
+    flows.append(("TE_x", "DE_x", te_to_de, de_x, de_path))
 
     #SE_x
     for (z, eff), share in zip(se_decomp_x.items(), se_child_shares):
         z_path = f"{exposure_name}↔{z}→{outcome_name}"
         flows.append(("SE_x", f"SE_x[{z}]", share, eff, z_path))
 
-    #NIE_x
-    for (w, eff), share in zip(nie_decomp_x.items(), nie_child_shares):
+    #IE_x
+    for (w, eff), share in zip(ie_decomp_x.items(), ie_child_shares):
         w_path = f"{exposure_name}→{w}→{outcome_name}"
-        flows.append(("NIE_x", f"NIE_x[{w}]", share, eff, w_path))
+        flows.append(("IE_x", f"IE_x[{w}]", share, eff, w_path))
 
 
     labels = sorted({s for s, _, _, _, _ in flows} | {t for _, t, _, _, _ in flows})
