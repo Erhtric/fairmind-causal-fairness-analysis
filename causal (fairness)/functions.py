@@ -185,7 +185,7 @@ def make_nie_subset_fn(df, x0, x1, y,
             z_cols=z_cols,
         )
 
-        nie_val = nat_ind_effect(
+        nie_val = ind_effect(
             x0=x0,
             x1=x1,
             y=y,
@@ -308,8 +308,8 @@ def compute_effects_multi(
     se = se_x1 - se_x0
     tv = te + se
 
-    #Natural direct effect 
-    nde = nat_dir_effect(
+    #Direct effect 
+    nde = dir_effect(
         x0=x0,
         x1=x1,
         y=y,
@@ -319,8 +319,8 @@ def compute_effects_multi(
         P_w_given_x_z=P_w_given_x_z,
     )
 
-    #Natural indirect effect (reverse)
-    nie = nat_ind_effect(
+    #Indirect effect (reverse)
+    nie = ind_effect(
         x1=x1,
         x0=x0,
         y=y,
@@ -330,8 +330,8 @@ def compute_effects_multi(
         P_z=P_z,
     )
 
-    #Natural indirect effect (forward)
-    nie_f = nat_ind_f_effect(
+    #Iindirect effect (forward)
+    nie_f = ind_f_effect(
         x0=x0,
         x1=x1,
         y=y,
