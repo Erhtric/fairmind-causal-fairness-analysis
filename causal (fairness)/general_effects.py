@@ -1,3 +1,5 @@
+
+
 def total_effect(x0, x1, y, P_y_given_x_z, P_z):
     effect = 0.0
     for z, pz in P_z.items():
@@ -15,7 +17,7 @@ def spurious_effect(x, y, P_y_given_x_z,P_z, P_z_given_x):
         effect += (first_f * second_f)
     return effect
 
-def nat_dir_effect(x0,x1,y,W_values, P_y_given_x_z_w,P_z, P_w_given_x_z):
+def dir_effect(x0,x1,y,W_values, P_y_given_x_z_w,P_z, P_w_given_x_z):
     effect = 0.0
     for z, pz in P_z.items():
       inner_sum=0.0
@@ -26,7 +28,7 @@ def nat_dir_effect(x0,x1,y,W_values, P_y_given_x_z_w,P_z, P_w_given_x_z):
       effect += inner_sum * pz
     return effect
 
-def nat_ind_effect(x1, x0, y,W_values, P_y_given_x_z_w, P_w_given_x_z,P_z):
+def ind_effect(x1, x0, y,W_values, P_y_given_x_z_w, P_w_given_x_z,P_z):
     effect = 0.0
     for z, pz in P_z.items():
       inner_sum=0.0
@@ -37,7 +39,7 @@ def nat_ind_effect(x1, x0, y,W_values, P_y_given_x_z_w, P_w_given_x_z,P_z):
       effect += inner_sum * pz
     return effect
 
-def nat_ind_f_effect(x0, x1, y,W_values, P_y_given_x_z_w, P_w_given_x_z,P_z):
+def ind_f_effect(x0, x1, y,W_values, P_y_given_x_z_w, P_w_given_x_z,P_z):
     effect = 0.0
     for z, pz in P_z.items():
       inner_sum=0.0
