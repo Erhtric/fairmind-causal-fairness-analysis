@@ -3,14 +3,26 @@ name = "causal-ai-fairness"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13,<3.14"
+
 dependencies = [
     "ipykernel>=7.1.0",
     "networkx>=3.5",
     "pandas>=2.3.3",
     "pgmpy>=1.0.0",
     "pyagrum>=2.3.0",
+    "python-dotenv>=1.0.1",
     "pymc>=5.26.1",
     "scipy>=1.16.3",
     "sympy>=1.14.0",
+    "streamlit>=1.51.0",
+    "openai>=1.40.0",
+    "plotly>=5.22.0",
+    "matplotlib>=3.8.0",
+    "streamlit>=1.37.0",
+    "graphviz>=0.20.3",
 ]
+
+
+[tool.poetry]
+package-mode = false

@@ -110,12 +110,11 @@ def plot_effect_sankey_percent(
         title_text=title,
         font_size=14,
     )
+    fig.show(renderer="browser")
 
-    fig.show()
 
 
 #####################################################
-
 
 
 def plot_xspecific_sankey_percent(
