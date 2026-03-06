@@ -1,3 +1,4 @@
+from fsspec.asyn import private
 from itertools import product
 from typing import Any
 
@@ -5,6 +6,7 @@ from loguru import logger
 from pgmpy.inference import CausalInference, VariableElimination
 from pgmpy.models import DiscreteBayesianNetwork
 from src.graph import filter_nodes_by_type
+
 
 ############################################################
 ######### Effect computation via ID Expr on SFM ############
@@ -270,10 +272,8 @@ def natural_direct_effect(
         raise ValueError("target value must be a valid state of the target variable.")
 
     logger.debug(
-        f"Computing total effect for target={target}, private_baseline={x0}, private_mod={x1}"
+        f"Computing natural direct effect for target={target}, private_baseline={x0}, private_mod={x1}"
     )
-
-    logger.debug(f"Confounders: {confounders}, Mediators: {mediators}")
 
     ve = CausalInference(bn)
 
@@ -318,8 +318,6 @@ def natural_direct_effect(
         x=x0,
     )
 
-    logger.debug(f"NDE first term: {acc}, second term: {second_term}")
-
     return acc - second_term
 
 
@@ -342,7 +340,7 @@ def natural_indirect_effect(
         x1: A tuple of (variable, value) representing the modified value of the private variable.
         mediator_attrs: A list of mediator variable names.
     Returns:
-        The natural direct effect.
+        The natural indirect effect.
     """
     target_var, target_val = target
     target_labels = bn.get_cpds(target_var).state_names[target_var]
@@ -373,10 +371,8 @@ def natural_indirect_effect(
         raise ValueError("target value must be a valid state of the target variable.")
 
     logger.debug(
-        f"Computing total effect for target={target}, private_baseline={x0}, private_mod={x1}"
+        f"Computing natural indirect effect for target={target}, private_baseline={x0}, private_mod={x1}"
     )
-
-    logger.debug(f"Confounders: {confounders}, Mediators: {mediators}")
     ve = CausalInference(bn)
 
     # Compute first term of NIE: sum_{z,w} P(Y | X=x0, Z=z, W=w) P(W | X=x1, Z=z) P(Z=z)
@@ -420,9 +416,15 @@ def natural_indirect_effect(
         x=x0,
     )
 
-    logger.debug(f"NIE first term: {acc}, second term: {second_term}")
-
     return acc - second_term
+
+
+# Aliases
+TV = total_variation
+TE = total_effect
+SE = spurious_effect
+IE = natural_indirect_effect
+DE = natural_direct_effect
 
 
 ############################################################
@@ -431,7 +433,11 @@ def natural_indirect_effect(
 
 
 def total_effect_scm(
-    bn: DiscreteBayesianNetwork, target: tuple[str, Any], cause: str, x0: Any, x1: Any
+    bn: DiscreteBayesianNetwork,
+    target: tuple[str, Any],
+    private_attr: str,
+    x0: Any,
+    x1: Any,
 ) -> float:
     """Compute the total effect.
 
@@ -440,7 +446,7 @@ def total_effect_scm(
     Args:
         bn: The Bayesian Network to use for inference.
         target: A tuple of (variable, value) for the target variable and its value.
-        cause: The name of the private variable whose effect we want to measure.
+        private_attr: The name of the private variable whose effect we want to measure.
         x0: A tuple of (variable, value) representing the baseline value of the private variable.
         x1: A tuple of (variable, value) representing the modified value of the private variable.
     Returns:
@@ -450,8 +456,8 @@ def total_effect_scm(
     target_labels = bn.get_cpds(target_var).state_names[target_var]
     target_val_index = target_labels.index(target_val)
 
-    cause_labels = bn.get_cpds(cause).state_names[cause]
-    if x0 not in cause_labels or x1 not in cause_labels:
+    private_domain = bn.get_cpds(private_attr).state_names[private_attr]
+    if x0 not in private_domain or x1 not in private_domain:
         raise ValueError("x0 and x1 must be valid states of the cause variable.")
     if target_val not in target_labels:
         raise ValueError("target value must be a valid state of the target variable.")
@@ -467,7 +473,7 @@ def total_effect_scm(
         ie=ve,
         target_var=target_var,
         target_val_index=target_val_index,
-        cause=cause,
+        cause=private_attr,
         x=x1,
     )
 
@@ -476,7 +482,7 @@ def total_effect_scm(
         ie=ve,
         target_var=target_var,
         target_val_index=target_val_index,
-        cause=cause,
+        cause=private_attr,
         x=x0,
     )
 
@@ -685,3 +691,69 @@ def natural_indirect_effect_scm(
     )
 
     return p_target_do_x0_w_x1 - p_target_do_x0
+
+
+def natural_direct_effect_sym(
+    bn: DiscreteBayesianNetwork,
+    target: tuple[str, Any],
+    private_attr: str,
+) -> float:
+    """Compute the symmetric natural direct effect.
+
+    NDE_sym(x0,x1,y) = 0.5 * (NDE(x0,x1,y) + NDE(x1,x0,y))
+
+    Args:
+        bn: The Bayesian Network to use for inference.
+        target: A tuple of (variable, value) for the target variable and its value.
+        private_attr: The name of the private variable whose effect we want to measure.
+
+    Returns:
+        The symmetric natural direct effect.
+    """
+    private_attr_domain = bn.get_cpds(private_attr).state_names[private_attr]
+    if len(private_attr_domain) != 2:
+        raise ValueError(
+            "Symmetric NDE computation currently assumes binary private variable."
+        )
+
+    nde_x0_x1 = natural_direct_effect(
+        bn, target, private_attr, private_attr_domain[0], private_attr_domain[1]
+    )
+    nde_x1_x0 = natural_direct_effect(
+        bn, target, private_attr, private_attr_domain[1], private_attr_domain[0]
+    )
+
+    return 0.5 * (nde_x0_x1 + nde_x1_x0)
+
+
+def natural_indirect_effect_sym(
+    bn: DiscreteBayesianNetwork,
+    target: tuple[str, Any],
+    private_attr: str,
+) -> float:
+    """Compute the symmetric natural indirect effect.
+
+    NIE_sym(x0,x1,y) = 0.5 * (NIE(x0,x1,y) + NIE(x1,x0,y))
+
+    Args:
+        bn: The Bayesian Network to use for inference.
+        target: A tuple of (variable, value) for the target variable and its value.
+        private_attr: The name of the private variable whose effect we want to measure.
+
+    Returns:
+        The symmetric natural indirect effect.
+    """
+    private_attr_domain = bn.get_cpds(private_attr).state_names[private_attr]
+    if len(private_attr_domain) != 2:
+        raise ValueError(
+            "Symmetric NIE computation currently assumes binary private variable."
+        )
+
+    nie_x0_x1 = natural_indirect_effect(
+        bn, target, private_attr, private_attr_domain[0], private_attr_domain[1]
+    )
+    nie_x1_x0 = natural_indirect_effect(
+        bn, target, private_attr, private_attr_domain[1], private_attr_domain[0]
+    )
+
+    return 0.5 * (nie_x0_x1 + nie_x1_x0)

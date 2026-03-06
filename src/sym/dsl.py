@@ -6,7 +6,7 @@ Counterfactual Terms, Events and Queries
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ class Variable:
     """
 
     name: str
-    domain: Tuple[Any, ...] = field(default_factory=tuple)
+    domain: tuple[Any, ...] = field(default_factory=tuple)
 
     def __hash__(self):
         return hash(self.name)
@@ -29,7 +29,7 @@ class Variable:
     def __repr__(self):
         return f"{self.name}"
 
-    def __matmul__(self, intervention: Dict[Variable, Any]) -> CounterfactualTerm:
+    def __matmul__(self, intervention: dict[Variable, Any]) -> CounterfactualTerm:
         """
         Syntax sugar for creating a counterfactual term.
         Usage: Y @ {X: 1}  ->  Y_{X=1}
@@ -65,7 +65,7 @@ class CounterfactualTerm:
     """
 
     variable: Variable
-    intervention: Dict[Variable, Union[Any, CounterfactualTerm]] = field(
+    intervention: dict[Variable, Union[Any, CounterfactualTerm]] = field(
         default_factory=dict
     )
 
@@ -146,7 +146,7 @@ class Event:
             )
         object.__setattr__(self, "assignments", normalized)
 
-    def expand(self) -> List[Event]:
+    def expand(self) -> list[Event]:
         """
         Applies the Counterfactual Unnesting Theorem (CUT) once.
 
@@ -283,7 +283,7 @@ class Expression:
     Form: sum(weight_i * query_i)
     """
 
-    terms: Dict[Query, float] = field(default_factory=dict)
+    terms: dict[Query, float] = field(default_factory=dict)
 
     def __add__(self, other: Union[Expression, Query]) -> Expression:
         new_terms = self.terms.copy()
