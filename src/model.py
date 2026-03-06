@@ -1,15 +1,17 @@
+from typing import Any
+
 import networkx as nx
 import pandas as pd
-import pgmpy
-import pgmpy.estimators
 from loguru import logger
 from pgmpy.models import DiscreteBayesianNetwork
+
+from src.graph import filter_nodes_by_type
 
 
 def fit_discrete_bayesian_model(
     sfm: nx.DiGraph,
     data: pd.DataFrame,
-    estimator_instance: tuple[pgmpy.estimators.BaseEstimator, dict],
+    estimator_instance: tuple[Any, dict],
 ) -> DiscreteBayesianNetwork:
     """
     Fits a Discrete Bayesian Model to the given Standard Fairness Model (SFM) graph.
@@ -32,11 +34,8 @@ def fit_discrete_bayesian_model(
         f"Using estimator: {estimator_class} with parameters: {estimator_params}"
     )
 
-    model = DiscreteBayesianNetwork(sfm)
+    latents = filter_nodes_by_type(sfm.nodes(data=True), "latent")
+    model = DiscreteBayesianNetwork(sfm, latents=set(latents))
     model.fit(data, estimator=estimator_class, **estimator_params)
 
-    try:
-        model.check_model()
-    except ValueError as e:
-        raise ValueError("Creation and fitting of the model failed.") from e
     return model
