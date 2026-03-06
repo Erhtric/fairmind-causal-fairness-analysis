@@ -1,13 +1,14 @@
-import os
 import json
-import pandas as pd
-import streamlit as st
+import os
 import time
-from dotenv import load_dotenv
-from openai import OpenAI
-from functions import *
 from pathlib import Path
 from typing import Iterable
+
+import pandas as pd
+import streamlit as st
+from dotenv import load_dotenv
+from functions import *
+from openai import OpenAI
 
 load_dotenv(override=True)  # loads OPENAI_API_KEY from .env
 

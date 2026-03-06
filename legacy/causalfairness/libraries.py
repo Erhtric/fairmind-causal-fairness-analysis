@@ -1,8 +1,9 @@
-import pandas as pd
-from collections.abc import Iterable
 import itertools
-import numpy as np
-import plotly.graph_objects as go
+from collections.abc import Iterable
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 from graphviz import Digraph

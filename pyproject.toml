@@ -3,26 +3,68 @@ name = "causal-ai-fairness"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.14"
 
 dependencies = [
+    "arviz>=0.23.4",
+    "daft-pgm>=0.1.4",
+    "graphviz>=0.20.3",
     "ipykernel>=7.1.0",
+    "loguru>=0.7.3",
+    "matplotlib>=3.8.0",
     "networkx>=3.5",
+    "openai>=1.40.0",
     "pandas>=2.3.3",
     "pgmpy>=1.0.0",
-    "pyagrum>=2.3.0",
-    "python-dotenv>=1.0.1",
-    "pymc>=5.26.1",
-    "scipy>=1.16.3",
-    "sympy>=1.14.0",
-    "streamlit>=1.51.0",
-    "openai>=1.40.0",
     "plotly>=5.22.0",
-    "matplotlib>=3.8.0",
-    "streamlit>=1.37.0",
-    "graphviz>=0.20.3",
+    "pyagrum>=2.3.0",
+    "pymc>=5.26.1",
+    "python-dotenv>=1.0.1",
+    "scipy>=1.16.3",
+    "streamlit>=1.51.0",
+    "sympy>=1.14.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing",
+]
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.0.0",
+    "pytest>=9.0.2",
+    "ruff>=0.15.4",
 ]
 
 
-[tool.poetry]
-package-mode = false
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line length (handled by formatter)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.uv.workspace]
+members = [
+    "cli-tool",
+]
