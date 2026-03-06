@@ -40,18 +40,19 @@ def build_sfm(
         mediator_attrs (list[str]): A list of names of mediator attributes.
         latents (list[Tuple[str, list[str]]]): A list of tuples representing latent variables.
                 Each tuple should contain the name of the latent variable and a list of children.
+                This extends the basic SFM template to include latent variables that may confound relationships between observed variables.
     Returns:
         nx.DiGraph: A directed graph representing the SFM template.
     """
-    if isinstance(sensitive_attr, str) == False:
+    if not isinstance(sensitive_attr, str):
         raise ValueError("Sensitive attribute must be a string.")
-    if isinstance(outcome_attr, str) == False:
+    if not isinstance(outcome_attr, str):
         raise ValueError("Outcome attribute must be a string.")
-    if isinstance(confounder_attrs, list) == False or not all(
+    if not isinstance(confounder_attrs, list) or not all(
         isinstance(attr, str) for attr in confounder_attrs
     ):
         raise ValueError("Confounder attributes must be a list of strings.")
-    if isinstance(mediator_attrs, list) == False or not all(
+    if not isinstance(mediator_attrs, list) or not all(
         isinstance(attr, str) for attr in mediator_attrs
     ):
         raise ValueError("Mediator attributes must be a list of strings.")
@@ -59,8 +60,8 @@ def build_sfm(
     if (
         set(confounder_attrs)
         & set(mediator_attrs)
-        & set([sensitive_attr])
-        & set([outcome_attr])
+        & set(sensitive_attr)
+        & set(outcome_attr)
     ):
         raise ValueError(
             "Confounder, mediator, sensitive attribute, and outcome attribute sets must be disjoint."
@@ -201,6 +202,38 @@ def construct_amwn(
 
     Returns:
         G_A(Y_*): The Ancestral Multi-World Network.
+
+    Usage:
+    ```python
+    G = nx.DiGraph()
+    for var in ["W", "X", "Y", "Z"]:
+        G.add_node(var, category="endogenous")
+
+    G.add_edges_from([("W", "Z"), ("Z", "X"), ("X", "Y"), ("Z", "Y")])
+
+    G.add_node("U_ZX", category="latent")
+    G.add_edges_from([("U_ZX", "Z"), ("U_ZX", "X")])
+
+    X = Variable("X")
+    Y = Variable("Y")
+    Z = Variable("Z")
+    W = Variable("W")
+    U = Variable("U_ZX")
+
+    term_Y_xw = Y @ {X: 0, W: 0}
+    term_X = X @ {}  # X factual
+    term_Z = Z @ {}
+    term_W = W @ {}
+
+    Y_star: list[Unknown | CounterfactualTerm] = [
+        term_Y_xw,
+        term_X,
+        term_Z,
+        term_W,
+    ]
+
+    G_A = construct_amwn(G, Y_star)
+    ```
     """
     if bidirected_edges is None:
         bidirected_edges = []
