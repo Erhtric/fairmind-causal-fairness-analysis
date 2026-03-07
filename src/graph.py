@@ -233,6 +233,12 @@ def construct_amwn(
     ]
 
     G_A = construct_amwn(G, Y_star)
+
+    # Test d-separation in G_A
+    nx.is_d_separator(G_A, {term_Y_xw}, {term_X}, {term_Z, term_W})
+
+    # Find minimal d-separator
+    nx.find_minimal_d_separator(G_A, {term_Y_xw}, {term_X})
     ```
     """
     if bidirected_edges is None:
