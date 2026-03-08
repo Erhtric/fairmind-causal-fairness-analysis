@@ -1,7 +1,8 @@
-from collections.abc import Sequence
+from collections.abc import Callable
 from itertools import product
 from typing import Any
 
+import networkx as nx
 import numpy as np
 from loguru import logger
 from pgmpy.factors.discrete import DiscreteFactor
@@ -13,6 +14,101 @@ from src.graph import filter_nodes_by_type
 ############################################################
 ######### Effect computation via ID Expr on SFM ############
 ############################################################
+
+
+def utility_weighted_effect(
+    effect_func: Callable[
+        [DiscreteBayesianNetwork, tuple[str, Any], str, Any, Any], float
+    ],
+    bn: DiscreteBayesianNetwork,
+    target: str | tuple[str, Any],
+    private_attr: str,
+    x0: Any,
+    x1: Any,
+    T: Callable[[Any], float] | dict[Any, float] | None = None,
+) -> float:
+    """Compute the utility-weighted effect across all target states.
+
+    This treats the target states as numerical utilities and computes the
+    difference of expectations using a utility function T(V).
+
+    Args:
+        effect_func: The effect function to compute.
+        bn: The Bayesian Network to use for inference.
+        target: The target variable name.
+        private_attr: The name of the private variable.
+        x0: The baseline value of the private variable.
+        x1: The modified value of the private variable.
+        T: An optional utility function T(V) (callable) or a dictionary
+           mapping state names to numerical values.
+
+    Returns:
+        The difference of expectations induced by the effect distribution.
+
+    Usage:
+    ```python
+    # Using a custom utility function
+    effect: int | float = utility_weighted_effect(TE, bn, "Y", "X", "x0", "x1", lambda x: x**2)
+    ```
+    """
+    target_var = target if isinstance(target, str) else target[0]
+    target_labels = bn.get_cpds(target_var).state_names[target_var]
+
+    try:
+        if callable(T):
+            # Apply the continuous/custom function T(V) to each state
+            state_values = np.array([T(label) for label in target_labels], dtype=float)
+        elif isinstance(T, dict):
+            # Use discrete lookup table
+            state_values = np.array([T[label] for label in target_labels], dtype=float)
+        else:
+            # Fallback to direct casting
+            state_values = np.asarray(target_labels, dtype=float)
+
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ValueError(
+            "utility_weighted_effect requires inherently numeric target states, a valid "
+            "utility dictionary, or a valid callable function T(V) to compute expectations."
+        ) from exc
+
+    return float(
+        np.dot(
+            effect_distribution(effect_func, bn, target_var, private_attr, x0, x1),
+            state_values,
+        )
+    )
+
+
+def effect_distribution(
+    effect_func: Callable[
+        [DiscreteBayesianNetwork, tuple[str, Any], str, Any, Any], float
+    ],
+    bn: DiscreteBayesianNetwork,
+    target: str,
+    private_attr: str,
+    x0: Any,
+    x1: Any,
+) -> np.ndarray:
+    """Compute the full state-wise effect distribution.
+
+    Args:
+        effect_func: The effect function to compute (e.g., total_effect,
+            natural_direct_effect, etc.)
+        bn: The Bayesian Network to use for inference.
+        target: The target variable name.
+        private_attr: The name of the private variable whose effect we want to measure.
+        x0: The baseline value of the private variable.
+        x1: The modified value of the private variable.
+
+    Returns:
+        A vector whose entries are the state-specific effect values.
+    """
+    target_labels = bn.get_cpds(target).state_names[target]
+    effect_dist = np.zeros(len(target_labels))
+    for i, target_val in enumerate(target_labels):
+        effect_dist[i] = effect_func(bn, (target, target_val), private_attr, x0, x1)
+
+    return effect_dist
 
 
 def total_effect(
@@ -38,9 +134,8 @@ def total_effect(
     """
     target_var, target_val = target
     target_labels = bn.get_cpds(target_var).state_names[target_var]
-    private_attr_domain = bn.get_cpds(private_attr).state_names[private_attr]
 
-    if target_val not in target_labels:
+    if target_val is not None and target_val not in target_labels:
         raise ValueError("target value must be a valid state of the target variable.")
 
     if private_attr in bn.nodes:
@@ -291,7 +386,9 @@ def natural_indirect_effect(
     private_attr: str,
     x0: Any,
     x1: Any,
-) -> float:
+    sorted_mediators: list[str] | None = None,
+    decompose: bool = False,
+) -> float | dict[str, float]:
     """Compute the natural indirect effect.
 
     NIE(x0,x1,y) = P(Y @ {X:x0, W: W @ {X:x1}} == y) - P(Y @ {X:x0} == y)
@@ -302,17 +399,19 @@ def natural_indirect_effect(
         private_attr: The name of the private variable whose effect we want to measure.
         x0: A tuple of (variable, value) representing the baseline value of the private variable.
         x1: A tuple of (variable, value) representing the modified value of the private variable.
-        mediator_attrs: A list of mediator variable names.
+        sorted_mediators: An optional list of mediator variable names in topological order.
+        decompose: If True, also return the decomposition of the NIE into contributions from each mediator.
     Returns:
-        The natural indirect effect.
+        The natural indirect effect. If decompose=True, returns a dictionary with the contribution of each mediator and the total NIE.
     """
     target_var, target_val = target
     target_labels = bn.get_cpds(target_var).state_names[target_var]
     target_val_index = target_labels.index(target_val)
 
-    cause_labels = bn.get_cpds(private_attr).state_names[private_attr]
-
+    private_attr_domains = bn.get_cpds(private_attr).state_names[private_attr]
     mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), "mediator")
+    if sorted_mediators is None:
+        sorted_mediators = list(nx.topological_sort(bn.subgraph(mediators)))
     mediators_domains = {m: bn.get_cpds(m).state_names[m] for m in mediators}
     mediators_domains_cartesian = list(product(*mediators_domains.values()))
 
@@ -320,16 +419,7 @@ def natural_indirect_effect(
     confounders_domains = {c: bn.get_cpds(c).state_names[c] for c in confounders}
     confounders_domains_cartesian = list(product(*confounders_domains.values()))
 
-    if len(confounders) > 1:
-        raise NotImplementedError(
-            "NDE computation with multiple confounders is not implemented yet."
-        )
-    if len(mediators) > 1:
-        raise NotImplementedError(
-            "NDE computation with multiple mediators is not implemented yet."
-        )
-
-    if x0 not in cause_labels or x1 not in cause_labels:
+    if x0 not in private_attr_domains or x1 not in private_attr_domains:
         raise ValueError("x0 and x1 must be valid states of the cause variable.")
     if target_val not in target_labels:
         raise ValueError("target value must be a valid state of the target variable.")
@@ -337,63 +427,98 @@ def natural_indirect_effect(
     logger.debug(
         f"Computing natural indirect effect for target={target}, private_baseline={x0}, private_mod={x1}"
     )
-    ve = CausalInference(bn)
 
-    # Compute first term of NIE: sum_{z,w} P(Y | X=x0, Z=z, W=w) P(W | X=x1, Z=z) P(Z=z)
-    query_vars_card = [
-        len(bn.get_cpds(var).state_names[var])
-        for var in [target_var] + mediators + confounders
-    ]
-    acc = DiscreteFactor(
-        variables=[target_var] + mediators + confounders,
-        cardinality=query_vars_card,
-        values=np.zeros(query_vars_card),
-    )
-    for z_val, w_val in product(
-        confounders_domains_cartesian, mediators_domains_cartesian
-    ):
-        z_evidence = dict(zip(confounders_domains.keys(), z_val, strict=True))
-        w_evidence = dict(zip(mediators_domains.keys(), w_val, strict=True))
+    # --- Helper to compute the cross-world hybrid probabilities ---
+    def _compute_hybrid_term(k_threshold: int) -> np.ndarray:
+        """
+        Computes the target probability where the first `k_threshold` mediators
+        take x1, and the remaining mediators take x0.
+        """
+        z_domains = {c: bn.get_cpds(c).state_names[c] for c in confounders}
+        w_domains = {m: bn.get_cpds(m).state_names[m] for m in sorted_mediators}
 
-        evidence_first_term = {**z_evidence, **w_evidence, private_attr: x0}
-        p_y_given_x0_w_z = ve.query(
-            variables=[target_var],
-            evidence=evidence_first_term,
-            show_progress=False,
+        z_cartesian = list(product(*z_domains.values())) if confounders else [()]
+        w_cartesian = list(product(*w_domains.values()))
+
+        acc = np.zeros(len(target_labels))
+        y_cpd = bn.get_cpds(target_var)
+        w_cpds = {m: bn.get_cpds(m) for m in sorted_mediators}
+
+        ve = VariableElimination(bn)
+        p_z_factor = (
+            ve.query(variables=confounders, show_progress=False)
+            if confounders
+            else None
         )
 
-        evidence_second_term = {**z_evidence, private_attr: x1}
-        p_w_given_x1_z = ve.query(
-            variables=mediators,
-            evidence=evidence_second_term,
-            show_progress=False,
-        )
+        for z_val in z_cartesian:
+            z_evidence = (
+                dict(zip(z_domains.keys(), z_val, strict=True)) if confounders else {}
+            )
+            p_z = p_z_factor.get_value(**z_evidence) if confounders else 1.0
 
-        p_z = ve.query(
-            variables=confounders,
-            show_progress=False,
-        )
+            for w_val in w_cartesian:
+                w_evidence = dict(zip(w_domains.keys(), w_val, strict=True))
 
-        acc += p_y_given_x0_w_z * p_w_given_x1_z * p_z
+                # P(Y | x0, W, Z) - The outcome is always evaluated at x0 for NIE
+                y_full_evidence = {**z_evidence, **w_evidence, private_attr: x0}
+                y_cpd_vars = (
+                    y_cpd.variables
+                )  # Get only the variables Y actually depends on
 
-    acc.marginalize(
-        variables=[v for v in acc.variables if v != target_var], inplace=True
-    )
-    acc.normalize(inplace=True)
+                p_y_list = []
+                for y in target_labels:
+                    y_full_evidence[target_var] = y
+                    # Filter down to just the variables this CPD knows about
+                    y_filtered = {
+                        k: v for k, v in y_full_evidence.items() if k in y_cpd_vars
+                    }
+                    p_y_list.append(y_cpd.get_value(**y_filtered))
+                p_y = np.array(p_y_list)
 
-    # Compute second term of NIE: P(Y | X=x0) = sum_z P(Y | X=x0, Z=z) P(Z=z)
-    second_term = _estimate_target_prob_by_adjustment(
-        bn=bn,
-        ie=ve,
-        target_var=target_var,
-        private_var=private_attr,
-        private_val=x0,
-    )
+                # --- Evaluate Sequential Mediator Probability ---
+                p_w_hybrid = 1.0
+                for j, m in enumerate(sorted_mediators):
+                    x_val = x1 if j < k_threshold else x0
 
-    nie_dist = acc.values - second_term
-    nie_val = nie_dist[target_val_index]
+                    # Build the full evidence pool for this mediator step
+                    m_full_evidence = {
+                        **z_evidence,
+                        **w_evidence,
+                        private_attr: x_val,
+                        m: w_evidence[m],
+                    }
 
-    return nie_val
+                    # Filter down to just the variables this specific mediator CPD knows about
+                    m_cpd_vars = w_cpds[m].variables
+                    m_filtered = {
+                        k: v for k, v in m_full_evidence.items() if k in m_cpd_vars
+                    }
+
+                    p_w_hybrid *= w_cpds[m].get_value(**m_filtered)
+
+                acc += p_y * p_w_hybrid * p_z
+
+        return acc
+
+    # If not interested in the decomposition, just return the NIE value directly
+    if not decompose:
+        p_y_w_x1 = _compute_hybrid_term(len(sorted_mediators))[target_val_index]
+        p_y_w_x0 = _compute_hybrid_term(0)[target_val_index]
+        return p_y_w_x1 - p_y_w_x0
+
+    # Otherwise, compute all intermediate steps for the decomposition
+    hybrid_probs = []
+    for i in range(len(sorted_mediators) + 1):
+        hybrid_dist = _compute_hybrid_term(i)
+        hybrid_probs.append(hybrid_dist[target_val_index])
+
+    decomposition = {}
+    for i, _ in enumerate(sorted_mediators):
+        decomposition[f"{i}"] = hybrid_probs[i + 1] - hybrid_probs[i]
+
+    nie = hybrid_probs[-1] - hybrid_probs[0]
+    return nie, decomposition
 
 
 # Aliases
@@ -756,16 +881,16 @@ class EffectResult:
         self.x1_states = x1_states
         self.matrix = effect_matrix
 
-    def get_effect(self, x0: Any, x1: Any) -> float:
+    def get_effect(self, x0: Any, x1: Any) -> np.ndarray | float:
         """Get the effect value for a specific pair of states."""
         try:
             i = self.x0_states.index(x0)
             j = self.x1_states.index(x1)
-            return self.matrix[i, j]
-        except ValueError:
+            return self.matrix[:, i, j]
+        except ValueError as exc:
             raise ValueError(
                 f"States x0={x0} or x1={x1} not found in the respective state lists. Available x0 states: {self.x0_states}, Available x1 states: {self.x1_states}"
-            )
+            ) from exc
 
     def mean_effect(self) -> float:
         # return np.mean(self.matrix)
@@ -813,58 +938,48 @@ class EffectResult:
         return reversals
 
 
-def _estimate_target_prob_by_adjustment(
+def categorical_effect_full_distribution(
+    effect_fn: Callable[
+        [DiscreteBayesianNetwork, tuple[str, Any], str, list[Any], list[Any]],
+        EffectResult,
+    ],
     bn: DiscreteBayesianNetwork,
-    ie,
-    target_var: str,
-    private_var: str,
-    private_val: Any,
-) -> np.ndarray:
-    """Compute P(target_var @ {private_var: x}) by adjustment + law of total probability.
+    target: str,
+    private_attr: str,
+    x0: list[Any],
+    x1: list[Any],
+) -> EffectResult:
+    """Compute the full distribution of the effect for all values of the target variable.
 
-    If Z is a minimal adjustment set for (private_var, target_var), then:
-    P(Y @ {X:x} == y) = sum_z P(Y | X=x, Z=z) P(Z=z)
-
-    Y must be a single variable.
+    This is useful for understanding how the entire distribution of the target variable shifts
+    in response to changes in the private variable, rather than just looking at a single
+    target value. It can reveal if certain outcomes become more likely while others become
+    less likely, providing a more comprehensive picture of the causal impact.
 
     Args:
+        effect_fn: The effect function to compute (e.g., total_effect, total_variation).
         bn: The Bayesian Network to use for inference.
-        ie: A inference engine object initialized with the Bayesian Network.
-        target_var: The name of the target variable.
-        private_var: The name of the private variable whose effect we want to measure.
-        private_val: The value of the private variable.
+        target: The name of the target variable.
+        private_attr: The name of the private variable whose effect we want to measure.
+        x0: The baseline values of the private variable.
+        x1: The modified values of the private variable.
 
     Returns:
-        The interventional distribution P(target_var @ {private_var: private_val}).
+        A dictionary mapping each value of the target variable to its corresponding effect value.
     """
-    adj_set = ie.get_minimal_adjustment_set(private_var, target_var)
-    if not adj_set:
-        return ie.query(
-            variables=[target_var],
-            evidence={private_var: private_val},
-            show_progress=False,
-        ).values
+    target_labels = bn.get_cpds(target).state_names[target]
+    effect_distribution = []
+    for target_val in target_labels:
+        effect_value = effect_fn(bn, (target, target_val), private_attr, x0, x1)
+        effect_distribution.append((target_val, effect_value.matrix))
 
-    adj_set_domains = {var: bn.get_cpds(var).state_names[var] for var in adj_set}
-    adj_set_domains_cartesian = list(product(*adj_set_domains.values()))
-    p_z = ie.query(variables=adj_set, joint=True, show_progress=False)
-
-    acc = np.zeros(len(bn.get_cpds(target_var).state_names[target_var]))
-    for adj_values in adj_set_domains_cartesian:
-        evidence = dict(zip(adj_set_domains.keys(), adj_values, strict=True))
-        evidence_x = {**evidence, private_var: private_val}
-
-        p_target_given_x_z = ie.query(
-            variables=[target_var],
-            evidence=evidence_x,
-            show_progress=False,
-        )
-
-        p_z_val = p_z.get_value(**evidence)
-
-        acc += p_target_given_x_z.values * p_z_val
-
-    return acc
+    distribution_result = EffectResult(
+        effect_name=f"{getattr(effect_fn, '__name__', 'effect')} Distribution",
+        x0_states=x0,
+        x1_states=x1,
+        effect_matrix=np.array([effect for _, effect in effect_distribution]),
+    )
+    return distribution_result
 
 
 def categorical_total_effect(
@@ -1046,3 +1161,62 @@ def categorical_natural_indirect_effect(
 
     res = EffectResult("Natural Indirect Effect", x0, x1, matrix)
     return res
+
+
+############################################################
+################## Utility Functions #######################
+############################################################
+
+
+def _estimate_target_prob_by_adjustment(
+    bn: DiscreteBayesianNetwork,
+    ie,
+    target_var: str,
+    private_var: str,
+    private_val: Any,
+) -> np.ndarray:
+    """Compute P(target_var @ {private_var: x}) by adjustment + law of total probability.
+
+    If Z is a minimal adjustment set for (private_var, target_var), then:
+    P(Y @ {X:x} == y) = sum_z P(Y | X=x, Z=z) P(Z=z)
+
+    Y must be a single variable.
+
+    Args:
+        bn: The Bayesian Network to use for inference.
+        ie: A inference engine object initialized with the Bayesian Network.
+        target_var: The name of the target variable.
+        private_var: The name of the private variable whose effect we want to measure.
+        private_val: The value of the private variable.
+
+    Returns:
+        The interventional distribution P(target_var @ {private_var: private_val}).
+    """
+    adj_set = ie.get_minimal_adjustment_set(private_var, target_var)
+    if not adj_set:
+        return ie.query(
+            variables=[target_var],
+            evidence={private_var: private_val},
+            show_progress=False,
+        ).values
+
+    adj_set_domains = {var: bn.get_cpds(var).state_names[var] for var in adj_set}
+    adj_set_domains_cartesian = list(product(*adj_set_domains.values()))
+    p_z = ie.query(variables=adj_set, joint=True, show_progress=False)
+
+    acc = np.zeros(len(bn.get_cpds(target_var).state_names[target_var]))
+    for adj_values in adj_set_domains_cartesian:
+        evidence = dict(zip(adj_set_domains.keys(), adj_values, strict=True))
+        evidence_x = {**evidence, private_var: private_val}
+
+        p_target_given_x_z = ie.query(
+            variables=[target_var],
+            evidence=evidence_x,
+            show_progress=False,
+        )
+
+        p_z_val = p_z.get_value(**evidence)
+
+        acc += p_target_given_x_z.values * p_z_val
+
+    return acc
