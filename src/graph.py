@@ -1,6 +1,5 @@
-from collections.abc import Iterable
 from collections import defaultdict
-from typing import Optional
+from collections.abc import Iterable
 
 import networkx as nx
 
@@ -30,7 +29,7 @@ def build_sfm(
     mediator_attrs: list[str],
     sorted_confounders: bool = False,
     sorted_mediators: bool = False,
-    latents: Optional[list[tuple[str, list[str]]] | None] = None,
+    latents: list[tuple[str, list[str]]] | None = None,
 ) -> nx.DiGraph:
     """
     Builds a Standard Fairness Model (SFM) template.
@@ -200,7 +199,7 @@ def get_counterfactual_ancestors(
 def construct_amwn(
     G: nx.DiGraph,
     Y_star: Iterable[CounterfactualTerm],
-    bidirected_edges: Optional[list[tuple[str, str]] | None] = None,
+    bidirected_edges: list[tuple[str, str]] | None = None,
 ) -> nx.DiGraph:
     """
     Algorithm 1: AMWN-CONSTRUCT(G, Y_*)

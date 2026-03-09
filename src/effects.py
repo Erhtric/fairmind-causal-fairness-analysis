@@ -449,14 +449,6 @@ def natural_indirect_effect(
     return first_term_val - second_term_val
 
 
-# Aliases
-TV = total_variation
-TE = total_effect
-SE = spurious_effect
-IE = natural_indirect_effect
-DE = natural_direct_effect
-
-
 ############################################################
 ############## Effect computation via SCM ##################
 ############################################################
@@ -1196,3 +1188,16 @@ def _estimate_target_prob_by_adjustment(
     adjusted_factor.marginalize(adj_set)
 
     return adjusted_factor.values
+
+
+# Aliases
+TV = total_variation
+TE = total_effect
+SE = spurious_effect
+IE = natural_indirect_effect
+DE = natural_direct_effect
+
+catTE = categorical_total_effect
+catTV = categorical_total_variation
+catNIE = categorical_natural_indirect_effect
+catNDE = categorical_natural_direct_effect
