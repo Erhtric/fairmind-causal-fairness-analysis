@@ -1,4 +1,4 @@
-import openai.types.webhooks.eval_run_succeeded_webhook_event
+from IPython.testing.decorators import f
 from collections.abc import Callable
 from itertools import product
 from typing import Any
@@ -6,7 +6,6 @@ from typing import Any
 import networkx as nx
 import numpy as np
 from loguru import logger
-from pgmpy.factors.discrete import DiscreteFactor
 from pgmpy.inference import CausalInference, VariableElimination
 from pgmpy.models import DiscreteBayesianNetwork
 
@@ -1093,7 +1092,6 @@ def categorical_natural_indirect_effect(
     return res
 
 
-# TODO: decomposition of effects
 def decompose_indirect_effect(
     bn: DiscreteBayesianNetwork,
     target: tuple[str, Any],
@@ -1103,7 +1101,7 @@ def decompose_indirect_effect(
 ) -> dict[str, float]:
     """Decompose the indirect effect into contributions from different mediators.
 
-    This function is a placeholder for future implementation. The idea is to analyze how much of the indirect effect can be attributed to each mediator in the causal graph. This can provide insights into which pathways are most responsible for the observed effect and can inform targeted interventions.
+    Theorem 6.6 (Variable Decomposition of IE).
 
     Args:
         bn: The Bayesian Network to use for inference.
@@ -1114,31 +1112,34 @@ def decompose_indirect_effect(
 
     Returns:
         A dictionary mapping each mediator to its contribution to the indirect effect.
+        Each key identify the mediator and the corresponding value is the contribution
+        of that mediator to the overall indirect effect.
+        Summing the contributions across all mediators should yield the total indirect effect.
     """
     mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), "mediator")
     sorted_mediators: list[str] = list(nx.topological_sort(bn.subgraph(mediators)))
 
     if len(sorted_mediators) == 0:
         raise ValueError("No mediators found in the Bayesian Network.")
-    if len(sorted_mediators) == 1:
-        # If there's only one mediator, the entire indirect effect is attributed to it
-        nie = natural_indirect_effect(
-            bn=bn,
-            target=target,
-            private_attr=private_attr,
-            x0=x0,
-            x1=x1,
-        )
-        return {sorted_mediators[0]: nie}
+    # NOTE: if only mediator is present in the set then it should closely match the NIE
+    # if len(sorted_mediators) == 1:
+    #     # If there's only one mediator, the entire indirect effect is attributed to it
+    #     nie = natural_indirect_effect(
+    #         bn=bn,
+    #         target=target,
+    #         private_attr=private_attr,
+    #         x0=x0,
+    #         x1=x1,
+    #     )
+    #     return {sorted_mediators[0]: nie}
 
     contributions = {}
-    for i, mediator in enumerate(sorted_mediators):
+    for i in range(len(sorted_mediators)):
+        mediator = sorted_mediators[
+            i
+        ]  # The mediator for which we are computing the contribution
         w_A = sorted_mediators[:i]
         w_B = sorted_mediators[: i + 1]
-
-        logger.debug(
-            f"Computing contribution of mediator {mediator} with W_A={w_A} and W_B={w_B}"
-        )
 
         nie_prec_succ = set_specific_indirect_effect(
             bn=bn,
@@ -1146,8 +1147,8 @@ def decompose_indirect_effect(
             private_attr=private_attr,
             x0=x0,
             x1=x1,
-            first_mediator_partition=w_A,
-            second_mediator_partition=w_B,
+            W_a=w_A,
+            W_b=w_B,
         )
 
         contributions[mediator] = nie_prec_succ
@@ -1161,8 +1162,8 @@ def set_specific_indirect_effect(
     private_attr: str,
     x0: Any,
     x1: Any,
-    first_mediator_partition: list[Any],  # WA
-    second_mediator_partition: list[Any],  # WB
+    W_a: list[Any],  # WA
+    W_b: list[Any],  # WB
 ) -> float | np.ndarray:
     """Compute the set-specific indirect effect.
 
@@ -1178,11 +1179,17 @@ def set_specific_indirect_effect(
         private_attr: The name of the private variable whose effect we want to measure.
         x0: The baseline value of the private variable.
         x1: The modified value of the private variable.
-        first_mediator_partition: The partition of mediator states for the first term (W_A).
-        second_mediator_partition: The partition of mediator states for the second term (W_B).
+        W_a: The partition of mediator states for the first term (W_A).
+        W_b: The partition of mediator states for the second term (W_B).
     Returns:
         The set-specific indirect effect.
     """
+    if not set(W_a).issubset(set(W_b)):
+        raise ValueError(
+            "First mediator partition must be a strict subset of the second partition."
+            f"Got A={set(W_a)} and B={set(W_b)}."
+        )
+
     ordered_mediators = list(
         nx.topological_sort(
             bn.subgraph(
@@ -1195,162 +1202,119 @@ def set_specific_indirect_effect(
             target={target},
             private_baseline={x0},
             private_mod={x1},
-            first_mediator_partition={first_mediator_partition},
-            second_mediator_partition={second_mediator_partition},
+            first_mediator_partition={W_a},
+            second_mediator_partition={W_b},
             ordered_mediators={ordered_mediators}"""
     )
 
     ve = CausalInference(bn)
     y, y_val = target
-    y_domain = bn.get_cpds(y).state_names[y]
 
-    w_a = first_mediator_partition
-    w_a_domains = {m: bn.get_cpds(m).state_names[m] for m in w_a}
-    w_ac = [m for m in ordered_mediators if m not in first_mediator_partition]
-    w_ac_domains = {m: bn.get_cpds(m).state_names[m] for m in w_ac}
+    # Partitions for Term 1 (W_B)
+    w_b = W_b
+    w_bc = [m for m in ordered_mediators if m not in w_b]
 
-    w_b = second_mediator_partition
-    w_b_domains = {m: bn.get_cpds(m).state_names[m] for m in w_b}
-    w_bc = [m for m in ordered_mediators if m not in second_mediator_partition]
-    w_bc_domains = {m: bn.get_cpds(m).state_names[m] for m in w_bc}
+    # Partitions for Term 2 (W_A)
+    w_a = W_a
+    w_ac = [m for m in ordered_mediators if m not in w_a]
 
-    z = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
-    z_domains = {c: bn.get_cpds(c).state_names[c] for c in z}
-    z_domains_cartesian = list(product(*z_domains.values())) if z else [()]
-    if z:
-        p_z_factor = ve.query(variables=z, joint=True, show_progress=False)
-    else:
-        p_z_factor = None
+    # Term1: sum_{z, w} P(Y|x0, w_b, w_bc, z) P(w_b|x1, z) P(w_bc|x0, z) P(z)
+    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    factor_term1 = _compute_cross_world_term(
+        ie=ve,
+        y=y,
+        x=private_attr,
+        x0=x0,
+        x1=x1,
+        w_b=w_b,
+        w_b_c=w_bc,
+        z=z_nodes,
+    )
 
-    ### First term
-    # TODO: create a function
-    acc1 = np.zeros(len(y_domain))
-    for z_val in z_domains_cartesian:
-        p_z = (
-            p_z_factor.get_value(**dict(zip(z_domains.keys(), z_val, strict=True)))
-            if z
-            else 1.0
-        )
+    # --- Compute Term 2 ---
+    # sum_{z, w} P(Y|x0, w_a, w_ac, z) P(w_a|x1, z) P(w_ac|x0, z) P(z)
+    factor_term2 = _compute_cross_world_term(
+        ie=ve,
+        y=y,
+        x=private_attr,
+        x0=x0,
+        x1=x1,
+        w_b=w_a,
+        w_b_c=w_ac,
+        z=z_nodes,
+    )
 
-        z_evidence = dict(zip(z_domains.keys(), z_val, strict=True)) if z else {}
+    # Extract specific target values and return the difference
+    val_term1 = float(factor_term1.get_value(**{y: y_val}))
+    val_term2 = float(factor_term2.get_value(**{y: y_val}))
 
-        # P(W_B | x1, z)
-        w_b_evidence = {private_attr: x1, **z_evidence}
-        p_w_b_given_x1_z = ve.query(
-            variables=w_b,
-            evidence=w_b_evidence,
-            show_progress=False,
-        )
-
-        # P(W_BC | x0, z)
-        w_bc_evidence = {private_attr: x0, **z_evidence}
-        p_w_bc_given_x0_z = ve.query(
-            variables=w_bc,
-            evidence=w_bc_evidence,
-            show_progress=False,
-        )
-
-        all_w_domains = list(w_b_domains.values()) + list(w_bc_domains.values())
-        for combined_w_vals in product(*all_w_domains):
-            w_b_val_tuple = combined_w_vals[: len(w_b_domains.keys())]
-            w_bc_val_tuple = combined_w_vals[len(w_b_domains.keys()) :]
-
-            w_b_evidence = dict(zip(w_b_domains.keys(), w_b_val_tuple))
-            w_bc_evidence = dict(zip(w_bc_domains.keys(), w_bc_val_tuple))
-
-            y_evidence = {
-                **w_b_evidence,
-                **w_bc_evidence,
-                private_attr: x0,
-                **z_evidence,
-            }
-
-            # P(Y | x0, W_B, W_BC, Z)
-            p_y_given_x0_w_b_z = ve.query(
-                variables=[y],
-                evidence=y_evidence,
-                show_progress=False,
-            )
-
-            # Get the scalar probabilities for the mediator states
-            prob_w_b = (
-                p_w_b_given_x1_z.get_value(**w_b_evidence) if p_w_b_given_x1_z else 1.0
-            )
-            prob_w_bc = (
-                p_w_bc_given_x0_z.get_value(**w_bc_evidence)
-                if p_w_bc_given_x0_z
-                else 1.0
-            )
-
-            acc1 += p_y_given_x0_w_b_z.values * prob_w_b * prob_w_bc * p_z
-
-    # Second term
-    acc2 = np.zeros(len(y_domain))
-    for z_val in z_domains_cartesian:
-        p_z = (
-            p_z_factor.get_value(**dict(zip(z_domains.keys(), z_val, strict=True)))
-            if z
-            else 1.0
-        )
-
-        z_evidence = dict(zip(z_domains.keys(), z_val, strict=True)) if z else {}
-
-        # P(W_A | x1, z)
-        w_a_evidence = {private_attr: x1, **z_evidence}
-        p_w_a_given_x1_z = ve.query(
-            variables=w_a,
-            evidence=w_a_evidence,
-            show_progress=False,
-        )
-
-        # P(W_AC | x0, z)
-        w_ac_evidence = {private_attr: x0, **z_evidence}
-        p_w_ac_given_x0_z = ve.query(
-            variables=w_ac,
-            evidence=w_ac_evidence,
-            show_progress=False,
-        )
-
-        all_w_domains = list(w_a_domains.values()) + list(w_ac_domains.values())
-        for combined_w_vals in product(*all_w_domains):
-            w_a_val_tuple = combined_w_vals[: len(w_a_domains.keys())]
-            w_ac_val_tuple = combined_w_vals[len(w_a_domains.keys()) :]
-
-            w_a_evidence = dict(zip(w_a_domains.keys(), w_a_val_tuple, strict=True))
-            w_ac_evidence = dict(zip(w_ac_domains.keys(), w_ac_val_tuple, strict=True))
-
-            y_evidence = {
-                **w_a_evidence,
-                **w_ac_evidence,
-                private_attr: x0,
-                **z_evidence,
-            }
-
-            # P(Y | x0, W_A, W_AC, Z)
-            p_y_given_x0_w_a_z = ve.query(
-                variables=[y],
-                evidence=y_evidence,
-                show_progress=False,
-            )
-
-            # Get the scalar probabilities for the mediator states
-            prob_w_a = (
-                p_w_a_given_x1_z.get_value(**w_a_evidence) if p_w_a_given_x1_z else 1.0
-            )
-            prob_w_ac = (
-                p_w_ac_given_x0_z.get_value(**w_ac_evidence)
-                if p_w_ac_given_x0_z
-                else 1.0
-            )
-
-            acc2 += p_y_given_x0_w_a_z.values * prob_w_a * prob_w_ac * p_z
-
-    return acc1 - acc2
+    return val_term1 - val_term2
 
 
 ############################################################
 ################## Utility Functions #######################
 ############################################################
+
+
+def _compute_cross_world_term(
+    ie,
+    y: str,
+    x: str,
+    x0: Any,
+    x1: Any,
+    w_b: list[str],
+    w_b_c: list[str],
+    z: list[str],
+):
+    """
+    Helper to compute the cross world distribution:
+    sum_{w_mod, w_base, z} P(Y|x_base, w_mod, w_base, z) * P(w_mod|x_mod, z) * P(w_base|x_base, z) * P(z)
+    """
+    # P(Z)
+    p_z = ie.query(variables=z, joint=True) if z else None
+
+    # P(W_B | x1, Z)
+    if w_b:
+        p_w_b_z = ie.query(variables=w_b + z, evidence={x: x1}, joint=True)
+        if z:
+            p_z_given_x1 = ie.query(variables=z, evidence={x: x1}, joint=True)
+            p_w_b_given_x1_z = p_w_b_z / p_z_given_x1
+        else:
+            p_w_b_given_x1_z = p_w_b_z
+    else:
+        p_w_b_given_x1_z = None
+
+    # P(W_B_C | x0, Z)
+    if w_b_c:
+        p_w_bc_z = ie.query(variables=w_b_c + z, evidence={x: x0}, joint=True)
+        if z:
+            p_z_given_x0 = ie.query(variables=z, evidence={x: x0}, joint=True)
+            p_w_bc_given_x0_z = p_w_bc_z / p_z_given_x0
+        else:
+            p_w_bc_given_x0_z = p_w_bc_z
+    else:
+        p_w_bc_given_x0_z = None
+
+    # P(y | x0, w_B, w_BC, z)
+    cond_vars = w_b + w_b_c + z
+    if cond_vars:
+        p_y_cond = ie.query(variables=[y] + cond_vars, evidence={x: x0}, joint=True)
+        p_cond = ie.query(variables=cond_vars, evidence={x: x0}, joint=True)
+        p_y_given_x0_w_b_w_bc_z = p_y_cond / p_cond
+    else:
+        p_y_given_x0_w_b_w_bc_z = ie.query(variables=[y], evidence={x: x0}, joint=True)
+
+    # Prod
+    term = p_y_given_x0_w_b_w_bc_z
+    if p_w_b_given_x1_z is not None:
+        term = term * p_w_b_given_x1_z
+    if p_w_bc_given_x0_z is not None:
+        term = term * p_w_bc_given_x0_z
+    if p_z is not None:
+        term = term * p_z
+
+    term.marginalize(cond_vars)
+    return term
 
 
 def _estimate_target_prob_by_adjustment(

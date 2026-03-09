@@ -7,6 +7,9 @@ requires-python = ">=3.14"
 
 dependencies = [
     "arviz>=0.23.4",
+    "arviz-base>=1.0.0",
+    "arviz-plots>=1.0.0",
+    "arviz-stats>=1.0.0",
     "daft-pgm>=0.1.4",
     "graphviz>=0.20.3",
     "ipykernel>=7.1.0",
