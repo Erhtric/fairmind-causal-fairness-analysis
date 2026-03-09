@@ -28,6 +28,8 @@ def build_sfm(
     outcome_attr: str,
     confounder_attrs: list[str],
     mediator_attrs: list[str],
+    sorted_confounders: bool = False,
+    sorted_mediators: bool = False,
     latents: Optional[list[tuple[str, list[str]]] | None] = None,
 ) -> nx.DiGraph:
     """
@@ -37,7 +39,9 @@ def build_sfm(
         sensitive_attr (str): The name of the sensitive attribute.
         outcome_attr (str): The name of the outcome attribute.
         confounder_attrs (list[str]): A list of names of confounder attributes.
+        sorted_confounders (bool): Whether to sort confounder attributes in topological order.
         mediator_attrs (list[str]): A list of names of mediator attributes.
+        sorted_mediators (bool): Whether to sort mediator attributes in topological order.
         latents (list[Tuple[str, list[str]]]): A list of tuples representing latent variables.
                 Each tuple should contain the name of the latent variable and a list of children.
                 This extends the basic SFM template to include latent variables that may confound relationships between observed variables.
@@ -76,10 +80,16 @@ def build_sfm(
         sfm.add_node(confounder, type="confounder", category="endogenous")
         sfm.add_edge(confounder, sensitive_attr)
         sfm.add_edge(confounder, outcome_attr)
+        if sorted_confounders:
+            for i in range(len(confounder_attrs) - 1):
+                sfm.add_edge(confounder_attrs[i], confounder_attrs[i + 1])
     for mediator in mediator_attrs:
         sfm.add_node(mediator, type="mediator", category="endogenous")
         sfm.add_edge(sensitive_attr, mediator)
         sfm.add_edge(mediator, outcome_attr)
+        if sorted_mediators:
+            for i in range(len(mediator_attrs) - 1):
+                sfm.add_edge(mediator_attrs[i], mediator_attrs[i + 1])
 
     for confounder in confounder_attrs:
         for mediator in mediator_attrs:

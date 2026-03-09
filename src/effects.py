@@ -461,7 +461,7 @@ DE = natural_direct_effect
 ############## Effect computation via SCM ##################
 ############################################################
 
-TODO: Implement the SCM-based effect computations.
+# TODO: Implement the SCM-based effect computations.
 
 ############################################################
 ######### Partitioned Effect Wrappers ######################
@@ -902,7 +902,7 @@ def set_specific_indirect_effect(
         z=z_nodes,
     )
 
-    # --- Compute Term 2 ---
+    # Term 2
     # sum_{z, w} P(Y|x0, w_a, w_ac, z) P(w_a|x1, z) P(w_ac|x0, z) P(z)
     factor_term2 = _compute_cross_world_term(
         ie=ve,
@@ -915,7 +915,127 @@ def set_specific_indirect_effect(
         z=z_nodes,
     )
 
-    # Extract specific target values and return the difference
+    val_term1 = float(factor_term1.get_value(**{y: y_val}))
+    val_term2 = float(factor_term2.get_value(**{y: y_val}))
+
+    return val_term1 - val_term2
+
+
+def decompose_spurious_effect(
+    bn: DiscreteBayesianNetwork,
+    target: tuple[str, Any],
+    private_attr: str,
+    x: Any,
+) -> dict[str, float]:
+    """
+    Decompose the Experimental Spurious Effect into variable-specific contributions.
+
+    Note:
+        - This decomposition is only valid for Markovian models, where the confounders are
+            causally ordered and there are no latent confounders between the private variable and the outcome.
+            Use at your own risk if these assumptions are violated, as the decomposition may not be identifiable.
+
+    Args:
+        bn: The Bayesian Network to use for inference.
+        target: A tuple of (variable, value) for the target variable and its value.
+        private_attr: The name of the private variable whose effect we want to measure.
+        x: The value of the private variable for which we want to compute the spurious effect.
+
+    Returns:
+        A dictionary mapping each confounder to its contribution to the spurious effect.
+         Each key identifies the confounder and the corresponding value is the contribution of that confounder
+         to the overall spurious effect. Summing the contributions across all confounders.
+    """
+    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    sorted_confounders = list(nx.topological_sort(bn.subgraph(z_nodes)))
+
+    if len(sorted_confounders) == 0:
+        return {}
+
+    contributions = {}
+
+    for i, confounder in enumerate(sorted_confounders):
+        # U_A is confounders strictly before i
+        z_A = sorted_confounders[:i]
+        # U_B is confounders up to and including i
+        z_B = sorted_confounders[: i + 1]
+
+        se_contrib = set_specific_spurious_effect(
+            bn=bn,
+            target=target,
+            private_attr=private_attr,
+            x=x,
+            U_A=z_A,
+            U_B=z_B,
+        )
+
+        contributions[confounder] = se_contrib
+
+    return contributions
+
+
+def set_specific_spurious_effect(
+    bn: DiscreteBayesianNetwork,
+    target: tuple[str, Any],
+    private_attr: str,
+    x: Any,
+    U_A: list[str],  # Z_A (e.g., Z_[i])
+    U_B: list[str],  # Z_B (e.g., Z_[i+1])
+) -> float:
+    """
+    Compute the set-specific experimental spurious effect for the Markovian case.
+    Exp-SE^x_{U_A, U_B}(y) = P(y | x_{U_A}) - P(y | x_{U_B})
+
+    Theorem 6.2 (Spurious Decomposition Identification in Topological Ordering) and Example 6.7
+    pp. 148-149 of "Causal Fairness Analysis" by Plecko D. & Bareinboim E. (2024).
+
+    Note:
+        - This decomposition is only valid for Markovian models, where the confounders are
+            causally ordered and there are no latent confounders between the private variable and the outcome
+
+    Args:
+        bn: The Bayesian Network to use for inference.
+        target: A tuple of (variable, value) for the target variable and its value.
+        private_attr: The name of the private variable whose effect we want to measure.
+        x: The value of the private variable for which we want to compute the spurious effect
+        U_A: The first partition of confounders (Z_A) for the first term.
+        U_B: The second partition of confounders (Z_B) for the second term.
+
+    Returns:
+        The set-specific spurious effect.
+    """
+    ie = VariableElimination(bn)
+    y, y_val = target
+
+    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    z_all = list(nx.topological_sort(bn.subgraph(z_nodes)))
+
+    logger.debug(
+        f"Computing set-specific spurious effect for target={target}, private_attr={x}, "
+        f"Z_A={U_A}, Z_B={U_B}"
+    )
+
+    # Compute Term 1: P(y | x_{U_A})
+    factor_term1 = _compute_exp_spurious_term(
+        infer=ie,
+        y=y,
+        private_attr=private_attr,
+        x=x,
+        z_unresponsive=U_A,
+        z_all=z_all,
+    )
+
+    # Compute Term 2: P(y | x_{U_B})
+    factor_term2 = _compute_exp_spurious_term(
+        infer=ie,
+        y=y,
+        private_attr=private_attr,
+        x=x,
+        z_unresponsive=U_B,
+        z_all=z_all,
+    )
+
+    # Extract scalar target values
     val_term1 = float(factor_term1.get_value(**{y: y_val}))
     val_term2 = float(factor_term2.get_value(**{y: y_val}))
 
@@ -938,8 +1058,14 @@ def _compute_cross_world_term(
     z: list[str],
 ):
     """
-    Helper to compute the cross world distribution:
+    Helper to compute the cross world distribution used in the set-specific indirect effect.
     sum_{w_mod, w_base, z} P(Y|x_base, w_mod, w_base, z) * P(w_mod|x_mod, z) * P(w_base|x_base, z) * P(z)
+
+    Note:
+        By definition it is a nested term involving multiple mediators under different interventions.
+        Note that this is the evaluation of the Identification formula under no-cnfounding between mediator and private variable,
+        as well as no latent confounding between the private variable and the outcome. In all the other cases,
+        the formula is not identifiable and cannot be computed from observational data.
     """
     # P(Z)
     p_z = ie.query(variables=z, joint=True) if z else None
@@ -985,6 +1111,43 @@ def _compute_cross_world_term(
         term = term * p_z
 
     term.marginalize(cond_vars)
+    return term
+
+
+def _compute_exp_spurious_term(
+    infer: VariableElimination,
+    y: str,
+    private_attr: str,
+    x: Any,
+    z_unresponsive: list[str],
+    z_all: list[str],
+):
+    """
+    Computes P(y | x_{U_A}) where U_A corresponds to z_unresponsive. Used in the set-specific spurious effect.
+
+    TODO: extend computation to non-markovian
+
+    Algebraically simplified to:
+    sum_z P(y, z | x) * P(z_unresponsive) / P(z_unresponsive | x)
+    """
+    # P(y, z | x)
+    query_vars = [y] + z_all if z_all else [y]
+    p_y_z_given_x = infer.query(
+        variables=query_vars, evidence={private_attr: x}, joint=True
+    )
+
+    # P(z_unresponsive) / P(z_unresponsive | x)
+    if z_unresponsive:
+        p_z_unresp = infer.query(variables=z_unresponsive, joint=True)
+        p_z_unresp_given_x = infer.query(
+            variables=z_unresponsive, evidence={private_attr: x}, joint=True
+        )
+
+        term = p_y_z_given_x * p_z_unresp / p_z_unresp_given_x
+    else:
+        term = p_y_z_given_x
+
+    term.marginalize(z_all) if z_all else None
     return term
 
 
