@@ -1,6 +1,39 @@
 # causal-ai-fairness
 This repo contains an operationalization of causal fairness concepts in AI. Synthetic and real-world experiments are included.
 
+## Repository structure (in progress)
+- `src/causalfairness`: new active implementation of the Streamlit app and effect computation modules.
+- `src/causality`: new active implementation of causal graph utilities.
+- `data/datasets`: local dataset artifacts used for experiments.
+- `legacy/causalfairness` and `legacy/causality`: preserved snapshot of pre-migration code.
+
+## Setup and run
+- Install dependencies (recommended): `uv sync`
+- Fallback install: `python -m pip install -e .`
+- Run new app path: `streamlit run src/causalfairness/ui.py --server.enableCORS false --server.enableXsrfProtection false`
+- Legacy app path (temporary): `streamlit run causalfairness/ui.py --server.enableCORS false --server.enableXsrfProtection false`
+
+## Utilization pipeline
+- See `docs/pipeline.md` for the full flow from dataset ingestion to causal decomposition and LLM narrative generation.
+
+## Build a pgmpy Bayesian Network from data
+- New module: `src/causalfairness/pgmpy_bn.py`
+- Main API: `build_fitted_bn(df, edges, estimator="mle", estimator_kwargs=None, nodes=None, dropna=False)`
+- Supported estimators: `"mle"` and `"bayesian"`
+- Graph input: explicit edge list `[(parent, child), ...]` (or `networkx.DiGraph`)
+- Alternative graph helper: `edges_from_parent_map({"child": ["parent1", "parent2"]})`
+- Data requirement: all graph-node columns must be discrete (`bool`, `int`, `category`, `string`/`object`)
+- Missing values: raise clear error by default, or set `dropna=True`
+
+Example:
+```python
+from causalfairness.pgmpy_bn import build_fitted_bn
+
+edges = [("X", "W"), ("X", "Y"), ("W", "Y")]
+model = build_fitted_bn(df, edges, estimator="mle")
+cpds = model.get_cpds()
+```
+
 # 1. Basic survey
 Everything has to be contextualized based on SFM:
 1. Deline an exhaustive list of effects coming from causal literature, in particular the ones coming from causal fairness works. (partially)
