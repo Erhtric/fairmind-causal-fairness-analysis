@@ -1,10 +1,9 @@
-import itertools
-from typing import Iterable
-
-import numpy as np
-from bayesian import *
 from general_effects import *
 from libraries import *
+from bayesian import *
+from typing import Iterable
+import itertools
+import numpy as np
 
 
 def _to_list(cols):
@@ -142,8 +141,6 @@ def build_probabilities_multi(df, x_col="X", y_col="Y", w_cols=None, z_cols=None
 
 
 # Decompose indirect effect, NEW
-
-
 def decompose_ie_by_mediator_counts(ie_subset_fn, mediators, x0, x1):
     contrib = {}
     prev = ie_subset_fn(x0=x0, x1=x1, S=[])["Ey_x1"]  # baseline E[Y_{x1}]
@@ -157,8 +154,6 @@ def decompose_ie_by_mediator_counts(ie_subset_fn, mediators, x0, x1):
 
 
 # Frequentist approach: not used
-
-
 def make_ie_subset_fn_counts(
     df, x_col, y_col, w_cols, z_cols=None, topo_order=None, y_val=1
 ):
@@ -359,8 +354,6 @@ def make_se_subset_fn(df, x0, x1, y, w_cols=None, x_col="X", y_col="Y"):
 
 
 # IF NO ORDER: intervals
-
-
 def se_minmax_intervals(se_subset_fn, z_cols):
     z_cols = list(z_cols)
     mins = {z: np.inf for z in z_cols}
@@ -551,8 +544,6 @@ def compute_effects_multi(
 
 
 # x-specific
-
-
 def compute_x_specific_effects(
     df,
     x0,
@@ -639,8 +630,6 @@ def compute_x_specific_effects(
 
 
 # z-specific effect
-
-
 def compute_z_specific_effects(
     df,
     x0,
