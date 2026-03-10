@@ -294,8 +294,10 @@ def natural_direct_effect(
     if x0 not in cause_labels or x1 not in cause_labels:
         raise ValueError("x0 and x1 must be valid states of the cause variable.")
 
-    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), "mediator")
-    confounders = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), type="mediator")
+    confounders = filter_nodes_by_type(
+        bn.nodes(data=True, default={}), type="confounder"
+    )
 
     ve = VariableElimination(bn)
 
@@ -379,8 +381,10 @@ def natural_indirect_effect(
     if x0 not in cause_labels or x1 not in cause_labels:
         raise ValueError("x0 and x1 must be valid states of the cause variable.")
 
-    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), "mediator")
-    confounders = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), type="mediator")
+    confounders = filter_nodes_by_type(
+        bn.nodes(data=True, default={}), type="confounder"
+    )
 
     ve = VariableElimination(bn)
 
@@ -684,7 +688,7 @@ def categorical_natural_direct_effect(
         An EffectResult object containing the NDE value for the given pair of states.
     """
     # This implementation currently assumes exactly one mediator.
-    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), "mediator")
+    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), type="mediator")
     if len(mediators) != 1:
         raise NotImplementedError(
             "This SCM implementation currently assumes exactly one mediator."
@@ -731,7 +735,7 @@ def categorical_natural_indirect_effect(
     """
 
     # This implementation currently assumes exactly one mediator.
-    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), "mediator")
+    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), type="mediator")
     if len(mediators) != 1:
         raise NotImplementedError(
             "This SCM implementation currently assumes exactly one mediator."
@@ -779,7 +783,7 @@ def decompose_indirect_effect(
         of that mediator to the overall indirect effect.
         Summing the contributions across all mediators should yield the total indirect effect.
     """
-    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), "mediator")
+    mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), type="mediator")
     sorted_mediators: list[str] = list(nx.topological_sort(bn.subgraph(mediators)))
 
     if len(sorted_mediators) == 0:
@@ -856,7 +860,7 @@ def set_specific_indirect_effect(
     ordered_mediators = list(
         nx.topological_sort(
             bn.subgraph(
-                filter_nodes_by_type(bn.nodes(data=True, default={}), "mediator")
+                filter_nodes_by_type(bn.nodes(data=True, default={}), type="mediator")
             )
         )
     )
@@ -882,7 +886,7 @@ def set_specific_indirect_effect(
     w_ac = [m for m in ordered_mediators if m not in w_a]
 
     # Term1: sum_{z, w} P(Y|x0, w_b, w_bc, z) P(w_b|x1, z) P(w_bc|x0, z) P(z)
-    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), type="confounder")
     factor_term1 = _compute_cross_world_term(
         ie=ve,
         y=y,
@@ -938,7 +942,7 @@ def decompose_spurious_effect(
          Each key identifies the confounder and the corresponding value is the contribution of that confounder
          to the overall spurious effect. Summing the contributions across all confounders.
     """
-    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), type="confounder")
     sorted_confounders = list(nx.topological_sort(bn.subgraph(z_nodes)))
 
     if len(sorted_confounders) == 0:
@@ -999,7 +1003,7 @@ def set_specific_spurious_effect(
     ie = VariableElimination(bn)
     y, y_val = target
 
-    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    z_nodes = filter_nodes_by_type(bn.nodes(data=True, default={}), type="confounder")
     z_all = list(nx.topological_sort(bn.subgraph(z_nodes)))
 
     logger.debug(
@@ -1155,7 +1159,7 @@ def _estimate_target_prob_by_adjustment(
     If Z is a minimal adjustment set for (private_var, target_var), then:
     P(Y @ {X:x} == y) = sum_z P(Y | X=x, Z=z) P(Z=z)
     """
-    adj_set = filter_nodes_by_type(bn.nodes(data=True, default={}), "confounder")
+    adj_set = filter_nodes_by_type(bn.nodes(data=True, default={}), type="confounder")
 
     # Base case: No confounders
     if not adj_set:

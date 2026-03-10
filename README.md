@@ -1,55 +1,96 @@
 # causal-ai-fairness
+
 This repo contains an operationalization of causal fairness concepts in AI. Synthetic and real-world experiments are included.
 
-## Repository structure (in progress)
-- `src/causalfairness`: new active implementation of the Streamlit app and effect computation modules.
-- `src/causality`: new active implementation of causal graph utilities.
-- `data/datasets`: local dataset artifacts used for experiments.
-- `legacy/causalfairness` and `legacy/causality`: preserved snapshot of pre-migration code.
+## Repository structure
+
+- `src/`: Core library implementation.
+  - `model.py`: Bayesian Network fitting using `pgmpy`.
+  - `effects.py`: Causal effect estimation logic.
+  - `sym/`: Symbolic Causal DSL and calculus.
+  - `visualisation/`: Visualization utilities (Sankey diagrams).
+- `data/datasets`: Local dataset artifacts used for experiments.
+- `legacy/causalfairness`: Preserved snapshot of pre-migration code (contains the current Streamlit UI).
 
 ## Setup and run
-- Install dependencies (recommended): `uv sync`
-- Fallback install: `python -m pip install -e .`
-- Run new app path: `streamlit run src/causalfairness/ui.py --server.enableCORS false --server.enableXsrfProtection false`
-- Legacy app path (temporary): `streamlit run causalfairness/ui.py --server.enableCORS false --server.enableXsrfProtection false`
 
-## Utilization pipeline
-- See `docs/pipeline.md` for the full flow from dataset ingestion to causal decomposition and LLM narrative generation.
+1. **Install dependencies** (recommended):
+   ```bash
+   uv sync
+   ```
+   Fallback: `python -m pip install -e .`
+
+2. **Run the application**:
+   Currently, the UI is located in the legacy directory:
+   ```bash
+   streamlit run legacy/causalfairness/ui.py --server.enableCORS false --server.enableXsrfProtection false
+   ```
+
+## Documentation
+
+The project uses MkDocs with Material theme for documentation, including full API reference generated from code docstrings.
+
+**View documentation locally**:
+```bash
+uv run mkdocs serve
+```
+Then open http://127.0.0.1:8000/ in your browser.
+
+**Build static documentation**:
+```bash
+uv run mkdocs build
+```
+This generates the static site in the `site/` directory.
+
+The documentation includes:
+- User guide and quick start
+- Complete API reference for all modules
+- Code examples and usage patterns
 
 ## Build a pgmpy Bayesian Network from data
-- New module: `src/causalfairness/pgmpy_bn.py`
-- Main API: `build_fitted_bn(df, edges, estimator="mle", estimator_kwargs=None, nodes=None, dropna=False)`
-- Supported estimators: `"mle"` and `"bayesian"`
-- Graph input: explicit edge list `[(parent, child), ...]` (or `networkx.DiGraph`)
-- Alternative graph helper: `edges_from_parent_map({"child": ["parent1", "parent2"]})`
-- Data requirement: all graph-node columns must be discrete (`bool`, `int`, `category`, `string`/`object`)
-- Missing values: raise clear error by default, or set `dropna=True`
+
+- Module: `src/model.py`
+- Main API: `fit_discrete_bayesian_model(sfm, data, estimator_instance)`
 
 Example:
-```python
-from causalfairness.pgmpy_bn import build_fitted_bn
 
-edges = [("X", "W"), ("X", "Y"), ("W", "Y")]
-model = build_fitted_bn(df, edges, estimator="mle")
-cpds = model.get_cpds()
+```python
+import networkx as nx
+import pandas as pd
+from pgmpy.estimators import MaximumLikelihoodEstimator
+from src.model import fit_discrete_bayesian_model
+
+# 1. Define the Structural Fairness Model (SFM)
+sfm = nx.DiGraph([("X", "W"), ("X", "Y"), ("W", "Y")])
+
+# 2. Prepare data
+df = pd.read_csv("data.csv")
+
+# 3. Fit the model
+# estimator_instance is a tuple: (EstimatorClass, kwargs)
+model = fit_discrete_bayesian_model(
+    sfm=sfm,
+    data=df,
+    estimator_instance=(MaximumLikelihoodEstimator, {})
+)
 ```
 
 # 1. Basic survey
 Everything has to be contextualized based on SFM:
-1. Deline an exhaustive list of effects coming from causal literature, in particular the ones coming from causal fairness works. (partially)
-2. In a similar manner, deline the normative criterions that are used to define "fairness" in causal terms (demographic parity, eq of odds, etc.)
+1. Delineate an exhaustive list of effects coming from causal literature, in particular the ones coming from causal fairness works. (partially)
+2. In a similar manner, delineate the normative criterions that are used to define "fairness" in causal terms (demographic parity, eq of odds, etc.)
 
-# 2. Syntethic experiment
+# 2. Synthetic experiment
 1. Given binary variables and the Markovian SFM, produce a dataset of observations.
 2. Compute all effects that are coming from literature (identifiability equations)
-   
+
 # 3. Real-world experiment
 For each dataset in the ones used in AEQUITAS (resources can be found https://aiod.eu):
-1. Intepretazione dell'analisi osservazione in termini causali
-2. Calcolare effetti causali
+1. Interpretation of observational analysis in causal terms.
+2. Compute causal effects.
 
 # 4. Experiments
 1. Extension to multi-varied discrete variable (>2 X, >2 Y). The idea is to take inspiration from works that discussed extension to PN, PS and PNS.
-2. Extension to multi-varied discrete (ordered) variable
-3. Extension to multi-varied continuos variables
-4. Extension to NON-linear models
+2. Extension to multi-varied discrete (ordered) variable.
+3. Extension to multi-varied continuous variables.
+4. Extension to NON-linear models.

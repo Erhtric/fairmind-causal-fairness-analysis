@@ -1,3 +1,27 @@
 .env.venv/
 .venv/
 .venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data / results
+# data/
+results/
+
+# OS / tooling
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# UV specific
+*.lock
+
+*.html
+
+site/
+
+copilot_*

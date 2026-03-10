@@ -1,40 +1,55 @@
-# Project Guidelines
+# Copilot Instructions
 
-## Code Style
-- Primary language is Python; active code lives under `src/causalfairness/` and `src/causality/`.
-- Legacy snapshot is preserved under `legacy/causalfairness/` and `legacy/causality/`; avoid editing legacy unless explicitly requested.
-- Follow existing import style in touched files (many modules use `from ... import *`, e.g. `src/causalfairness/functions.py`). Do not refactor import style unless required by the task.
-- Preserve effect-domain naming already used across the project (`te`, `de`, `ie`, `se`, `x0`, `x1`, `w_cols`, `z_cols`).
-- Prefer small helper functions and DataFrame-first transformations, matching `src/causalfairness/functions.py` and `src/causalfairness/ui.py`.
-- Type hints are partial; add them only where nearby code already uses them (example: `src/causality/graph.py`).
+## Build, Test, and Lint
 
-## Architecture
-- `src/causalfairness/ui.py` is the Streamlit entrypoint and orchestration layer (data upload, variable-role selection, analysis execution, visualization, LLM narrative).
-- `src/causalfairness/functions.py` contains core effect computation and decomposition logic (frequentist + Bayesian helpers).
-- `src/causalfairness/general_effects.py` defines effect equations used by the computation layer.
-- `src/causalfairness/sankey.py` and Graphviz usage in `ui.py` handle visualization outputs.
-- `src/causality/graph.py` is a separate causal-graph utility module; keep it decoupled from Streamlit UI concerns.
+- **Dependency Management**: This project uses `uv`.
+  - Install dependencies: `uv sync`
+  - Add dependency: `uv add <package>`
+- **Testing**: Run tests with `pytest`.
+  - Run all tests: `uv run pytest`
+  - Run a specific test file: `uv run pytest tests/test_model.py`
+- **Linting & Formatting**: This project uses `ruff`.
+  - Check: `uv run ruff check .`
+  - Format: `uv run ruff format .`
 
-## Build and Test
-- Python requirement from `pyproject.toml`: `>=3.13,<3.14`.
-- Install dependencies (recommended): `uv sync`.
-- Fallback install if `uv` is unavailable: `python -m pip install -e .`.
-- Run app: `streamlit run src/causalfairness/ui.py --server.enableCORS false --server.enableXsrfProtection false`.
-- Tests are not currently defined (no test suite/config discovered); do not invent new global test commands.
+## High-Level Architecture
 
-## Project Conventions
-- Keep the SFM/fairness terminology and decomposition semantics used in `README.md` and `src/causalfairness/ui.py`.
-- Respect UI role exclusivity logic (X/Y/W/Z assignment and session-state callbacks) implemented in `src/causalfairness/ui.py`.
-- Preserve support for unknown mediator/confounder order handling (`unknown_w_order`, `unknown_z_order`) and interval outputs in `src/causalfairness/functions.py`.
-- Reuse shared library imports from `src/causalfairness/libraries.py` when adding dependencies used across multiple modules.
-- This repo is notebook-heavy (`legacy/causalfairness/*.ipynb`); when changing shared logic, ensure notebook flows remain compatible.
+The project implements causal fairness concepts using a symbolic DSL and Bayesian Networks.
 
-## Integration Points
-- OpenAI integration is in `src/causalfairness/ui.py` via `OpenAI` client and prompt templates from `src/causalfairness/resources/fairmind_prompts.txt`.
-- Streamlit is the main runtime/UI framework; prefer Streamlit-native state and caching patterns (`st.session_state`, `@st.cache_data`).
-- Data inputs are user-uploaded files (`csv`, `tsv`, `xlsx`, `json`) parsed in the UI layer; reference datasets are in `data/datasets/`.
+- **`src/sym/`**: Contains the symbolic Domain Specific Language (DSL) for causal inference.
+  - `dsl.py`: Defines core primitives (`Variable`, `CounterfactualTerm`, `Event`, `Query`).
+  - Supports syntax sugar like `Y @ {X: 1}` for counterfactuals ($Y_{X=1}$).
+- **`src/model.py`**: Handles fitting Discrete Bayesian Networks (using `pgmpy`) to data based on a structural model.
+- **`src/visualisation/`**: Visualization utilities, primarily Sankey diagrams (`sankey.py`) using `plotly` to show effect decomposition.
+- **`src/effects.py`**: Logic for computing causal effects via adjustment and inference on Bayesian Networks.
+- **`legacy/`**: Contains preserved pre-migration code. Avoid modifying unless necessary.
 
-## Security
-- `OPENAI_API_KEY` is required and loaded from `.env`; do not hardcode API keys.
-- Treat uploaded dataset content as sensitive; avoid logging raw rows unless strictly necessary.
-- The devcontainer run command disables CORS/XSRF for local development; do not assume those flags are safe for production deployment.
+## Key Conventions
+
+- **Symbolic DSL**: When working with causal queries, use the DSL defined in `src/sym/dsl.py`.
+  - Variables are immutable and hashable.
+  - Counterfactuals are created with the `@` operator: `Var @ {Intervention: Value}`.
+  - Events are conjunctions of atomic propositions.
+- **Data Handling**:
+  - `pandas` DataFrames are used for datasets.
+  - `networkx.DiGraph` is used for structural models.
+- **Typing**: Type hints are used partially. Add them for new code.
+- **Logging**: Use `loguru` for logging.
+- **Visualization**: Use `plotly.graph_objects` for interactive plots (Sankey diagrams).
+
+## Project Structure
+
+```
+src/
+├── model.py          # Bayesian Network fitting
+├── effects.py        # Effect calculation
+├── graph.py          # Graph utilities
+├── preprocess.py     # Data preprocessing
+├── sym/              # Symbolic Causal DSL
+│   ├── dsl.py
+│   ├── ctf_calculus.py
+│   └── effects.py
+└── visualisation/    # Plotting
+    ├── sankey.py
+    └── graph.py
+```

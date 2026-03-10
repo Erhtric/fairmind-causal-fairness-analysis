@@ -34,7 +34,7 @@ def fit_discrete_bayesian_model(
         f"Using estimator: {estimator_class} with parameters: {estimator_params}"
     )
 
-    latents = filter_nodes_by_type(sfm.nodes(data=True), "latent")
+    latents = filter_nodes_by_type(sfm.nodes(data=True), category="latent")
     model = DiscreteBayesianNetwork(sfm, latents=set(latents))
     model.fit(data, estimator=estimator_class, **estimator_params)
 
