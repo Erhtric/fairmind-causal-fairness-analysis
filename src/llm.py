@@ -6,37 +6,69 @@ import pandas as pd
 
 # ONLY LLM, no results
 
-def summarize_with_llm_combined_dataset_only():
-    """
-    Dataset-only version:
-    - Dataset is attached as an input file.
-    - Model must compute fairness decomposition from dataset.
-    Returns: (system_prompt, user_prompt)
-    Column roles:
-    - Y (outcome variable): <PUT COLUMN NAME>
-    - Z (sensitive attribute): <PUT COLUMN NAME>
-    - X (predictor features): <PUT COLUMN NAMES OR 'all except Y and Z'>
-    - W (control variables, if any): <PUT COLUMN NAMES OR 'none'>
 
+def summarize_with_llm_combined_dataset_only(
+    x: str,
+    y: str,
+    w: list[str] | None = None,
+    z: list[str] | None = None,
+    x0: str | None = None,
+    x1: str | None = None,
+    y_value: str | None = None,
+    w_values: list[str] | None = None,
+    prompt_filename: str = "prompts_onlygpt.txt",
+):
     """
-    REPO_ROOT = Path(__file__).resolve().parents[1]
-    prompt_path = Path( REPO_ROOT/ "prompts"/"prompts_onlygpt.txt")
+    Generic dataset-only prompt builder.
+
+    Parameters
+    ----------
+    x : protected variable
+    y : outcome variable
+    w : mediator variables
+    z : spurious features
+    x0, x1 : reference values for X
+    y_value : target value for Y
+    w_values : optional allowed values for W
+    prompt_filename : prompt template file name
+
+    Returns
+    -------
+    (system_prompt, user_prompt)
+    """
+    repo_root = Path(__file__).resolve().parents[1]
+    prompt_path = repo_root / "prompts" / prompt_filename
     system_prompt = prompt_path.read_text(encoding="utf-8")
 
+    z_text = ", ".join(z) if z else "None"
+    w_text = ", ".join(w) if w else "None"
+    w_values_text = list(w_values) if w_values else "not specified"
 
-    user_prompt = """
-You are given a dataset as a PDF rendering of the dataset (table)."
+    x_line = f"- X (protected variable): <{x}>"
+    if x0 is not None and x1 is not None:
+        x_line += f", with x0={x0} and x1={x1}"
+
+    y_line = f"- Y (outcome attribute): <{y}>"
+    if y_value is not None:
+        y_line += f" y='{y_value}'"
+
+    z_line = f"- Z (spurious features): <{z_text}>"
+    w_line = f"- W (mediator variables): <{w_text}>"
+    if w and w_values is not None:
+        w_line += f" {list(w_values_text)}"
+
+    user_prompt = f"""
+You are given a dataset as a PDF rendering of the dataset (table).
 
 Column roles:
-- X (protected variable): <Sex>, with x0= Female and x1=Male
-- Y (outcome attribute): <Admission> y= 'Accepted'
-- Z (spurious features): <None>
-- W (mediator variables): <Major>
-
+{x_line}
+{y_line}
+{z_line}
+{w_line}
 
 Your task:
 1. Analyze the dataset.
-2. Compute the fairness decomposition according to Bareimboim and Plecko theory, both general and X-Z specific effects.
+2. Compute the fairness decomposition according to Bareinboim and Plecko theory, both general and X-Z specific effects.
 3. Produce a structured report.
 
 Output format MUST be:
@@ -50,13 +82,16 @@ LATEX:
 
     return system_prompt, user_prompt
 
-
 def generate_report_from_file_id(
     file_id: str,
     client,
     model: str = "gpt-5-mini",
+    prompt_kwargs=None,
 ):
-    system_prompt, user_prompt = summarize_with_llm_combined_dataset_only()
+    prompt_kwargs = prompt_kwargs or {}
+
+    system_prompt, user_prompt = summarize_with_llm_combined_dataset_only(**prompt_kwargs)
+
     print("USER_PROMPT:", user_prompt)
     try:
         resp = client.responses.create(
@@ -66,8 +101,8 @@ def generate_report_from_file_id(
                 {
                     "type": "code_interpreter",
                     "container": {
-                        "type": "auto", 
-                        "file_ids": [file_id] 
+                        "type": "auto",
+                        "file_ids": [file_id],
                     },
                 },
             ],
@@ -95,9 +130,13 @@ def generate_report_from_file_id(
     text_part, latex_part = full_output.split("LATEX:", 1)
     return text_part.replace("TEXT:", "").strip(), latex_part.strip()
 
-
 # LLM, with results
 
+from typing import Any, Optional
+import pandas as pd
+
+from typing import Any, Optional, List, Dict, Tuple
+import pandas as pd
 
 
 def prepare_llm_payload_general(
@@ -105,37 +144,35 @@ def prepare_llm_payload_general(
     dataset_name: str,
     X: str,
     Y: str,
-    W: Optional[List[str]] = None,
-    Z: Optional[List[str]] = None,
-    x0: Any = None,
-    x1: Any = None,
-    y_target: Any = None,
-    results: Optional[Any] = None,
-    stepwise_results: Optional[List[Dict[str, Any]]] = None,
-    variable_metadata: Optional[Dict[str, Dict[str, Any]]] = None,
-    state_names: Optional[Dict[str, List[Any]]] = None,
-    graph_edges: Optional[List[Tuple[str, str]]] = None,
-    checks: Optional[Dict[str, Any]] = None,
-    notes: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    Create a general payload for sending causal/fairness results to an LLM.
-
-    Supports:
-    - X ordinal, binary, categorical, numerical
-    - Y binary, categorical, ordinal, numerical
-    - optional stepwise effects along ordered X levels
-    """
-
-    W = W or []
-    Z = Z or []
-    variable_metadata = variable_metadata or {}
-    checks = checks or {}
+    W=None,
+    Z=None,
+    x0=None,
+    x1=None,
+    y_target=None,
+    results=None,
+    stepwise_results=None,
+    variable_metadata=None,
+    state_names=None,
+    graph_edges=None,
+    checks=None,
+    notes=None,
+):
+    W = [] if W is None else W
+    Z = [] if Z is None else Z
+    variable_metadata = {} if variable_metadata is None else variable_metadata
+    checks = {} if checks is None else checks
+    stepwise_results = [] if stepwise_results is None else stepwise_results
 
     if isinstance(results, pd.Series):
         results = results.to_dict()
     elif isinstance(results, pd.DataFrame):
         results = results.to_dict(orient="records")
+
+    if isinstance(variable_metadata, pd.Series):
+        variable_metadata = variable_metadata.to_dict()
+
+    if isinstance(state_names, pd.Series):
+        state_names = state_names.to_dict()
 
     payload = {
         "dataset": dataset_name,
@@ -149,16 +186,15 @@ def prepare_llm_payload_general(
             "y_target": y_target,
         },
         "variable_metadata": variable_metadata,
-        "results": results,
-        "stepwise_results": stepwise_results or [],
         "state_names": state_names,
         "graph_edges": graph_edges,
+        "results": results,
+        "stepwise_results": stepwise_results,
         "checks": checks,
         "notes": notes,
     }
 
     return payload
-
 
 def payload_to_json(payload: Dict[str, Any], indent: int = 2) -> str:
     return json.dumps(payload, indent=indent, ensure_ascii=False, default=str)
