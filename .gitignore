@@ -1,13 +1,5 @@
-# Python artifacts
-__pycache__/
-*.py[cod]
-*.so
-build/
-dist/
-*.egg-info/
-
-# Environments
-.env
+.env.venv/
+.venv/
 .venv/
 venv/
 env/
