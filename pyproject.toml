@@ -23,6 +23,7 @@ dependencies = [
     "pyagrum>=2.3.0",
     "pymc>=5.26.1",
     "python-dotenv>=1.0.1",
+    "reportlab>=4.0.0",
     "scipy>=1.16.3",
     "streamlit>=1.51.0",
     "sympy>=1.14.0",
