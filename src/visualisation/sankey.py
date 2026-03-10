@@ -1,3 +1,6 @@
+from IPython.testing.plugin.simplevars import x
+from pathlib import Path
+
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -10,10 +13,11 @@ def plot_effect_sankey_percent(
     se: dict[str, float],
     ie: float,
     de: float,
-    se_decomp: dict[str, dict[str, float]] = None,
-    ie_decomp: dict[str, float] = None,
-    title="",
-    renderer="notebook",
+    se_decomp: dict[str, dict[str, float]] | None = None,
+    ie_decomp: dict[str, float] | None = None,
+    title: str = "",
+    renderer: str = "notebook",
+    save_path: str | None = None,
 ):
     # If no decompositions are provided, default to empty lists/dicts
     se_decomp = se_decomp or {label: {} for label in se}
@@ -46,21 +50,23 @@ def plot_effect_sankey_percent(
     flows = []
 
     # 1. Base Level Flows
-    flows.append(("TV", "TE", tv_to_te, te))
+    flows.append(("Total Variation", "Total Effect", tv_to_te, te))
     for se_label, tv_to_s in tv_to_se.items():
-        label = f"SE[{se_label}]"
-        flows.append(("TV", label, tv_to_s, se[se_label]))
+        label = f"Spurious Effect[{se_label}]" if se_label else "Spurious Effect"
+        flows.append(("Total Variation", label, tv_to_s, se[se_label]))
 
     # 2. TE Decomposition Flows
-    flows.append(("TE", "IE", te_to_ie, ie))
-    flows.append(("TE", "DE", te_to_de, de))
+    flows.append(("Total Effect", "Indirect Effect", te_to_ie, ie))
+    flows.append(("Total Effect", "Direct Effect", te_to_de, de))
 
     for (w, eff), share in zip(ie_decomp.items(), ie_child_shares, strict=True):
-        flows.append(("IE", f"IE[{w}]", share, eff))
+        flows.append(("Indirect Effect", f"Indirect Effect[{w}]", share, eff))
 
-    # 3. SE Decomposition Flows (Iterating over each SE in the list)
+    # 3. SE Decomposition Flows
     for se_label in se_decomp.keys():
-        source_node = f"SE[{se_label}]"
+        source_node = (
+            f"Spurious Effect[{se_label}]" if se_label == "SE" else "Spurious Effect"
+        )
         cur_decomp = se_decomp[se_label] if se_label in se_decomp else {}
 
         abs_se_vals = [abs(v) for v in cur_decomp.values()]
@@ -71,10 +77,46 @@ def plot_effect_sankey_percent(
             share = tv_to_se.get(se_label, 0.0) * (abs_eff / total_se_child)
 
             # Using f"SE[{z}]" merges flows from SE[Male] and SE[Female] into the same confounder node
-            flows.append((source_node, f"SE[{z}]", share, eff))
+            flows.append(
+                (source_node, f"Spurious Effect[{z}]", share, eff)
+            ) if se_label == "SE" else flows.append(
+                (source_node, "Spurious Effect", share, eff)
+            )
 
-    labels = sorted({s for s, _, _, _ in flows} | {t for _, t, _, _ in flows})
-    label_to_idx = {lab: i for i, lab in enumerate(labels)}
+    node_effect_values: dict[str, float] = {
+        "Total Variation": tv,
+        "Total Effect": te,
+        "Indirect Effect": ie,
+        "Direct Effect": de,
+    }
+    for se_label, se_val in se.items():
+        se_node = f"Spurious Effect[{se_label}]" if se_label else "Spurious Effect"
+        node_effect_values[se_node] = se_val
+
+    for w, eff in ie_decomp.items():
+        node_effect_values[f"Indirect Effect[{w}]"] = eff
+
+    for se_label, cur_decomp in se_decomp.items():
+        for z, eff in cur_decomp.items():
+            child_node = (
+                f"Spurious Effect[{z}]" if se_label == "SE" else "Spurious Effect"
+            )
+            node_effect_values[child_node] = eff
+
+    node_names = sorted({s for s, _, _, _ in flows} | {t for _, t, _, _ in flows})
+    label_to_idx = {lab: i for i, lab in enumerate(node_names)}
+
+    node_labels = []
+    for node_name in node_names:
+        node_val = node_effect_values.get(node_name)
+        if node_val is None:
+            node_labels.append(node_name)
+        else:
+            node_labels.append(
+                f"{node_name}<br>{node_val:+.4f}"
+            ) if node_val >= 0 else node_labels.append(
+                f"{node_name}<br>{node_val:-.4f}"
+            )
 
     sources, targets, values, link_labels, link_colors = [], [], [], [], []
 
@@ -94,40 +136,49 @@ def plot_effect_sankey_percent(
         )
 
         if eff >= 0:
-            link_colors.append("rgba(120,180,120,0.7)")  # green
+            link_colors.append("rgba(120,180,120,0.5)")  # green
         else:
-            link_colors.append("rgba(220,90,90,0.8)")  # red
+            link_colors.append("rgba(220,90,90,0.5)")  # red
 
-    node_colors = ["rgba(230,230,230,1)" for _ in labels]
+    node_colors = ["rgba(230,230,230,1)" for _ in node_names]
 
     fig = go.Figure(
         data=[
             go.Sankey(
                 arrangement="snap",
-                node=dict(
-                    pad=20,
-                    thickness=25,
-                    label=labels,
-                    color=node_colors,
-                    line=dict(width=0.5),
-                ),
-                link=dict(
-                    source=sources,
-                    target=targets,
-                    value=values,
-                    color=link_colors,
-                    label=link_labels,
-                ),
+                node={
+                    "pad": 10,
+                    "thickness": 25,
+                    "label": node_labels,
+                    "color": node_colors,
+                    "line": {"width": 0.5},
+                    "align": "justify",
+                    "x": [1, 1, 1, 0.5, 0.0],
+                    "y": [0.9, 0.6, 0.1, 0.9, 0.5],
+                },
+                link={
+                    "source": sources,
+                    "target": targets,
+                    "value": values,
+                    "color": link_colors,
+                    "label": link_labels,
+                },
             )
         ]
     )
 
     title = title or f"Causal Effect Decomposition (Flows as % of |TV|={abs_tv:.2f})"
 
+    if save_path is not None:
+        filename = Path(save_path)
+        fig.write_html(filename.with_suffix(".html"))
+        fig.write_image(filename.with_suffix(".svg"))
+        fig.write_image(filename.with_suffix(".pdf"))
+
     fig.update_layout(
         title_text=title,
         title_x=0.5,
-        title_y=0.95,
+        title_y=0.9,
         title_font_size=16,
         title_font_color="black",
         font_size=14,
@@ -160,7 +211,6 @@ def plot_xspecific_sankey_percent(
             f"{outcome_name}: x-specific decomposition for {exposure_name}={x_label}"
         )
 
-    # 1
     abs_te = abs(te_x)
     abs_se = abs(se_x)
     total_lv1 = abs_te + abs_se if abs_te + abs_se > 0 else 1.0
@@ -168,7 +218,6 @@ def plot_xspecific_sankey_percent(
     tv_to_te = abs_te / total_lv1
     tv_to_se = abs_se / total_lv1
 
-    # 2
     abs_ie = abs(ie_x)
     abs_de = abs(de_x)
     total_te_children = abs_ie + abs_de if abs_ie + abs_de > 0 else 1.0
@@ -176,13 +225,11 @@ def plot_xspecific_sankey_percent(
     te_to_ie = tv_to_te * (abs_ie / total_te_children)
     te_to_de = tv_to_te * (abs_de / total_te_children)
 
-    # 3
     se_vals = list(se_decomp_x.values())
     abs_se_vals = [abs(v) for v in se_vals]
     total_se_child = sum(abs_se_vals) if abs_se_vals else 1.0
     se_child_shares = [tv_to_se * (a / total_se_child) for a in abs_se_vals]
 
-    # 4
     ie_vals = list(ie_decomp_x.values())
     abs_ie_vals = [abs(v) for v in ie_vals]
     total_ie_child = sum(abs_ie_vals) if abs_ie_vals else 1.0
@@ -240,20 +287,20 @@ def plot_xspecific_sankey_percent(
         data=[
             go.Sankey(
                 arrangement="snap",
-                node=dict(
-                    pad=20,
-                    thickness=25,
-                    label=labels,
-                    color=node_colors,
-                    line=dict(width=0.5),
-                ),
-                link=dict(
-                    source=sources,
-                    target=targets,
-                    value=values,
-                    color=link_colors,
-                    label=link_labels,
-                ),
+                node={
+                    "pad": 20,
+                    "thickness": 25,
+                    "label": labels,
+                    "color": node_colors,
+                    "line": {"width": 0.5},
+                },
+                link={
+                    "source": sources,
+                    "target": targets,
+                    "value": values,
+                    "color": link_colors,
+                    "label": link_labels,
+                },
             )
         ]
     )

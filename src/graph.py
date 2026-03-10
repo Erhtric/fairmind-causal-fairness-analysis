@@ -7,19 +7,28 @@ from src.sym.dsl import CounterfactualTerm, Variable
 
 
 def filter_nodes_by_type(
-    nodes: nx.classes.reportviews.NodeDataView, node_type: str
+    graph_or_nodes: nx.DiGraph | nx.classes.reportviews.NodeDataView, **kwargs
 ) -> list[str]:
+    """
+    Filters nodes by node attributes.
+
+    Args:
+        graph_or_nodes: A graph or a NodeDataView.
+        **kwargs: Key-value pairs to filter nodes by.
+
+    Returns:
+        A list of node names that match the specified attributes.
+    """
+    if isinstance(graph_or_nodes, nx.DiGraph):
+        nodes = graph_or_nodes.nodes(data=True)
+    else:
+        nodes = graph_or_nodes
+
     return [
-        node_name
-        for (node_name, node_data) in nodes
-        if node_data.get("type") == node_type
+        node
+        for node, data in nodes
+        if all(data.get(key) == value for key, value in kwargs.items())
     ]
-
-
-def has_latent_variables(sfm: nx.DiGraph) -> bool:
-    return any(
-        node_data.get("type") == "latent" for _, node_data in sfm.nodes(data=True)
-    )
 
 
 def build_sfm(
