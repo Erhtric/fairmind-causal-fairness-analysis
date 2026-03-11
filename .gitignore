@@ -1,8 +1,18 @@
-.env.venv/
-.venv/
+# Virtual environments
 .venv/
 venv/
 env/
+
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info*/
+.pytest_cache/
+.ruff_cache/
+.cache/
+
+# Environment files
+.env
 
 # Jupyter
 .ipynb_checkpoints/
@@ -11,25 +21,23 @@ env/
 # data/
 results/
 
-# OS / tooling
-.DS_Store
-Thumbs.db
+# Generated docs / reports
+site/
+*.html
+
+# UV
+*.lock
+
+# Editor / IDE
 .idea/
 .vscode/
 
-# UV specific
-*.lock
+# OS files
+.DS_Store
+Thumbs.db
 
-*.html
-
-site/
-
+# Project-specific
 copilot_*
-src/__pychache__/
-.ruff_cache/
-.pytest_cache/
-.github/
-.cache/
 
-*__pycache__/
-*.egg-info*
+# GitHub metadata (keep only if intentionally excluded)
+.github/
