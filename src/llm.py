@@ -49,13 +49,16 @@ def summarize_with_llm_combined_dataset_only():
 
     return system_prompt, user_prompt
 
-
 def generate_report_from_file_id(
     file_id: str,
     client,
     model: str = "gpt-5-mini",
+    prompt_kwargs=None,
 ):
-    system_prompt, user_prompt = summarize_with_llm_combined_dataset_only()
+    prompt_kwargs = prompt_kwargs or {}
+
+    system_prompt, user_prompt = summarize_with_llm_combined_dataset_only(**prompt_kwargs)
+
     print("USER_PROMPT:", user_prompt)
     try:
         resp = client.responses.create(
@@ -93,7 +96,6 @@ def generate_report_from_file_id(
     text_part, latex_part = full_output.split("LATEX:", 1)
     return text_part.replace("TEXT:", "").strip(), latex_part.strip()
 
-
 # LLM, with results
 
 
@@ -102,37 +104,35 @@ def prepare_llm_payload_general(
     dataset_name: str,
     X: str,
     Y: str,
-    W: Optional[List[str]] = None,
-    Z: Optional[List[str]] = None,
-    x0: Any = None,
-    x1: Any = None,
-    y_target: Any = None,
-    results: Optional[Any] = None,
-    stepwise_results: Optional[List[Dict[str, Any]]] = None,
-    variable_metadata: Optional[Dict[str, Dict[str, Any]]] = None,
-    state_names: Optional[Dict[str, List[Any]]] = None,
-    graph_edges: Optional[List[Tuple[str, str]]] = None,
-    checks: Optional[Dict[str, Any]] = None,
-    notes: Optional[str] = None,
-) -> Dict[str, Any]:
-    """
-    Create a general payload for sending causal/fairness results to an LLM.
-
-    Supports:
-    - X ordinal, binary, categorical, numerical
-    - Y binary, categorical, ordinal, numerical
-    - optional stepwise effects along ordered X levels
-    """
-
-    W = W or []
-    Z = Z or []
-    variable_metadata = variable_metadata or {}
-    checks = checks or {}
+    W=None,
+    Z=None,
+    x0=None,
+    x1=None,
+    y_target=None,
+    results=None,
+    stepwise_results=None,
+    variable_metadata=None,
+    state_names=None,
+    graph_edges=None,
+    checks=None,
+    notes=None,
+):
+    W = [] if W is None else W
+    Z = [] if Z is None else Z
+    variable_metadata = {} if variable_metadata is None else variable_metadata
+    checks = {} if checks is None else checks
+    stepwise_results = [] if stepwise_results is None else stepwise_results
 
     if isinstance(results, pd.Series):
         results = results.to_dict()
     elif isinstance(results, pd.DataFrame):
         results = results.to_dict(orient="records")
+
+    if isinstance(variable_metadata, pd.Series):
+        variable_metadata = variable_metadata.to_dict()
+
+    if isinstance(state_names, pd.Series):
+        state_names = state_names.to_dict()
 
     payload = {
         "dataset": dataset_name,
@@ -146,16 +146,15 @@ def prepare_llm_payload_general(
             "y_target": y_target,
         },
         "variable_metadata": variable_metadata,
-        "results": results,
-        "stepwise_results": stepwise_results or [],
         "state_names": state_names,
         "graph_edges": graph_edges,
+        "results": results,
+        "stepwise_results": stepwise_results,
         "checks": checks,
         "notes": notes,
     }
 
     return payload
-
 
 def payload_to_json(payload: Dict[str, Any], indent: int = 2) -> str:
     return json.dumps(payload, indent=indent, ensure_ascii=False, default=str)

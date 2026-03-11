@@ -1,0 +1,36 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{fvextra}
+\usepackage{amsmath}
+\begin{document}
+
+\section*{Fairness Decomposition Report, zero-shot}
+
+\subsection*{Overview of the Fairness Analysis}
+This analysis decomposes the difference in the binary outcome T\_grade between two groups defined by S2\_sex. The groups compared are $X = x0$ (F) versus $X = x1$ (M). The outcome $Y$ is T\_grade (binary, states "0" and "1"). The decomposition separates the total variation in $P(\text{T\_grade} = 1)$ between F and M into direct, indirect (mediated by studytime), and spurious components.
+
+\subsection*{Decomposition of Effects}
+\begin{itemize}
+  \item Total variation (TV): The overall difference in probability of T\_grade = 1 between M and F is $0.0626$. This is the net disparity in the outcome associated with sex in this dataset.
+  \item Total effect (TE): Estimated $\text{TE} = 0.0626$. This matches the TV and represents the net causal difference attributable to changing S2\_sex from F to M.
+  \item Indirect effect (NIE): $\text{NIE} = 0.0492$. Interpreted as the mediated (indirect) contribution via the mediator \texttt{studytime}, using baseline $x1$ while the others use baseline $x0$. Differences in \texttt{studytime} distributions between sexes account for a $0.0492$ portion of the total disparity.
+  \item Direct effect (NDE): $\text{NDE} = 0.1119$. This is the direct pathway effect of S2\_sex on T\_grade not operating through \texttt{studytime}; it is the largest single component and suggests a substantial direct association of sex with the outcome.
+  \item Spurious effects (SE): $\text{SE}(x0) = 0.0$, $\text{SE}(x1) = 0.0$. No spurious/confounding component was estimated (and Z is empty), indicating no detected confounder-driven contribution in these results.
+  \item Mediator-specific decomposition: The only mediator provided is \texttt{studytime}; its mediated (indirect) contribution is the NIE = $0.0492$ as noted above.
+  \item Confounder-specific decomposition: No confounders (Z is empty), and both SE entries are zero.
+  \item Consistency checks: The provided checks confirm $\text{TV} = \text{TE}$ and $\text{TE} = \text{NDE} - \text{NIE}$ with no numerical difference between decomposed sums and TV.
+\end{itemize}
+
+X-specific results not provided.
+
+Z-specific results not provided.
+
+\subsection*{Recap}
+$x1$ (Males) has a higher probability of T\_grade = 1 than $x0$ (Females) by approximately $0.0626$. The disparity is primarily driven by the direct effect ($\text{NDE} = 0.1119$), with a smaller mediated contribution through \texttt{studytime} ($\text{NIE} = 0.0492$); spurious/confounding effects are zero. Thus, most of the advantage for M over F in achieving T\_grade = 1 appears to operate via direct pathways rather than via differences in \texttt{studytime}, although \texttt{studytime} accounts for a non-negligible portion of the gap.
+
+
+\begin{Verbatim}[breaklines=true]
+ResponseUsage(input_tokens=2110, input_tokens_details=InputTokensDetails(cached_tokens=1792), output_tokens=3563, output_tokens_details=OutputTokensDetails(reasoning_tokens=2112), total_tokens=5673)
+\end{Verbatim}
+\end{document}
