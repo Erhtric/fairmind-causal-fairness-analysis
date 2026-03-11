@@ -1,10 +1,10 @@
-
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import json
 import pandas as pd
 
 # ONLY LLM, no results
+
 
 def summarize_with_llm_combined_dataset_only():
     """
@@ -20,33 +20,32 @@ def summarize_with_llm_combined_dataset_only():
 
     """
     REPO_ROOT = Path(__file__).resolve().parents[1]
-    prompt_path = Path( REPO_ROOT/ "prompts"/"prompts_onlygpt.txt")
+    prompt_path = Path(REPO_ROOT / "prompts" / "prompts_onlygpt.txt")
     system_prompt = prompt_path.read_text(encoding="utf-8")
 
-
     user_prompt = """
-You are given a dataset as a PDF rendering of the dataset (table)."
+        You are given a dataset as a PDF rendering of the dataset (table)."
 
-Column roles:
-- X (protected variable): <Sex>, with x0= Female and x1=Male
-- Y (outcome attribute): <Admission> y= 'Accepted'
-- Z (spurious features): <None>
-- W (mediator variables): <Major>
+        Column roles:
+        - X (protected variable): <Sex>, with x0= Female and x1=Male
+        - Y (outcome attribute): <Admission> y= 'Accepted'
+        - Z (spurious features): <None>
+        - W (mediator variables): <Major>
 
 
-Your task:
-1. Analyze the dataset.
-2. Compute the fairness decomposition according to Bareimboim and Plecko theory, both general and X-Z specific effects.
-3. Produce a structured report.
+        Your task:
+        1. Analyze the dataset.
+        2. Compute the fairness decomposition according to Bareimboim and Plecko theory, both general and X-Z specific effects.
+        3. Produce a structured report.
 
-Output format MUST be:
+        Output format MUST be:
 
-TEXT:
-<plain language report>
+        TEXT:
+        <plain language report>
 
-LATEX:
-<standalone LaTeX document>
-"""
+        LATEX:
+        <standalone LaTeX document>
+        """
 
     return system_prompt, user_prompt
 
@@ -65,18 +64,17 @@ def generate_report_from_file_id(
             tools=[
                 {
                     "type": "code_interpreter",
-                    "container": {
-                        "type": "auto", 
-                        "file_ids": [file_id] 
-                    },
+                    "container": {"type": "auto", "file_ids": [file_id]},
                 },
             ],
-            input=[{
-                "role": "user",
-                "content": [
-                    {"type": "input_text", "text": user_prompt},
-                ],
-            }],
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "input_text", "text": user_prompt},
+                    ],
+                }
+            ],
         )
     except BadRequestError as e:
         print("BadRequestError:\n", str(e))
@@ -97,7 +95,6 @@ def generate_report_from_file_id(
 
 
 # LLM, with results
-
 
 
 def prepare_llm_payload_general(
@@ -181,12 +178,12 @@ Here are the fairness decomposition results in JSON:
     resp = client.responses.create(
         model="gpt-5-mini",
         instructions=system_prompt,
-        input=[{
-            "role": "user",
-            "content": [
-                {"type": "input_text", "text": user_prompt}
-            ],
-        }],
+        input=[
+            {
+                "role": "user",
+                "content": [{"type": "input_text", "text": user_prompt}],
+            }
+        ],
     )
 
     full_output = (resp.output_text or "").strip()

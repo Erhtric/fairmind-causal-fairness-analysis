@@ -25,3 +25,11 @@ Thumbs.db
 site/
 
 copilot_*
+src/__pychache__/
+.ruff_cache/
+.pytest_cache/
+.github/
+.cache/
+
+*__pycache__/
+*.egg-info*

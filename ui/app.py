@@ -1,8 +1,8 @@
 import json
 import os
 import time
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import pandas as pd
 import streamlit as st
@@ -17,13 +17,18 @@ if os.getenv("OPENAI_API_KEY") is None:
 
 client = OpenAI()
 
-def get_effective_orders(w_order, z_order, unknown_w_order: bool, unknown_z_order: bool):
+
+def get_effective_orders(
+    w_order, z_order, unknown_w_order: bool, unknown_z_order: bool
+):
     eff_w = None if unknown_w_order else (w_order or None)
     eff_z = None if unknown_z_order else (z_order or None)
     return eff_w, eff_z
 
+
 def df_fingerprint(df: pd.DataFrame) -> str:
     return str(pd.util.hash_pandas_object(df, index=True).sum())
+
 
 def build_analysis_snapshot(
     df: pd.DataFrame,
@@ -47,12 +52,16 @@ def build_analysis_snapshot(
         out["__Ybin__"] = (out[y_col] == y_value).astype("int8")
     elif y_mode == "continuous":
         if y_threshold is None:
-            raise ValueError("y_threshold must be provided for continuous mode snapshot.")
+            raise ValueError(
+                "y_threshold must be provided for continuous mode snapshot."
+            )
         out["__Ybin__"] = (out[y_col].to_numpy() <= float(y_threshold)).astype("int8")
     else:
         raise ValueError(f"Unknown y_mode: {y_mode}")
 
     return out
+
+
 def compute_pairwise_effects_for_x_cond(
     df_with_ybin: pd.DataFrame,
     x_col: str,
@@ -73,22 +82,24 @@ def compute_pairwise_effects_for_x_cond(
 
     eff = compute_effects_multi(
         df=df_pair,
-        x0=0, x1=1, y=1,
+        x0=0,
+        x1=1,
+        y=1,
         x_col="__Xbin_pair__",
         y_col=ybin_col,
         w_cols=w_cols,
         z_cols=z_cols,
         w_order=w_order,
         z_order=z_order,
-        do_decomposition=False
+        do_decomposition=False,
     )
     return eff
-
 
 
 @st.cache_data(show_spinner=False)
 def cached_compute_effects_multi(df_fp: str, df: pd.DataFrame, **kwargs):
     return compute_effects_multi(df=df, **kwargs)
+
 
 @st.cache_data(show_spinner=False)
 def detailed_effects_at_threshold(
@@ -120,10 +131,11 @@ def detailed_effects_at_threshold(
         unknown_z_order=unknown_z_order,
     )
 
-
     eff = compute_effects_multi(
         df=df_cs,
-        x0=0, x1=1, y=1,
+        x0=0,
+        x1=1,
+        y=1,
         x_col="__Xbin__",
         y_col="__Ybin__",
         w_cols=w_cols,
@@ -172,29 +184,31 @@ def compute_stepwise_effects(
 
         eff = compute_effects_multi(
             df=df_step,
-            x0=0, x1=1, y=1,
+            x0=0,
+            x1=1,
+            y=1,
             x_col=x_bin,
             y_col=y_bin,
             w_cols=w_cols,
             z_cols=z_cols,
             w_order=eff_w_order,
             z_order=eff_z_order,
-            do_decomposition=False
+            do_decomposition=False,
         )
 
-        steps.append({
-            "from": x_from,
-            "to": x_to,
-            "n_rows": int(df_step.shape[0]),
-            "tv": eff.get("tv"),
-            "te": eff.get("te"),
-            "de": eff.get("de"),
-            "ie": eff.get("ie"),
-            "se": eff.get("se"),
-        })
+        steps.append(
+            {
+                "from": x_from,
+                "to": x_to,
+                "n_rows": int(df_step.shape[0]),
+                "tv": eff.get("tv"),
+                "te": eff.get("te"),
+                "de": eff.get("de"),
+                "ie": eff.get("ie"),
+                "se": eff.get("se"),
+            }
+        )
     return steps
-
-
 
 
 def mark_dirty():
@@ -202,6 +216,7 @@ def mark_dirty():
     st.session_state["results"] = None  # discard stale results
     st.session_state["llm_text"] = None
     st.session_state["llm_latex"] = None
+
 
 def init_state_defaults():
     if "results" not in st.session_state:
@@ -212,7 +227,7 @@ def init_state_defaults():
         st.session_state["llm_text"] = None
     if "llm_latex" not in st.session_state:
         st.session_state["llm_latex"] = None
-    
+
 
 # Function analysis for both continouses and discrete case
 def run_analysis(
@@ -243,7 +258,7 @@ def run_analysis(
         unknown_w_order=unknown_w_order,
         unknown_z_order=unknown_z_order,
     )
-    # CONTINUOUS Y 
+    # CONTINUOUS Y
     if y_mode == "continuous":
         if y_thresholds is None or len(y_thresholds) == 0:
             raise ValueError("y_thresholds must be provided for continuous Y.")
@@ -259,7 +274,7 @@ def run_analysis(
             y_thresholds=y_thresholds,
             w_order=eff_w_order,
             z_order=eff_z_order,
-            progress_cb=progress_cb
+            progress_cb=progress_cb,
         )
         print("compute_effects_continuous_y:", time.perf_counter() - t0)
 
@@ -311,8 +326,7 @@ def run_analysis(
         do_decomposition=True,
         w_order=eff_w_order,
         z_order=eff_z_order,
-       )
-
+    )
 
     if hasattr(effects, "to_dict"):
         effects_dict = effects.to_dict()
@@ -323,7 +337,7 @@ def run_analysis(
 
     stepwise_effects = []
     if use_stepwise and x_order is not None:
-          stepwise_effects = compute_stepwise_effects(
+        stepwise_effects = compute_stepwise_effects(
             df=df,
             x_col=x_col,
             y_col=y_col,
@@ -336,8 +350,6 @@ def run_analysis(
             w_order=w_order,
             z_order=z_order,
         )
-        
-
 
     return {
         "x_col": x_col,
@@ -363,13 +375,15 @@ def run_analysis(
             "indirect_effect": effects_dict.get("ie"),
             "direct_effect": effects_dict.get("de"),
             "spurious_effect": effects_dict.get("se"),
-            "spurious effect decomposition": effects_dict.get("se_decomp_interval") or effects_dict.get("se_decomp") or {},
-            "indirect effect decomposition": effects_dict.get("ie_decomp_interval") or effects_dict.get("ie_decomp") or {},
-
+            "spurious effect decomposition": effects_dict.get("se_decomp_interval")
+            or effects_dict.get("se_decomp")
+            or {},
+            "indirect effect decomposition": effects_dict.get("ie_decomp_interval")
+            or effects_dict.get("ie_decomp")
+            or {},
         },
         "effects_raw": effects_dict,
     }
-
 
 
 def build_effect_tree(effects: dict) -> Digraph:
@@ -403,7 +417,11 @@ def build_effect_tree(effects: dict) -> Digraph:
     if not indirect_point:
         indirect_point = effects.get("indirect effect decomposition")
 
-    indirect_decomp = indirect_int if (isinstance(indirect_int, dict) and len(indirect_int) > 0) else indirect_point
+    indirect_decomp = (
+        indirect_int
+        if (isinstance(indirect_int, dict) and len(indirect_int) > 0)
+        else indirect_point
+    )
 
     if isinstance(indirect_decomp, dict) and len(indirect_decomp) > 0:
         for i, (name, val) in enumerate(indirect_decomp.items()):
@@ -420,7 +438,11 @@ def build_effect_tree(effects: dict) -> Digraph:
     if not spurious_point:
         spurious_point = effects.get("spurious effect decomposition")
 
-    spurious_decomp = spurious_int if (isinstance(spurious_int, dict) and len(spurious_int) > 0) else spurious_point
+    spurious_decomp = (
+        spurious_int
+        if (isinstance(spurious_int, dict) and len(spurious_int) > 0)
+        else spurious_point
+    )
 
     if isinstance(spurious_decomp, dict) and len(spurious_decomp) > 0:
         for j, (name, val) in enumerate(spurious_decomp.items()):
@@ -430,7 +452,8 @@ def build_effect_tree(effects: dict) -> Digraph:
 
     return dot
 
-# SFM GRAPH 
+
+# SFM GRAPH
 def build_sfm_graph(X, Y, W_vars, Z_vars):
     dot = Digraph()
 
@@ -482,7 +505,6 @@ def build_sfm_graph(X, Y, W_vars, Z_vars):
         dot.edge("W", "Y")
 
     if Z_vars:
-
         dot.edge("Z", "Y")
         dot.edge(
             "X",
@@ -509,10 +531,11 @@ def _sync_state_with_options(key, options, multi=False):
     else:
         if st.session_state.get(key) not in options:
             st.session_state[key] = None
-            
+
+
 st.session_state.setdefault("x_col", None)
 st.session_state.setdefault("y_col", None)
-st.session_state.setdefault("w_cols", [])   
+st.session_state.setdefault("w_cols", [])
 st.session_state.setdefault("z_cols", [])
 st.session_state.setdefault("w_order", [])
 st.session_state.setdefault("z_order", [])
@@ -559,8 +582,10 @@ def on_z_change():
     st.session_state.w_cols = [c for c in st.session_state.w_cols if c not in zs]
     mark_dirty()
 
+
 def on_w_order_change():
     mark_dirty()
+
 
 def on_unknown_w_order_change():
     # if user says they don't know, clear any existing order
@@ -568,8 +593,10 @@ def on_unknown_w_order_change():
         st.session_state["w_order"] = []
     mark_dirty()
 
+
 def on_z_order_change():
     mark_dirty()
+
 
 def on_unknown_z_order_change():
     if st.session_state.get("unknown_z_order", False):
@@ -596,7 +623,7 @@ Here are the fairness decomposition results in JSON:
     )
 
     full_output = completion.choices[0].message.content.strip()
-    # Check if there's latex 
+    # Check if there's latex
     if "LATEX:" not in full_output:
         raise ValueError("LLM output did not contain LATEX section.")
 
@@ -604,16 +631,17 @@ Here are the fairness decomposition results in JSON:
     text_part = text_part.replace("TEXT:", "").strip()
     latex_part = latex_part.strip()
 
-    token_usage= completion.usage
+    token_usage = completion.usage
 
     return text_part, latex_part, token_usage
 
 
-# Main 
+# Main
+
 
 def main():
     st.markdown(
-    """
+        """
     <div style="text-align: center;">
         <h1 style="margin-bottom:0;color:">FairMind</h1>
         <h1 style="margin-top:0;">
@@ -621,8 +649,8 @@ def main():
         </h1>
     </div>
     """,
-    unsafe_allow_html=True,
-)
+        unsafe_allow_html=True,
+    )
 
     init_state_defaults()
     if "results" not in st.session_state:
@@ -680,11 +708,8 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
         st.error(f"Could not read file: {e}")
         return
 
-   
-
-    # If raw, clean it 
+    # If raw, clean it
     if data_status == "Raw (removing NaN and invalid symbols)":
-
         # Replace symbols with NaN
         # df.replace("?", np.nan, inplace=True)
         df.replace(r"^[^A-Za-z0-9]+$", np.nan, regex=True, inplace=True)
@@ -703,7 +728,6 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
         st.info("Dataset marked as already processed. No cleaning applied.")
     w_cols_used = []
     z_cols_used = []
-  
 
     st.subheader("Dataset preview")
     st.dataframe(df.head())
@@ -788,15 +812,15 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
     w_cols = list(st.session_state.get("w_cols", []) or [])
     z_cols = list(st.session_state.get("z_cols", []) or [])
 
-
     x_col_used = x_col
     y_col_used = y_col
     w_cols_used = w_cols
     z_cols_used = z_cols
     # SFM graph
     show_sfm = st.toggle(
-    "Show causal graph (SFM)",
-    value=False,)
+        "Show causal graph (SFM)",
+        value=False,
+    )
 
     if show_sfm:
         if x_col is None or y_col is None:
@@ -805,15 +829,15 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             dot = build_sfm_graph(x_col, y_col, w_cols, z_cols)
             st.graphviz_chart(dot, use_container_width=False, width=400, height=300)
             st.write(
-    "This is the causal graph you are assuming and passing to the identification step."
-)
-    
-    
-    
+                "This is the causal graph you are assuming and passing to the identification step."
+            )
+
     st.subheader("**Stepwise effects**")
-    
-    st.caption("Stepwise decomposition breaks the total disparity into effects between adjacent "
-        "levels of X.")
+
+    st.caption(
+        "Stepwise decomposition breaks the total disparity into effects between adjacent "
+        "levels of X."
+    )
     st.info(
         "Enable stepwise effects only when the protected attribute X has a meaningful order "
         "(e.g. education level, income brackets, age groups). "
@@ -831,7 +855,9 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
 
     if use_stepwise:
         if x_col_used is None or x_col_used not in df.columns:
-            st.warning("Select the protected attribute X first to enable stepwise effects.")
+            st.warning(
+                "Select the protected attribute X first to enable stepwise effects."
+            )
         else:
             x_unique_list = df[x_col_used].dropna().unique().tolist()
 
@@ -858,13 +884,12 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             else:
                 st.caption(f"Using order: {x_order}")
 
-    # Grouped version 
+    # Grouped version
 
     st.subheader("Choose order for W and Z decompositions")
     st.caption(
-    "Specify an order **only if more than one mediator (W) or confounder (Z) is selected**. "
-    
-) 
+        "Specify an order **only if more than one mediator (W) or confounder (Z) is selected**. "
+    )
     st.info("With a single variable, the order is fixed and no input is required.")
 
     # Topological order of the mediators
@@ -876,7 +901,11 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
         col1, col2 = st.columns([1, 3])
 
         with col1:
-            st.checkbox("I don’t know", key="unknown_w_order", on_change=on_unknown_w_order_change)
+            st.checkbox(
+                "I don’t know",
+                key="unknown_w_order",
+                on_change=on_unknown_w_order_change,
+            )
 
         with col2:
             if st.session_state.unknown_w_order:
@@ -889,7 +918,7 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                     key="w_order",
                     on_change=on_w_order_change,
                 )
-        
+
     # Order for the Z same as W
     if z_cols_used and len(z_cols_used) > 1:
         st.markdown("**Order of Z (confounders) for SE decomposition**")
@@ -898,7 +927,11 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
         col1, col2 = st.columns([1, 3])
 
         with col1:
-            st.checkbox("I don’t know", key="unknown_z_order", on_change=on_unknown_z_order_change)
+            st.checkbox(
+                "I don’t know",
+                key="unknown_z_order",
+                on_change=on_unknown_z_order_change,
+            )
 
         with col2:
             if st.session_state.unknown_z_order:
@@ -911,15 +944,12 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                     key="z_order",
                     on_change=on_z_order_change,
                 )
-                
-                
-
 
     # The user chooses which values are x0, x1, and y (I need them for identification formulas)
     st.subheader("Protected Attribute and Outcome Setup")
     x0_value = None
     x1_value = None
-    x1_values = None  
+    x1_values = None
 
     if x_col_used is not None:
         x_unique = sorted(df[x_col_used].dropna().unique().tolist())
@@ -932,8 +962,10 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 key="x0_value",
                 on_change=mark_dirty,
             )
-            
-            x1_options = ["All remaining groups"] + [v for v in x_unique if v != x0_value]
+
+            x1_options = ["All remaining groups"] + [
+                v for v in x_unique if v != x0_value
+            ]
 
             x1_choice = st.selectbox(
                 "x1 (reference / advantaged group)",
@@ -951,16 +983,16 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 x1_value = x1_choice
                 x1_values = [x1_value]
 
-
-                    
-
     # Outcome type: Continous or Discrete/ Categorical
     y_mode = st.radio(
-    "**Outcome Y type** ",
-    options=["Binary/Categorical (choose favourable value)", "Continuous (threshold y)"],
-    key="y_mode",
-    on_change=mark_dirty,
-)
+        "**Outcome Y type** ",
+        options=[
+            "Binary/Categorical (choose favourable value)",
+            "Continuous (threshold y)",
+        ],
+        key="y_mode",
+        on_change=mark_dirty,
+    )
     y_value = None
     y_thresholds = None
     if y_col_used is not None:
@@ -980,7 +1012,9 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             if not pd.api.types.is_numeric_dtype(sY):
                 st.error("Continuous mode requires Y to be numeric.")
             else:
-                st.markdown(f"**Y ({y_col_used})** numeric range: [{sY.min()}, {sY.max()}]")
+                st.markdown(
+                    f"**Y ({y_col_used})** numeric range: [{sY.min()}, {sY.max()}]"
+                )
 
                 grid_kind = st.selectbox(
                     "Threshold grid",
@@ -990,7 +1024,9 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 )
                 n_points = st.slider(
                     "Number of thresholds",
-                    min_value=5, max_value=200, value=25,
+                    min_value=5,
+                    max_value=200,
+                    value=25,
                     key="y_n_points",
                     on_change=mark_dirty,
                 )
@@ -999,12 +1035,14 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                     qs = np.linspace(0.01, 0.99, n_points)
                     y_thresholds = np.quantile(sY.to_numpy(), qs)
                 else:
-                    y_thresholds = np.linspace(float(sY.min()), float(sY.max()), n_points)
-                y_thresholds = np.unique(y_thresholds)        # remove duplicates (many 0s!)
-                y_thresholds = y_thresholds.astype(float)      
+                    y_thresholds = np.linspace(
+                        float(sY.min()), float(sY.max()), n_points
+                    )
+                y_thresholds = np.unique(y_thresholds)  # remove duplicates (many 0s!)
+                y_thresholds = y_thresholds.astype(float)
 
                 st.caption(f"Using {len(y_thresholds)} thresholds.")
-   
+
     user_explanation = st.text_area(
         "Explain the meaning of X, Y, W, Z (recommended if the variables are not self-explainatory)",
         placeholder=(
@@ -1035,12 +1073,14 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
         progress_bar = st.progress(0)
         status_text = st.empty()
         start_time = time.perf_counter()
+
         def progress_cb(done, total, thr):
             frac = done / total if total else 1.0
             progress_bar.progress(frac)
             elapsed = time.perf_counter() - start_time
-            rate = elapsed / done if done else None          # seconds per threshold
+            rate = elapsed / done if done else None  # seconds per threshold
             eta = rate * (total - done) if rate is not None and total else None
+
             def fmt_s(s):
                 if s is None:
                     return "—"
@@ -1048,40 +1088,45 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 m, sec = divmod(s, 60)
                 h, m = divmod(m, 60)
                 return f"{h:d}:{m:02d}:{sec:02d}" if h else f"{m:02d}:{sec:02d}"
-           # status_text.write(f"Threshold {done}/{total} — y <= {thr:.6g}")
-            status_text.write(f"Threshold {done}/{total} — binarization at y ≤ {thr:.6g} " f"• elapsed {fmt_s(elapsed)} • ETA {fmt_s(eta)}")
 
+            # status_text.write(f"Threshold {done}/{total} — y <= {thr:.6g}")
+            status_text.write(
+                f"Threshold {done}/{total} — binarization at y ≤ {thr:.6g} "
+                f"• elapsed {fmt_s(elapsed)} • ETA {fmt_s(eta)}"
+            )
 
         with st.spinner("Computing causal fairness decomposition..."):
             try:
-                t0 = time.perf_counter()                 
+                t0 = time.perf_counter()
                 unknown_w = bool(st.session_state.get("unknown_w_order", False))
                 unknown_z = bool(st.session_state.get("unknown_z_order", False))
                 w_order_ss = list(st.session_state.get("w_order", []) or [])
                 z_order_ss = list(st.session_state.get("z_order", []) or [])
 
                 results = run_analysis(
-                            df=df,
-                            x_col=x_col_used,
-                            y_col=y_col_used,
-                            w_cols=w_cols_used,
-                            z_cols=z_cols_used,
-                            x0_value=x0_value,
-                            x1_values=x1_values,
-                            y_value=y_value,
-                            y_mode="continuous" if y_mode.startswith("Continuous") else "binary",
-                            y_thresholds=y_thresholds,
-                            use_stepwise=use_stepwise,
-                            x_order=x_order,
-                            user_explanation=user_explanation,
-                            progress_cb=progress_cb,
-                            unknown_w_order=unknown_w,
-                            unknown_z_order=unknown_z,
-                            w_order=w_order_ss,
-                            z_order=z_order_ss,
-                        )
+                    df=df,
+                    x_col=x_col_used,
+                    y_col=y_col_used,
+                    w_cols=w_cols_used,
+                    z_cols=z_cols_used,
+                    x0_value=x0_value,
+                    x1_values=x1_values,
+                    y_value=y_value,
+                    y_mode="continuous"
+                    if y_mode.startswith("Continuous")
+                    else "binary",
+                    y_thresholds=y_thresholds,
+                    use_stepwise=use_stepwise,
+                    x_order=x_order,
+                    user_explanation=user_explanation,
+                    progress_cb=progress_cb,
+                    unknown_w_order=unknown_w,
+                    unknown_z_order=unknown_z,
+                    w_order=w_order_ss,
+                    z_order=z_order_ss,
+                )
                 st.caption(f"run_analysis took {time.perf_counter() - t0:.2f}s")
-                
+
             except Exception as e:
                 st.error(f"Error in compute_effects_multi / run_analysis: {e}")
                 return
@@ -1097,7 +1142,7 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 "Inputs have changed since the last run. Please press **Run causal fairness analysis** again."
             )
             return
-        
+
         results = st.session_state["results"]
         stepwise = results.get("stepwise", {})
         # Y continuous
@@ -1106,7 +1151,9 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             st.markdown("**Decomposition curves over thresholds**")
             # Curve + table
             df_curve_full = pd.DataFrame(results["effects_curve"])
-            df_curve_view = df_curve_full[["y_threshold", "tv", "te", "de", "ie", "se"]].copy()
+            df_curve_view = df_curve_full[
+                ["y_threshold", "tv", "te", "de", "ie", "se"]
+            ].copy()
             df_curve_view["y_threshold"] = df_curve_view["y_threshold"].round(6)
             st.dataframe(df_curve_view, use_container_width=True)
 
@@ -1114,7 +1161,7 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 df_curve_view.set_index("y_threshold")[["tv", "te", "de", "ie", "se"]]
             )
 
-            # Pick one threshold 
+            # Pick one threshold
             thr_values = df_curve_full["y_threshold"].tolist()
             thr_selected_main = st.select_slider(
                 "**Pick a threshold to inspect detailed effects (used for table/tree, x-specific, z-specific, LLM report)**",
@@ -1122,9 +1169,12 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 value=thr_values[len(thr_values) // 2],
                 key="thr_selected_main",
             )
-            
-            snap = df_curve_full.loc[
-            df_curve_full["y_threshold"] == thr_selected_main].iloc[0].to_dict()
+
+            snap = (
+                df_curve_full.loc[df_curve_full["y_threshold"] == thr_selected_main]
+                .iloc[0]
+                .to_dict()
+            )
 
             with st.spinner("Computing detailed effects at selected threshold..."):
                 t1 = time.perf_counter()
@@ -1140,7 +1190,7 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                     x_col=x_col_used,
                     y_col=y_col_used,
                     x1_values=x1_values,
-                    x0_value=x0_value,     
+                    x0_value=x0_value,
                     w_cols=w_cols_used,
                     z_cols=z_cols_used,
                     unknown_w_order=unknown_w,
@@ -1155,26 +1205,29 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             st.caption(f"Detailed threshold computation took {elapsed:.2f}s")
 
             effects = {
-            "total_variation": snap.get("tv"),      
-            "total_effect": eff_detail.get("te"),
-            "direct_effect": eff_detail.get("de"),
-            "indirect_effect": eff_detail.get("ie"),
-            "spurious_effect": eff_detail.get("se"),
-            "indirect effect decomposition": eff_detail.get("ie_decomp_interval") or eff_detail.get("ie_decomp") or {},
-            "spurious effect decomposition": eff_detail.get("se_decomp_interval") or eff_detail.get("se_decomp") or {},
-        }
+                "total_variation": snap.get("tv"),
+                "total_effect": eff_detail.get("te"),
+                "direct_effect": eff_detail.get("de"),
+                "indirect_effect": eff_detail.get("ie"),
+                "spurious_effect": eff_detail.get("se"),
+                "indirect effect decomposition": eff_detail.get("ie_decomp_interval")
+                or eff_detail.get("ie_decomp")
+                or {},
+                "spurious effect decomposition": eff_detail.get("se_decomp_interval")
+                or eff_detail.get("se_decomp")
+                or {},
+            }
             st.info(f"Detailed view at threshold y = {thr_selected_main}")
 
-       
             df_cont_snapshot = build_analysis_snapshot(
-                                    df=df,
-                                    x_col=x_col_used,
-                                    y_col=y_col_used,
-                                    x0_value=x0_value,
-                                    x1_values=x1_values,
-                                    y_mode="continuous",
-                                    y_threshold=float(thr_selected_main),
-                                )
+                df=df,
+                x_col=x_col_used,
+                y_col=y_col_used,
+                x0_value=x0_value,
+                x1_values=x1_values,
+                y_mode="continuous",
+                y_threshold=float(thr_selected_main),
+            )
 
             st.session_state["df_cont_snapshot"] = df_cont_snapshot
             st.session_state["cont_thr_selected"] = float(thr_selected_main)
@@ -1193,20 +1246,31 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
 
             for k in main_keys:
                 if k in effects:
-                    rows.append({"Component": k, "Value": rounded_val(effects[k], nd=5)})
+                    rows.append(
+                        {"Component": k, "Value": rounded_val(effects[k], nd=5)}
+                    )
 
             # Spurious decomposition
             spurious = effects.get("spurious effect decomposition", {})
             if isinstance(spurious, dict) and len(spurious) > 0:
                 for name, val in spurious.items():
-                    rows.append({"Component": f"spurious: {name}", "Value": rounded_val(val, nd=5)})
-                
+                    rows.append(
+                        {
+                            "Component": f"spurious: {name}",
+                            "Value": rounded_val(val, nd=5),
+                        }
+                    )
 
             # Indirect decomposition
             indirect = effects.get("indirect effect decomposition", {})
             if isinstance(indirect, dict) and len(indirect) > 0:
                 for name, val in indirect.items():
-                    rows.append({"Component": f"indirect: {name}", "Value": rounded_val(val, nd=5)})
+                    rows.append(
+                        {
+                            "Component": f"indirect: {name}",
+                            "Value": rounded_val(val, nd=5),
+                        }
+                    )
             x1_label = ", ".join(map(str, x1_values))
             st.markdown(
                 f"""
@@ -1220,45 +1284,51 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 unsafe_allow_html=True,
             )
 
-            #st.markdown(f"Effects computed between: {contrast}")
+            # st.markdown(f"Effects computed between: {contrast}")
             st.dataframe(pd.DataFrame(rows), use_container_width=True)
-            
 
-        
+        if results.get("y_mode") != "continuous":
+            effects = results["effects"]
 
-        if results.get("y_mode")!="continuous":
-            effects=results["effects"]
-        
         # TABLE
         if results.get("y_mode") != "continuous":
             st.subheader("Decomposition Table")
             rows = []
 
             main_keys = [
-            "total_variation",
-            "total_effect",
-            "indirect_effect",
-            "direct_effect",
-            "spurious_effect",
-
-        ]
+                "total_variation",
+                "total_effect",
+                "indirect_effect",
+                "direct_effect",
+                "spurious_effect",
+            ]
             for k in main_keys:
                 if k in effects:
-                    rows.append({"Component": k, "Value": rounded_val(effects[k], nd=5)})
+                    rows.append(
+                        {"Component": k, "Value": rounded_val(effects[k], nd=5)}
+                    )
 
             # with spurios decomp (if not empty)
             spurious = effects.get("spurious effect decomposition", {})
             if isinstance(spurious, dict) and len(spurious) > 0:
                 for name, val in spurious.items():
-                    rows.append({"Component": f"spurious: {name}", "Value": rounded_val(val, nd=5)})
-                
+                    rows.append(
+                        {
+                            "Component": f"spurious: {name}",
+                            "Value": rounded_val(val, nd=5),
+                        }
+                    )
 
             # with indirect decomp (if not empty)
             indirect = effects.get("indirect effect decomposition", {})
             if isinstance(indirect, dict) and len(indirect) > 0:
                 for name, val in indirect.items():
-                    rows.append({"Component": f"indirect: {name}", "Value": rounded_val(val, nd=5)})
-
+                    rows.append(
+                        {
+                            "Component": f"indirect: {name}",
+                            "Value": rounded_val(val, nd=5),
+                        }
+                    )
 
             df_effects = pd.DataFrame(rows)
             x1_label = ", ".join(map(str, x1_values))
@@ -1274,13 +1344,11 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 unsafe_allow_html=True,
             )
 
-
             st.dataframe(df_effects, use_container_width=True)
-            
 
         # TREE
         st.subheader("Effect Decomposition Tree")
-        effects_for_tree = dict(effects)  
+        effects_for_tree = dict(effects)
 
         if results.get("y_mode") == "continuous":
             eff_detail_saved = st.session_state.get("eff_detail_selected_thr", None)
@@ -1293,7 +1361,6 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
 
         dot = build_effect_tree(effects_for_tree)
         st.graphviz_chart(dot)
-
 
         # X-specific and Z-specific effects
         st.subheader("Optional: Specific Effects")
@@ -1311,7 +1378,9 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
         if results.get("y_mode") == "continuous":
             df_spec = st.session_state.get("df_cont_snapshot", None)
             if df_spec is None or "__Ybin__" not in df_spec.columns:
-                st.error("Missing continuous snapshot (__Ybin__). Please re-run analysis and select a threshold.")
+                st.error(
+                    "Missing continuous snapshot (__Ybin__). Please re-run analysis and select a threshold."
+                )
                 return
             ybin_col = "__Ybin__"
         else:
@@ -1339,8 +1408,16 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             x_options = [ALL_REMAINING] + x_unique_used
 
             # Defaults: suggest x0 and (if single x1 was chosen) that x1, else just x0
-            default_x = [x0_value] if x0_value in x_unique_used else ([x_unique_used[0]] if x_unique_used else [])
-            if (x1_value is not None) and (x1_value in x_unique_used) and (x1_value not in default_x):
+            default_x = (
+                [x0_value]
+                if x0_value in x_unique_used
+                else ([x_unique_used[0]] if x_unique_used else [])
+            )
+            if (
+                (x1_value is not None)
+                and (x1_value in x_unique_used)
+                and (x1_value not in default_x)
+            ):
                 default_x = default_x + [x1_value]
 
             selected_x_vals_raw = st.multiselect(
@@ -1353,7 +1430,9 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             # Expand "All remaining groups" -> all values except x0
             if ALL_REMAINING in selected_x_vals_raw:
                 selected_x_vals = [v for v in x_unique_used if v != x0_value]
-                st.caption(f"{ALL_REMAINING} = all groups except `{x0_value}`: {selected_x_vals}")
+                st.caption(
+                    f"{ALL_REMAINING} = all groups except `{x0_value}`: {selected_x_vals}"
+                )
             else:
                 selected_x_vals = [v for v in selected_x_vals_raw if v != ALL_REMAINING]
 
@@ -1361,7 +1440,9 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             selected_x_vals = [v for v in selected_x_vals if v != x0_value]
 
             if not selected_x_vals:
-                st.info("Select one or more X values (other than x0) to compute X-specific effects.")
+                st.info(
+                    "Select one or more X values (other than x0) to compute X-specific effects."
+                )
             else:
                 x_rows = []
                 for x_cond in selected_x_vals:
@@ -1377,24 +1458,38 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                             w_order=eff_w_order,
                             z_order=eff_z_order,
                         )
-                        eff_dict = eff.to_dict() if hasattr(eff, "to_dict") else (eff if isinstance(eff, dict) else {})
+                        eff_dict = (
+                            eff.to_dict()
+                            if hasattr(eff, "to_dict")
+                            else (eff if isinstance(eff, dict) else {})
+                        )
                     except Exception as e:
-                        st.error(f"Error computing X-specific effects for X={x_cond}: {e}")
+                        st.error(
+                            f"Error computing X-specific effects for X={x_cond}: {e}"
+                        )
                         continue
 
-                    x_rows.append({
-                        "x0": x0_value,
-                        "x1": x_cond,
-                        "n_rows": int(df_spec[df_spec[x_col_used].isin([x0_value, x_cond])].shape[0]),
-                        "tv": eff_dict.get("tv"),
-                        "te": eff_dict.get("te"),
-                        "ie": eff_dict.get("ie"),
-                        "de": eff_dict.get("de"),
-                        "se": eff_dict.get("se"),
-                    })
+                    x_rows.append(
+                        {
+                            "x0": x0_value,
+                            "x1": x_cond,
+                            "n_rows": int(
+                                df_spec[
+                                    df_spec[x_col_used].isin([x0_value, x_cond])
+                                ].shape[0]
+                            ),
+                            "tv": eff_dict.get("tv"),
+                            "te": eff_dict.get("te"),
+                            "ie": eff_dict.get("ie"),
+                            "de": eff_dict.get("de"),
+                            "se": eff_dict.get("se"),
+                        }
+                    )
 
                 st.session_state["x_specific_rows"] = x_rows
-                st.markdown("**X-specific Effects (pairwise vs x0, with the same Y binarization as the main analysis)**")
+                st.markdown(
+                    "**X-specific Effects (pairwise vs x0, with the same Y binarization as the main analysis)**"
+                )
                 st.dataframe(pd.DataFrame(x_rows), use_container_width=True)
 
         if z_cols_used:
@@ -1407,7 +1502,9 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 try:
                     df_z = df_spec.copy()
                     if "__Xbin__" not in df_z.columns:
-                        df_z["__Xbin__"] = df_z[x_col_used].isin(x1_values).astype("int8")
+                        df_z["__Xbin__"] = (
+                            df_z[x_col_used].isin(x1_values).astype("int8")
+                        )
 
                     effects_z = compute_z_specific_effects(
                         df=df_z,
@@ -1434,16 +1531,24 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                         st.session_state["z_specific_rows"] = rows_z
 
                         df_table = pd.DataFrame(rows_z)
-                        preferred_order = list(z_cols_used) + ["tv", "te", "ie", "de", "se"]
+                        preferred_order = list(z_cols_used) + [
+                            "tv",
+                            "te",
+                            "ie",
+                            "de",
+                            "se",
+                        ]
                         ordered = [c for c in preferred_order if c in df_table.columns]
                         remaining = [c for c in df_table.columns if c not in ordered]
                         df_table = df_table[ordered + remaining]
 
-                        st.markdown("**Z-specific Effects (consistent with main binarized X/Y)**")
+                        st.markdown(
+                            "**Z-specific Effects (consistent with main binarized X/Y)**"
+                        )
                         st.dataframe(df_table, use_container_width=True)
 
         st.subheader("Stepwise effects")
-        
+
         if results.get("stepwise", {}).get("enabled"):
             st.info(f"Stepwise enabled. X order: {results['stepwise']['x_order']}")
         else:
@@ -1457,6 +1562,7 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             if not steps:
                 st.info("Stepwise is enabled, but no stepwise results were computed.")
             else:
+
                 def _sum(key):
                     return sum(s.get(key, 0.0) for s in steps if s.get(key) is not None)
 
@@ -1466,20 +1572,39 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                     title = f"{s['from']} → {s['to']}  (n={s['n_rows']})"
                     with st.expander(title, expanded=False):
                         cols = st.columns(5)
-                        def _fmt(v): return f"{v:.4f}" if v is not None else "—"
-                        cols[0].markdown(f"**TV**<br>{_fmt(s.get('tv'))}", unsafe_allow_html=True)
-                        cols[1].markdown(f"**TE**<br>{_fmt(s.get('te'))}", unsafe_allow_html=True)
-                        cols[2].markdown(f"**DE**<br>{_fmt(s.get('de'))}", unsafe_allow_html=True)
-                        cols[3].markdown(f"**IE**<br>{_fmt(s.get('ie'))}", unsafe_allow_html=True)
-                        cols[4].markdown(f"**SE**<br>{_fmt(s.get('se'))}", unsafe_allow_html=True)
 
-        # Stepwise (continuous) 
-        #if use_stepwise and x_order is not None:
-        if results.get("y_mode") == "continuous" and use_stepwise and x_order is not None:
+                        def _fmt(v):
+                            return f"{v:.4f}" if v is not None else "—"
+
+                        cols[0].markdown(
+                            f"**TV**<br>{_fmt(s.get('tv'))}", unsafe_allow_html=True
+                        )
+                        cols[1].markdown(
+                            f"**TE**<br>{_fmt(s.get('te'))}", unsafe_allow_html=True
+                        )
+                        cols[2].markdown(
+                            f"**DE**<br>{_fmt(s.get('de'))}", unsafe_allow_html=True
+                        )
+                        cols[3].markdown(
+                            f"**IE**<br>{_fmt(s.get('ie'))}", unsafe_allow_html=True
+                        )
+                        cols[4].markdown(
+                            f"**SE**<br>{_fmt(s.get('se'))}", unsafe_allow_html=True
+                        )
+
+        # Stepwise (continuous)
+        # if use_stepwise and x_order is not None:
+        if (
+            results.get("y_mode") == "continuous"
+            and use_stepwise
+            and x_order is not None
+        ):
             st.caption(f"Stepwise computed at y <= {float(thr_selected_main):.6g}")
 
             df_step_snapshot = df.assign(
-                __Ybin__=(df[y_col_used].to_numpy() <= float(thr_selected_main)).astype("int8")
+                __Ybin__=(df[y_col_used].to_numpy() <= float(thr_selected_main)).astype(
+                    "int8"
+                )
             )
             unknown_w = bool(st.session_state.get("unknown_w_order", False))
             unknown_z = bool(st.session_state.get("unknown_z_order", False))
@@ -1507,31 +1632,46 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
             else:
                 # Optional cumulative summary
                 def _sum(key):
-                    vals = [s.get(key) for s in stepwise_effects if s.get(key) is not None]
+                    vals = [
+                        s.get(key) for s in stepwise_effects if s.get(key) is not None
+                    ]
                     return float(np.sum(vals)) if vals else None
 
-                 #with st.expander("Cumulative stepwise effects", expanded=False):
-                     #cols = st.columns(5)
-                    #def _fmt(v): return f"{v:.4f}" if v is not None else "—"
-                    #cols[0].markdown(f"**TV**<br>{_fmt(_sum('tv'))}", unsafe_allow_html=True)
-                    #cols[1].markdown(f"**TE**<br>{_fmt(_sum('te'))}", unsafe_allow_html=True)
-                    #cols[2].markdown(f"**DE**<br>{_fmt(_sum('de'))}", unsafe_allow_html=True)
-                    #cols[3].markdown(f"**IE**<br>{_fmt(_sum('ie'))}", unsafe_allow_html=True)
-                    #cols[4].markdown(f"**SE**<br>{_fmt(_sum('se'))}", unsafe_allow_html=True)
+                # with st.expander("Cumulative stepwise effects", expanded=False):
+                # cols = st.columns(5)
+                # def _fmt(v): return f"{v:.4f}" if v is not None else "—"
+                # cols[0].markdown(f"**TV**<br>{_fmt(_sum('tv'))}", unsafe_allow_html=True)
+                # cols[1].markdown(f"**TE**<br>{_fmt(_sum('te'))}", unsafe_allow_html=True)
+                # cols[2].markdown(f"**DE**<br>{_fmt(_sum('de'))}", unsafe_allow_html=True)
+                # cols[3].markdown(f"**IE**<br>{_fmt(_sum('ie'))}", unsafe_allow_html=True)
+                # cols[4].markdown(f"**SE**<br>{_fmt(_sum('se'))}", unsafe_allow_html=True)
 
                 # Per-step details
                 for s in stepwise_effects:
                     title = f"{s['from']} → {s['to']}  (n={s['n_rows']})"
                     with st.expander(title, expanded=False):
                         cols = st.columns(5)
-                        def _fmt(v): return f"{v:.4f}" if v is not None else "—"
-                        cols[0].markdown(f"**TV**<br>{_fmt(s.get('tv'))}", unsafe_allow_html=True)
-                        cols[1].markdown(f"**TE**<br>{_fmt(s.get('te'))}", unsafe_allow_html=True)
-                        cols[2].markdown(f"**DE**<br>{_fmt(s.get('de'))}", unsafe_allow_html=True)
-                        cols[3].markdown(f"**IE**<br>{_fmt(s.get('ie'))}", unsafe_allow_html=True)
-                        cols[4].markdown(f"**SE**<br>{_fmt(s.get('se'))}", unsafe_allow_html=True)
-    
-        # LLM report 
+
+                        def _fmt(v):
+                            return f"{v:.4f}" if v is not None else "—"
+
+                        cols[0].markdown(
+                            f"**TV**<br>{_fmt(s.get('tv'))}", unsafe_allow_html=True
+                        )
+                        cols[1].markdown(
+                            f"**TE**<br>{_fmt(s.get('te'))}", unsafe_allow_html=True
+                        )
+                        cols[2].markdown(
+                            f"**DE**<br>{_fmt(s.get('de'))}", unsafe_allow_html=True
+                        )
+                        cols[3].markdown(
+                            f"**IE**<br>{_fmt(s.get('ie'))}", unsafe_allow_html=True
+                        )
+                        cols[4].markdown(
+                            f"**SE**<br>{_fmt(s.get('se'))}", unsafe_allow_html=True
+                        )
+
+        # LLM report
         st.subheader("Generate textual fairness report")
         if results.get("y_mode") == "continuous":
             thr = st.session_state.get("cont_thr_selected")
@@ -1543,7 +1683,7 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                 "y_col": results["y_col"],
                 "w_cols": results["w_cols"],
                 "z_cols": results["z_cols"],
-                "effects": effects,  
+                "effects": effects,
                 "stepwise": results.get("stepwise"),
                 "user_explanation": results.get("user_explanation"),
                 "note": (
@@ -1554,13 +1694,16 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
         else:
             results_for_llm = results
 
-
         if st.button("Generate LLM report", key="generate_llm_report_2"):
             with st.spinner("Asking the LLM for a fairness-oriented explanation..."):
                 try:
                     # Attach x/z specific (even if empty)
-                    results_for_llm["x_specific"] = st.session_state.get("x_specific_rows", [])
-                    results_for_llm["z_specific"] = st.session_state.get("z_specific_rows", [])
+                    results_for_llm["x_specific"] = st.session_state.get(
+                        "x_specific_rows", []
+                    )
+                    results_for_llm["z_specific"] = st.session_state.get(
+                        "z_specific_rows", []
+                    )
 
                     # Continuous: attach curve info
                     if results_for_llm.get("analysis_type") == "continuous":
@@ -1572,42 +1715,48 @@ Assuming a specified SFM causal graph, the app will run a code to decompose the 
                         curve_sample = pd.concat(
                             [
                                 dfc.head(5),
-                                dfc.iloc[max(0, mid - 2): mid + 3],
+                                dfc.iloc[max(0, mid - 2) : mid + 3],
                                 dfc.tail(5),
                             ],
                             ignore_index=True,
                         )
-                        results_for_llm["effects_curve_sample"] = curve_sample.to_dict(orient="records")
+                        results_for_llm["effects_curve_sample"] = curve_sample.to_dict(
+                            orient="records"
+                        )
 
                         thr = float(st.session_state.get("cont_thr_selected"))
                         idx = (dfc["y_threshold"] - thr).abs().idxmin()
-                        results_for_llm["selected_threshold_row"] = dfc.loc[idx].to_dict()
+                        results_for_llm["selected_threshold_row"] = dfc.loc[
+                            idx
+                        ].to_dict()
 
                     else:
                         # Binary/categorical: use the full results object
                         results_for_llm = results
-                        results_for_llm["analysis_type"] = "binary"   
-                        results_for_llm["x_specific"] = st.session_state.get("x_specific_rows", [])
-                        results_for_llm["z_specific"] = st.session_state.get("z_specific_rows", [])
-
+                        results_for_llm["analysis_type"] = "binary"
+                        results_for_llm["x_specific"] = st.session_state.get(
+                            "x_specific_rows", []
+                        )
+                        results_for_llm["z_specific"] = st.session_state.get(
+                            "z_specific_rows", []
+                        )
 
                     if results_for_llm.get("stepwise", {}).get("enabled"):
                         if results_for_llm.get("analysis_type") == "continuous":
-                            results_for_llm["stepwise"]["effects_by_step"] = st.session_state.get(
-                                "stepwise_effects_cont", []
+                            results_for_llm["stepwise"]["effects_by_step"] = (
+                                st.session_state.get("stepwise_effects_cont", [])
                             )
-                 
 
-                    text, latex_doc,token_usage = summarize_with_llm_combined(results_for_llm, client)
+                    text, latex_doc, token_usage = summarize_with_llm_combined(
+                        results_for_llm, client
+                    )
 
                     st.session_state["llm_text"] = text
                     st.session_state["llm_latex"] = latex_doc
-                    
 
                 except Exception as e:
                     st.error(f"Error generating report: {e}")
 
-        
         if st.session_state.get("llm_text"):
             st.markdown(st.session_state["llm_text"])
 
