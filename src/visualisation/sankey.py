@@ -1,4 +1,3 @@
-from IPython.testing.plugin.simplevars import x
 from pathlib import Path
 
 import pandas as pd
@@ -64,9 +63,7 @@ def plot_effect_sankey_percent(
 
     # 3. SE Decomposition Flows
     for se_label in se_decomp.keys():
-        source_node = (
-            f"Spurious Effect[{se_label}]" if se_label == "SE" else "Spurious Effect"
-        )
+        source_node = f"Spurious Effect[{se_label}]" if se_label else "Spurious Effect"
         cur_decomp = se_decomp[se_label] if se_label in se_decomp else {}
 
         abs_se_vals = [abs(v) for v in cur_decomp.values()]
@@ -76,12 +73,9 @@ def plot_effect_sankey_percent(
             # The share is a fraction of the parent's share (tv_to_se[se_label])
             share = tv_to_se.get(se_label, 0.0) * (abs_eff / total_se_child)
 
-            # Using f"SE[{z}]" merges flows from SE[Male] and SE[Female] into the same confounder node
-            flows.append(
-                (source_node, f"Spurious Effect[{z}]", share, eff)
-            ) if se_label == "SE" else flows.append(
-                (source_node, "Spurious Effect", share, eff)
-            )
+            # Keep child node labels consistent with base spurious-effect labels.
+            child_node = f"Spurious Effect[{z}]" if z else "Spurious Effect"
+            flows.append((source_node, child_node, share, eff))
 
     node_effect_values: dict[str, float] = {
         "Total Variation": tv,
@@ -96,15 +90,83 @@ def plot_effect_sankey_percent(
     for w, eff in ie_decomp.items():
         node_effect_values[f"Indirect Effect[{w}]"] = eff
 
-    for se_label, cur_decomp in se_decomp.items():
+    for _se_label, cur_decomp in se_decomp.items():
         for z, eff in cur_decomp.items():
-            child_node = (
-                f"Spurious Effect[{z}]" if se_label == "SE" else "Spurious Effect"
-            )
+            child_node = f"Spurious Effect[{z}]" if z else "Spurious Effect"
             node_effect_values[child_node] = eff
 
-    node_names = sorted({s for s, _, _, _ in flows} | {t for _, t, _, _ in flows})
+    # Preserve first-seen order so semantic groups stay stable across runs.
+    node_names = []
+    seen_nodes = set()
+    for src, tgt, _, _ in flows:
+        if src not in seen_nodes:
+            seen_nodes.add(src)
+            node_names.append(src)
+        if tgt not in seen_nodes:
+            seen_nodes.add(tgt)
+            node_names.append(tgt)
+
     label_to_idx = {lab: i for i, lab in enumerate(node_names)}
+
+    # Build layered positions from graph structure to avoid hard-coded cramped layouts.
+    nonzero_edges = [(s, t) for s, t, share, _ in flows if share != 0]
+    incoming_count = dict.fromkeys(node_names, 0)
+    for _src, tgt in nonzero_edges:
+        incoming_count[tgt] = incoming_count.get(tgt, 0) + 1
+
+    roots = [n for n in node_names if incoming_count.get(n, 0) == 0]
+    if "Total Variation" in node_names:
+        roots = ["Total Variation"]
+
+    node_layer = dict.fromkeys(node_names, 0)
+    for root in roots:
+        node_layer[root] = 0
+
+    for _ in range(len(node_names)):
+        updated = False
+        for src, tgt in nonzero_edges:
+            new_layer = node_layer[src] + 1
+            if new_layer > node_layer[tgt]:
+                node_layer[tgt] = new_layer
+                updated = True
+        if not updated:
+            break
+
+    # Refine layer assignment: Direct/Indirect Effect get a dedicated middle layer,
+    # all decomposition nodes align to the layer after their parents
+    effect_nodes = {"Direct Effect", "Indirect Effect"}
+    decomp_nodes = {n for n in node_names if "[" in n}
+
+    for node_name in effect_nodes:
+        if node_name in node_layer:
+            node_layer[node_name] = 2
+
+    for node_name in decomp_nodes:
+        parent_layers = [node_layer[s] for s, t in nonzero_edges if t == node_name]
+        if parent_layers:
+            node_layer[node_name] = max(parent_layers) + 1
+
+    max_layer = max(node_layer.values(), default=1)
+    if max_layer == 0:
+        max_layer = 1
+
+    layer_to_nodes = {}
+    for n in node_names:
+        layer_to_nodes.setdefault(node_layer[n], []).append(n)
+
+    node_x_map = {}
+    node_y_map = {}
+    for layer, nodes_in_layer in layer_to_nodes.items():
+        x_pos = 0.02 + 0.96 * (layer / max_layer)
+        sorted_layer_nodes = sorted(
+            nodes_in_layer,
+            key=lambda n: (-abs(node_effect_values.get(n, 0.0)), n),
+        )
+        n_nodes = len(sorted_layer_nodes)
+        for i, node_name in enumerate(sorted_layer_nodes):
+            y_pos = (i + 1) / (n_nodes + 1)
+            node_x_map[node_name] = x_pos
+            node_y_map[node_name] = y_pos
 
     node_labels = []
     for node_name in node_names:
@@ -112,14 +174,9 @@ def plot_effect_sankey_percent(
         if node_val is None:
             node_labels.append(node_name)
         else:
-            node_labels.append(
-                f"{node_name}<br>{node_val:+.4f}"
-            ) if node_val >= 0 else node_labels.append(
-                f"{node_name}<br>{node_val:-.4f}"
-            )
+            node_labels.append(f"{node_name}<br>{node_val:+.4f}")
 
     sources, targets, values, link_labels, link_colors = [], [], [], [], []
-
     for src, tgt, share, eff in flows:
         if share == 0:
             continue
@@ -134,27 +191,47 @@ def plot_effect_sankey_percent(
             f"effect = {eff:+.4f}<br>"
             f"share ≈ {share * 100:.1f}% of |TV| ({sign})"
         )
-
-        if eff >= 0:
-            link_colors.append("rgba(120,180,120,0.5)")  # green
-        else:
-            link_colors.append("rgba(220,90,90,0.5)")  # red
+        link_colors.append(
+            "rgba(120,180,120,0.5)" if eff >= 0 else "rgba(220,90,90,0.5)"
+        )
 
     node_colors = ["rgba(230,230,230,1)" for _ in node_names]
+
+    # TODO: fix for multiple confounders/mediators where indirect effect is not centered under total effect
+    # node_x_map["Indirect Effect"] = (
+    #     node_x_map["Total Effect"] + node_x_map["Spurious Effect[relationship]"]
+    # ) / 2 - 0.04
+    # node_y_map["Indirect Effect"] = node_y_map["Total Effect"] + 0.15
+    # node_x_map["Direct Effect"] = (
+    #     node_x_map["Total Effect"] + node_x_map["Spurious Effect[relationship]"]
+    # ) / 2 - 0.04
+    # node_y_map["Direct Effect"] = node_y_map["Total Effect"] + 0.15
+    # node_x_map["Indirect Effect[occupation]"] = node_x_map[
+    #     "Spurious Effect[relationship]"
+    # ]
+    # node_y_map["Indirect Effect[occupation]"] = node_y_map["Total Effect"]
+    # node_x_map["Indirect Effect[hours-per-week]"] = node_x_map[
+    #     "Spurious Effect[relationship]"
+    # ]
+    # node_y_map["Indirect Effect[hours-per-week]"] = node_y_map["Total Effect"]
+    # node_x_map["Spurious Effect[native-country]"] = node_x_map[
+    #     "Spurious Effect[relationship]"
+    # ]
+    # node_y_map["Spurious Effect[native-country]"] = node_y_map["Total Effect"] - 0.15
 
     fig = go.Figure(
         data=[
             go.Sankey(
                 arrangement="snap",
+                textfont={"size": 18, "family": "Arial", "color": "black"},
                 node={
-                    "pad": 10,
-                    "thickness": 25,
+                    "pad": 20,
+                    "thickness": 20,
                     "label": node_labels,
                     "color": node_colors,
                     "line": {"width": 0.5},
-                    "align": "justify",
-                    "x": [1, 1, 1, 0.5, 0.0],
-                    "y": [0.9, 0.6, 0.1, 0.9, 0.5],
+                    "x": [node_x_map[n] for n in node_names],
+                    "y": [node_y_map[n] for n in node_names],
                 },
                 link={
                     "source": sources,
@@ -167,22 +244,25 @@ def plot_effect_sankey_percent(
         ]
     )
 
-    title = title or f"Causal Effect Decomposition (Flows as % of |TV|={abs_tv:.2f})"
-
-    if save_path is not None:
-        filename = Path(save_path)
-        fig.write_html(filename.with_suffix(".html"))
-        fig.write_image(filename.with_suffix(".svg"))
-        fig.write_image(filename.with_suffix(".pdf"))
+    # title = title or f"Causal Effect Decomposition (Flows as % of |TV|={abs_tv:.2f})"
 
     fig.update_layout(
         title_text=title,
         title_x=0.5,
-        title_y=0.9,
+        title_y=0.95,
         title_font_size=16,
         title_font_color="black",
-        font_size=14,
+        font_size=12,
+        width=1600,
+        height=800,
+        # margin={"l": 40, "r": 40, "t": 90, "b": 30},
     )
+
+    if save_path is not None:
+        filename = Path(save_path)
+        fig.write_html(filename.with_suffix(".html"))
+        fig.write_image(filename.with_suffix(".svg"), width=1600, height=800, scale=2)
+        fig.write_image(filename.with_suffix(".pdf"), width=1600, height=800, scale=2)
 
     fig.show(renderer=renderer)
 

@@ -4,6 +4,7 @@ from typing import Any
 
 import networkx as nx
 import numpy as np
+import pandas as pd
 from loguru import logger
 from pgmpy.inference import CausalInference, VariableElimination
 from pgmpy.models import DiscreteBayesianNetwork
@@ -470,19 +471,29 @@ class EffectResult:
         effect_name: str,
         x0_states: list[Any],
         x1_states: list[Any],
-        effect_matrix: np.ndarray,
+        mediators: list[str] | None = None,
+        effect_matrix: np.ndarray | None = None,
     ):
         self.effect_name = effect_name  # e.g., "Total Effect", "Direct Effect"
         self.x0_states = x0_states
         self.x1_states = x1_states
-        self.matrix = effect_matrix
+        self.mediators = None  # Optional: can be set later if needed
+        if effect_matrix is not None:
+            self.matrix = effect_matrix  # shape (y, x0, x1), (x0, x1), (x0, x1, mediators), (y, x0, x1, mediators).
 
-    def get_effect(self, x0: Any, x1: Any) -> np.ndarray | float:
+    def get_effect(self, x0: Any, x1: Any) -> np.ndarray | float | None:
         """Get the effect value for a specific pair of states."""
         try:
             i = self.x0_states.index(x0)
             j = self.x1_states.index(x1)
-            return self.matrix[:, i, j]
+            if self.matrix.ndim == 2:
+                # No mediators or effect distributions
+                return self.matrix[i, j]
+            elif self.matrix.ndim == 3 and self.mediators is None:
+                return self.matrix[:, i, j]
+            elif self.matrix.ndim > 3 and self.mediators is not None:
+                return self.matrix[:, i, j, ...]
+
         except ValueError as exc:
             raise ValueError(
                 f"States x0={x0} or x1={x1} not found in the respective state lists. Available x0 states: {self.x0_states}, Available x1 states: {self.x1_states}"
@@ -532,6 +543,29 @@ class EffectResult:
                 reversals.append(f"Reversal between ({keys[i]}) and ({keys[i + 1]})")
 
         return reversals
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Convert the effect matrix into a long-format DataFrame."""
+        records = []
+        columns = ["x0", "x1", "w"]
+        columns_values = (
+            [self.x0_states, self.x1_states, self.mediators]
+            if self.mediators
+            else [self.x0_states, self.x1_states]
+        )
+
+        for combination in product(*columns_values):
+            record = dict(zip(columns, combination))
+            x0_idx = self.x0_states.index(combination[0])
+            x1_idx = self.x1_states.index(combination[1])
+            if self.mediators:
+                mediator_idx = self.mediators.index(combination[2])
+                record["effect"] = self.matrix[x0_idx, x1_idx, mediator_idx]
+            else:
+                record["effect"] = self.matrix[x0_idx, x1_idx]
+
+            records.append(record)
+        return pd.DataFrame.from_records(records)
 
 
 def categorical_effect_full_distribution(
@@ -624,7 +658,7 @@ def categorical_total_effect(
             )
             matrix[i, j] = te
 
-    res = EffectResult("Total Effect", x0_set, x1_set, matrix)
+    res = EffectResult("Total Effect", x0_set, x1_set, effect_matrix=matrix)
     return res
 
 
@@ -662,7 +696,7 @@ def categorical_total_variation(
         )
         matrix[x0_set.index(x0), x1_set.index(x1)] = tv
 
-    res = EffectResult("Total Variation", x0_set, x1_set, matrix)
+    res = EffectResult("Total Variation", x0_set, x1_set, effect_matrix=matrix)
     return res
 
 
@@ -689,10 +723,9 @@ def categorical_natural_direct_effect(
     """
     # This implementation currently assumes exactly one mediator.
     mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), type="mediator")
-    if len(mediators) != 1:
-        raise NotImplementedError(
-            "This SCM implementation currently assumes exactly one mediator."
-        )
+
+    if len(mediators) == 0:
+        raise ValueError("No mediators found in the Bayesian Network.")
 
     matrix = np.zeros((len(x0), len(x1)))
 
@@ -705,10 +738,9 @@ def categorical_natural_direct_effect(
             x0=x0_val,
             x1=x1_val,
         )
-
         matrix[x0.index(x0_val), x1.index(x1_val)] = nde
 
-    res = EffectResult("Natural Direct Effect", x0, x1, matrix)
+    res = EffectResult("Natural Direct Effect", x0, x1, effect_matrix=matrix)
     return res
 
 
@@ -736,26 +768,42 @@ def categorical_natural_indirect_effect(
 
     # This implementation currently assumes exactly one mediator.
     mediators = filter_nodes_by_type(bn.nodes(data=True, default={}), type="mediator")
-    if len(mediators) != 1:
-        raise NotImplementedError(
-            "This SCM implementation currently assumes exactly one mediator."
-        )
 
-    matrix = np.zeros((len(x0), len(x1)))
+    if len(mediators) == 0:
+        raise ValueError("No mediators found in the Bayesian Network.")
+    if len(mediators) == 1:
+        matrix = np.zeros((len(x0), len(x1)))
+    elif len(mediators) > 1:
+        matrix = np.zeros((len(x0), len(x1), len(mediators)))
 
     pairs = list(product(x0, x1))
     for x0_val, x1_val in pairs:
-        nie = natural_indirect_effect(
-            bn=bn,
-            target=target,
-            private_attr=private_attr,
-            x0=x0_val,
-            x1=x1_val,
-        )
+        if len(mediators) == 1:
+            nie = natural_indirect_effect(
+                bn=bn,
+                target=target,
+                private_attr=private_attr,
+                x0=x0_val,
+                x1=x1_val,
+            )
+            matrix[x0.index(x0_val), x1.index(x1_val)] = nie
 
-        matrix[x0.index(x0_val), x1.index(x1_val)] = nie
+        elif len(mediators) > 1:
+            nie_w_contrib = decompose_indirect_effect(
+                bn=bn,
+                target=target,
+                private_attr=private_attr,
+                x0=x0_val,
+                x1=x1_val,
+            )
+            for i, mediator in enumerate(mediators):
+                matrix[x0.index(x0_val), x1.index(x1_val), i] = nie_w_contrib[mediator]
 
-    res = EffectResult("Natural Indirect Effect", x0, x1, matrix)
+    if len(mediators) == 1:
+        res = EffectResult("Natural Indirect Effect", x0, x1, effect_matrix=matrix)
+    elif len(mediators) > 1:
+        res = EffectResult("Natural Indirect Effect", x0, x1, mediators, matrix)
+        res.mediators = mediators
     return res
 
 
@@ -1192,6 +1240,173 @@ def _estimate_target_prob_by_adjustment(
     adjusted_factor.marginalize(adj_set)
 
     return adjusted_factor.values
+
+
+###########################################
+#### Utility to assemble report tables ####
+###########################################
+
+
+def compute_fairness_report(
+    bn: DiscreteBayesianNetwork,
+    target: tuple[str, Any],
+    private_attr: str,
+    x0: Any,
+    x1: Any,
+) -> pd.DataFrame:
+    """Compute all causal fairness effects and return a tidy summary DataFrame.
+
+    Computes TV, TE, SE(x0), SE(x1), NDE, NIE and their per-variable decompositions,
+    then assembles them into a single report table.
+
+    Args:
+        bn: Fitted Bayesian Network.
+        target: ``(variable, value)`` tuple for the outcome of interest.
+        private_attr: Name of the sensitive/private variable.
+        x0: Baseline value of the private variable.
+        x1: Comparison value of the private variable.
+
+    Returns:
+        A ``pd.DataFrame`` with columns ``["effect", "variable", "value", "% of |TV|"]``.
+    """
+    tv = total_variation(bn, target, private_attr, x0, x1)
+    te = total_effect(bn, target, private_attr, x0, x1)
+    se_x0 = spurious_effect(bn, target, private_attr, x0)
+    se_x1 = spurious_effect(bn, target, private_attr, x1)
+    nde = natural_direct_effect(bn, target, private_attr, x0, x1)
+    nie = natural_indirect_effect(bn, target, private_attr, x1, x0)
+
+    se_x0_decomp = decompose_spurious_effect(bn, target, private_attr, x0)
+    se_x1_decomp = decompose_spurious_effect(bn, target, private_attr, x1)
+    nie_decomp = decompose_indirect_effect(bn, target, private_attr, x1, x0)
+
+    abs_tv = abs(tv) if abs(tv) > 0 else 1.0
+
+    rows: list[dict] = []
+
+    def _row(effect: str, variable: str, value: float) -> dict:
+        return {
+            "target_attr": target[0],
+            "target": target[1],
+            "private_attr": private_attr,
+            "private_baseline": x0,
+            "private_mod": x1,
+            "effect": effect,
+            "variable": variable,
+            "value": round(value, 6),
+            "% of |TV|": round(100 * abs(value) / abs_tv, 2),
+        }
+
+    rows.append(_row("TV", "—", tv))
+    rows.append(_row("TE", "—", te))
+    rows.append(_row(f"SE[{x0}]", "—", se_x0))
+    rows.append(_row(f"SE[{x1}]", "—", se_x1))
+    rows.append(_row("NDE", "—", nde))
+    rows.append(_row("NIE", "—", nie))
+
+    for confounder, val in se_x0_decomp.items():
+        rows.append(_row(f"SE[{x0}]", confounder, val))
+    for confounder, val in se_x1_decomp.items():
+        rows.append(_row(f"SE[{x1}]", confounder, val))
+    for mediator, val in nie_decomp.items():
+        rows.append(_row("NIE", mediator, val))
+
+    return pd.DataFrame(rows)
+
+
+# TODO: something is off
+def compute_categorical_fairness_report(
+    bn: DiscreteBayesianNetwork,
+    target: tuple[str, Any],
+    private_attr: str,
+    x0_set: list[Any],
+    x1_set: list[Any],
+) -> pd.DataFrame:
+    """Compute categorical fairness effects and return a tidy long-form DataFrame.
+
+    This helper is intended for categorical settings where each effect is returned as
+    a matrix over state pairs, optionally with an additional mediator axis for
+    decomposed indirect/direct effects.
+
+    Args:
+        bn: Fitted Bayesian Network.
+        target: ``(variable, value)`` tuple for the outcome of interest.
+        private_attr: Name of the sensitive/private variable.
+        x0_set: Baseline states of the private variable.
+        x1_set: Comparison states of the private variable.
+
+    Returns:
+        A tidy ``pd.DataFrame`` with one row per effect entry and columns
+        describing the state pair, optional component, value, and normalization
+        by the corresponding categorical TV entry.
+    """
+    cat_tv = categorical_total_variation(bn, target, private_attr, x0_set, x1_set)
+    cat_te = categorical_total_effect(bn, target, private_attr, x0_set, x1_set)
+    cat_nde = categorical_natural_direct_effect(
+        bn, target, private_attr, x0_set, x1_set
+    )
+    cat_nie = categorical_natural_indirect_effect(
+        bn, target, private_attr, x0_set, x1_set
+    )
+
+    rows: list[dict[str, Any]] = []
+
+    def _append_rows(result: EffectResult) -> None:
+        for i, x0 in enumerate(result.x0_states):
+            for j, x1 in enumerate(result.x1_states):
+                tv_val = float(cat_tv.matrix[i, j])
+                abs_tv = abs(tv_val) if abs(tv_val) > 0 else 1.0
+
+                if result.matrix.ndim == 2:
+                    rows.append(
+                        {
+                            "target_attr": target[0],
+                            "target": target[1],
+                            "private_attr": private_attr,
+                            "x0": x0,
+                            "x1": x1,
+                            "effect": result.effect_name,
+                            "component": "aggregate",
+                            "value": round(float(result.matrix[i, j]), 6),
+                            "tv_value": round(tv_val, 6),
+                            "% of |TV(x0,x1)|": round(
+                                100 * abs(float(result.matrix[i, j])) / abs_tv,
+                                2,
+                            ),
+                        }
+                    )
+                    continue
+
+                if result.matrix.ndim == 3 and result.mediators is not None:
+                    for k, mediator in enumerate(result.mediators):
+                        rows.append(
+                            {
+                                "target_attr": target[0],
+                                "target": target[1],
+                                "private_attr": private_attr,
+                                "x0": x0,
+                                "x1": x1,
+                                "effect": result.effect_name,
+                                "component": mediator,
+                                "value": round(float(result.matrix[i, j, k]), 6),
+                                "tv_value": round(tv_val, 6),
+                                "% of |TV(x0,x1)|": round(
+                                    100 * abs(float(result.matrix[i, j, k])) / abs_tv,
+                                    2,
+                                ),
+                            }
+                        )
+                    continue
+
+                raise ValueError(
+                    "Unsupported EffectResult shape for categorical reporting: "
+                    f"{result.matrix.shape}"
+                )
+
+    for result in (cat_tv, cat_te, cat_nde, cat_nie):
+        _append_rows(result)
+
+    return pd.DataFrame(rows)
 
 
 # Aliases
