@@ -1,0 +1,27 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{amsmath}
+
+\begin{document}
+
+\section*{Title: "Fairness Decomposition Report"}
+
+\subsection*{Overview of the Fairness Analysis}
+This analysis decomposes disparities in the Adult Dataset between two education groups: $X = \text{Some-college}$ (x0) versus $X = \text{Masters}$ (x1). The outcome $T\_income$ is recorded in the data with the label $T\_income > 50K$ (i.e., whether income exceeds 50K). We decomposed the overall difference into total variation and a causal decomposition consisting of the total effect (TE), the natural direct effect (NDE), the natural indirect effect (NIE) via the mediator \text{native-country}, and spurious effects related to the confounder $S2\_gender$. The aim is to assess whether the Masters vs Some-college disparity in high income is driven mainly by direct education effects, mediation through native-country, or spurious confounding by gender.
+
+\subsection*{Decomposition of Effects}
+\begin{itemize}
+  \item Total variation (TV): $TV = 0.3558$. This quantifies the overall distributional difference in $T\_income$ ($>50K$) between Some-college and Masters and indicates a substantial disparity.
+  \item Total effect (TE): $TE = 0.3419$. Interpreted as the causal difference associated with changing education from $x0 = \text{Some-college}$ to $x1 = \text{Masters}$: moving to Masters is associated with an increase in the probability of $T\_income > 50K$ of about $0.3419$ (34.19 percentage points).
+  \item Indirect effect (NIE): $NIE = 0.0058$. Interpreted under the convention that the mediator(s) (\text{native-country}) are set to their distribution under $x1$ (Masters) while other components remain at $x0$ (Some-college). The NIE is very small, so \text{native-country} explains little of the disparity.
+  \item Direct effect (NDE): $NDE = 0.3477$. The direct pathway from education (not via \text{native-country}) is the largest component; $NDE = 0.3477$ is the dominant contributor to the observed difference.
+  \item Spurious effects (confounding by $S2\_gender$): $SE(x0) = -0.0100$ and $SE(x1) = 0.0039$. These baseline-dependent spurious components tied to $S2\_gender$ are small. At the $x0$ baseline the spurious effect slightly reduces the disparity (negative), while at $x1$ it slightly increases it (positive), but neither is large compared with the direct effect.
+  \item X-specific results not provided.
+  \item Z-specific results not provided.
+\end{itemize}
+
+\subsection*{Recap}
+Masters (x1 = $\text{Masters}$) have a substantially higher probability of earning $T\_income > 50K$ than Some-college (x0 = $\text{Some-college}$); the estimated total effect is $TE \approx 0.3419$ (about 34.19 percentage points higher for Masters). The disparity is mainly driven by the direct component ($NDE \approx 0.3477$). The mediated contribution through \text{native-country} ($NIE \approx 0.0058$) is negligible and, in the provided decomposition, slightly reduces the net TE (the checks show $TE = NDE - NIE$). Spurious/confounding effects from $S2\_gender$ ($SE(x0) \approx -0.0100$; $SE(x1) \approx 0.0039$) are minor and do not account for the bulk of the disparity.
+
+\end{document}
