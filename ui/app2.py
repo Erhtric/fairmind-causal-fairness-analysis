@@ -234,14 +234,12 @@ def compute_all_categorical_results(
     tv = categorical_total_variation(bn, target, x_col, ordered_states, ordered_states)
     de = categorical_natural_direct_effect(bn, target, x_col, ordered_states, ordered_states)
     ie = categorical_natural_indirect_effect(bn, target, x_col, ordered_states, ordered_states)
-    se = categorical_spurious_effect(bn, target, x_col, ordered_states)
 
     return {
         "te": te,
         "tv": tv,
         "de": de,
         "ie": ie,
-        "se": se,
     }
 
 
@@ -426,10 +424,32 @@ def build_primary_payload(
 # -------------------------------------------------------------------
 
 def main() -> None:
-    st.set_page_config(page_title="FairMind", layout="wide")
+    st.markdown(
+        """
+        <div style="text-align: center;">
+            <h1 style="margin-bottom:0;color:">FairMind</h1>
+            <h1 style="margin-top:0;">
+                Causal Fairness Analysis with LLMs
+            </h1>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.title("FairMind")
-    st.caption("Causal fairness analysis with the new SFM + Bayesian network pipeline")
+    st.write(
+            """
+    Upload a dataset for **causal fairness analysis**, specify:
+
+    - **X**: sensitive attribute (e.g. race, gender)
+    - **Y**: outcome (e.g. income)
+    - **W**: mediator(s) if any
+    - **Z**: confounder(s) if any
+
+    Assuming a specified SFM causal graph, the app will run a code to decompose the *total variation* into:
+    *total effect*, *indirect*, *direct*, and *spurious effects* and then the LLM will generate a **report** with the main results.
+    """
+        )
+
 
     client = init_client()
 
