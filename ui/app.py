@@ -611,6 +611,11 @@ Here are the fairness decomposition results in JSON:
 
 # Main 
 
+st.set_page_config(
+    page_title="FairMind",
+    layout="centered"
+)
+
 def main():
     st.markdown(
     """
