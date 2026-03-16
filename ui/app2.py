@@ -445,8 +445,10 @@ def main() -> None:
     - **W**: mediator(s) if any
     - **Z**: confounder(s) if any
 
-    Assuming a specified SFM causal graph, the app will run a code to decompose the *total variation* into:
-    *total effect*, *indirect*, *direct*, and *spurious effects* and then the LLM will generate a **report** with the main results.
+    Given the specified **SFM causal graph**, the app fits a **discrete Bayesian network** to the data and then computes a decomposition of the **total variation** into:
+    *total effect*, *indirect effect*, *direct effect*, and *spurious effect*.
+    
+    Finally, the LLM generates a **report** summarizing the main findings.
     """
         )
 
@@ -462,10 +464,11 @@ def main() -> None:
         return
 
     preprocess_mode = st.radio(
-        "Dataset status",
-        ["Already processed", "Raw: remove NaN / invalid symbols"],
+     "What is the status of your dataset?",
+    ("Processed", "Raw (removing NaN and invalid symbols)"),
         horizontal=True,
     )
+
 
     try:
         df = load_dataframe(uploaded.getvalue(), Path(uploaded.name).suffix)
@@ -504,13 +507,48 @@ def main() -> None:
         st.error("W and Z must be disjoint.")
         return
 
-    st.subheader("2. Outcome mode")
+    st.subheader("2. Configuration of Outcome and Private Attribute")
+
+    st.markdown("### Outcome configuration")
+
     y_mode = st.radio(
         "Y type",
         ["Categorical / discrete", "Continuous via threshold analysis"],
         horizontal=True,
-    )
+        )
+    if y_mode == "Categorical / discrete":
+        y_states = unique_states(df, y_col)
+        if len(y_states) == 0:
+            st.error("Y has no observed states.")
+            return
+        y_value = st.selectbox("Target Y state", options=y_states, index=0)
+    else:
+        if not pd.api.types.is_numeric_dtype(df[y_col]):
+            st.error("Continuous threshold analysis requires a numeric Y column.")
+            return
 
+        s = df[y_col].dropna().astype(float)
+        st.caption(f"Observed Y range: [{s.min():.6g}, {s.max():.6g}]")
+
+        c5, c6, c7 = st.columns(3)
+        with c5:
+            threshold_direction = st.selectbox(
+                "Threshold direction",
+                ["Y ≤ threshold", "Y ≥ threshold"],
+            )
+        with c6:
+            grid_kind = st.selectbox("Threshold grid", ["Quantiles", "Evenly spaced"])
+        with c7:
+            n_thresholds = st.slider("Number of thresholds", min_value=5, max_value=100, value=25)
+
+        if grid_kind == "Quantiles":
+            qs = np.linspace(0.01, 0.99, n_thresholds)
+            thresholds = np.quantile(s.to_numpy(), qs)
+        else:
+            thresholds = np.linspace(float(s.min()), float(s.max()), n_thresholds)
+        thresholds = np.unique(thresholds.astype(float)).tolist()
+
+    st.markdown("### Private Attribute configuration")
     x_states = unique_states(df, x_col)
     if len(x_states) < 2:
         st.error("X must have at least two observed states.")
@@ -555,37 +593,6 @@ def main() -> None:
         placeholder="Describe the meanings of X, Y, W, Z and the target state of Y.",
     )
 
-    if y_mode == "Categorical / discrete":
-        y_states = unique_states(df, y_col)
-        if len(y_states) == 0:
-            st.error("Y has no observed states.")
-            return
-        y_value = st.selectbox("Target Y state", options=y_states, index=0)
-    else:
-        if not pd.api.types.is_numeric_dtype(df[y_col]):
-            st.error("Continuous threshold analysis requires a numeric Y column.")
-            return
-
-        s = df[y_col].dropna().astype(float)
-        st.caption(f"Observed Y range: [{s.min():.6g}, {s.max():.6g}]")
-
-        c5, c6, c7 = st.columns(3)
-        with c5:
-            threshold_direction = st.selectbox(
-                "Threshold direction",
-                ["Y ≤ threshold", "Y ≥ threshold"],
-            )
-        with c6:
-            grid_kind = st.selectbox("Threshold grid", ["Quantiles", "Evenly spaced"])
-        with c7:
-            n_thresholds = st.slider("Number of thresholds", min_value=5, max_value=100, value=25)
-
-        if grid_kind == "Quantiles":
-            qs = np.linspace(0.01, 0.99, n_thresholds)
-            thresholds = np.quantile(s.to_numpy(), qs)
-        else:
-            thresholds = np.linspace(float(s.min()), float(s.max()), n_thresholds)
-        thresholds = np.unique(thresholds.astype(float)).tolist()
 
     if not st.button("Run analysis", type="primary"):
         return
