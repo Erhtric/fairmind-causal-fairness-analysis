@@ -588,7 +588,8 @@ def main() -> None:
 
         st.success("Model fitted successfully.")
         st.subheader("4. Causal graph (SFM)")
-        st.graphviz_chart(visualize_sfm(sfm), use_container_width=True)
+        fig = visualize_sfm(sfm)
+        st.pyplot(fig)
 
 
         st.subheader("5. General Effects")
@@ -796,7 +797,8 @@ def main() -> None:
         st.write(
             f"Detailed results for threshold **{threshold_choice:.6g}** with event **{threshold_direction.replace('threshold', str(round(threshold_choice, 6)))}**."
         )
-        st.graphviz_chart(visualize_sfm(sfm), use_container_width=True)
+        fig = visualize_sfm(sfm)
+        st.pyplot(fig)
         render_main_metrics(scalar_results)
 
         detail_rows = pd.DataFrame(
