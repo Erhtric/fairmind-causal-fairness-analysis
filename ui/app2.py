@@ -176,7 +176,16 @@ def build_scalar_results(
 
     return out
 
-
+def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
+    return {
+        "total_variation": scalar_results.get("tv"),
+        "total_effect": scalar_results.get("te"),
+        "direct_effect": scalar_results.get("de"),
+        "indirect_effect": scalar_results.get("ie"),
+        "spurious_effect": scalar_results.get("se_x1"),  # choose x1 version for the tree
+        "indirect effect decomposition": scalar_results.get("ie_decomposition", {}),
+        "spurious effect decomposition": scalar_results.get("se_decomposition_x1", {}),
+    }
 
 def build_pairwise_rows(effect_result, value_name: str) -> pd.DataFrame:
     rows = []
@@ -612,7 +621,10 @@ def main() -> None:
             [{"effect": k, "value": round_or_none(v)} for k, v in scalar_results.items() if not isinstance(v, dict)]
         )
         st.dataframe(raw_rows, use_container_width=True)
+        st.markdown("**Effect decomposition tree**")
 
+        tree_effects = scalar_results_to_tree_effects(scalar_results)
+        st.graphviz_chart(build_effect_tree(tree_effects), use_container_width=True)
         if include_decomposition:
             c8, c9 = st.columns(2)
             with c8:
