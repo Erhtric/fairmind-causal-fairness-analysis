@@ -35,7 +35,7 @@ from src.effects import (
 from src.graph import build_sfm
 from src.llm import prepare_llm_payload_general, summarize_with_llm_combined
 from src.model import fit_discrete_bayesian_model
-
+from src.visualisation.graph import visualize_sfm
 
 load_dotenv(override=True)
 
@@ -131,33 +131,6 @@ def make_matrix_df(res, nd: int = 6) -> pd.DataFrame:
 
 
 
-def graphviz_from_sfm(sfm: nx.DiGraph) -> Digraph:
-    dot = Digraph()
-    dot.attr(rankdir="TB")
-
-    type_to_color = {
-        "sensitive": "#e3f2fd",
-        "outcome": "#fce4ec",
-        "mediator": "#e8f5e9",
-        "confounder": "#fff3e0",
-        "latent": "#eeeeee",
-    }
-
-    for node, data in sfm.nodes(data=True):
-        node_type = data.get("type", "")
-        dot.node(
-            str(node),
-            label=f"{node}\n({node_type})" if node_type else str(node),
-            style="filled,rounded",
-            shape="box",
-            fillcolor=type_to_color.get(node_type, "white"),
-        )
-
-    for u, v in sfm.edges():
-        dot.edge(str(u), str(v))
-
-    return dot
-
 
 
 def build_scalar_results(
@@ -174,7 +147,7 @@ def build_scalar_results(
         "tv": total_variation(bn, target, x_col, x0, x1),
         "te": total_effect(bn, target, x_col, x0, x1),
         "de": natural_direct_effect(bn, target, x_col, x0, x1),
-        "ie": natural_indirect_effect(bn, target, x_col, x0, x1),
+        "ie": natural_indirect_effect(bn, target, x_col, x1, x0),
         "se_x1": spurious_effect(bn, target, x_col, x1),
         "se_x0": spurious_effect(bn, target, x_col, x0),
     }
@@ -345,7 +318,7 @@ def compute_continuous_threshold_curve(
                 "tv": total_variation(bn, target, x_col, x0, x1),
                 "te": total_effect(bn, target, x_col, x0, x1),
                 "de": natural_direct_effect(bn, target, x_col, x0, x1),
-                "ie": natural_indirect_effect(bn, target, x_col, x0, x1),
+                "ie": natural_indirect_effect(bn, target, x_col, x1, x0),
             }
         )
         progress.progress(i / len(thresholds))
@@ -614,10 +587,11 @@ def main() -> None:
             return
 
         st.success("Model fitted successfully.")
-        st.subheader("4. Assumed SFM graph")
-        st.graphviz_chart(graphviz_from_sfm(sfm), use_container_width=True)
+        st.subheader("4. Causal graph (SFM)")
+        st.graphviz_chart(visualize_sfm(sfm), use_container_width=True)
 
-        st.subheader("5. Primary pairwise results")
+
+        st.subheader("5. General Effects")
         try:
             scalar_results = build_scalar_results(
                 bn=bn,
