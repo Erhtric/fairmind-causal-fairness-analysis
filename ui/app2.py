@@ -186,6 +186,68 @@ def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
         "indirect effect decomposition": scalar_results.get("ie_decomposition", {}),
         "spurious effect decomposition": scalar_results.get("se_decomposition_x1", {}),
     }
+def build_effect_tree(effects: dict) -> Digraph:
+    dot = Digraph()
+    dot.attr("node", shape="box", style="rounded,filled", fontsize="10")
+
+    def fmt(label: str, key: str):
+        val = effects.get(key)
+        if val is None:
+            return label
+        return f"{label}\n({round_or_none(val, nd=5)})"
+
+    dot.node("TV", fmt("TV", "total_variation"))
+    dot.node("TE", fmt("TE", "total_effect"))
+    dot.node("SE", fmt("SE(x1)", "spurious_effect"))
+    dot.edge("TV", "TE")
+    dot.edge("TV", "SE")
+
+    dot.node("DE", fmt("DE", "direct_effect"))
+    dot.node("IE", fmt("IE", "indirect_effect"))
+    dot.edge("TE", "DE")
+    dot.edge("TE", "IE")
+
+    indirect_int = effects.get("ie_decomp_interval")
+    if not indirect_int:
+        indirect_int = effects.get("indirect effect decomposition")
+
+    indirect_point = effects.get("ie_decomp")
+    if not indirect_point:
+        indirect_point = effects.get("indirect effect decomposition")
+
+    indirect_decomp = (
+        indirect_int
+        if isinstance(indirect_int, dict) and len(indirect_int) > 0
+        else indirect_point
+    )
+
+    if isinstance(indirect_decomp, dict) and len(indirect_decomp) > 0:
+        for i, (name, val) in enumerate(indirect_decomp.items()):
+            node_id = f"IE_{i}"
+            dot.node(node_id, f"{name}\n({round_or_none(val, nd=5)})")
+            dot.edge("IE", node_id)
+
+    spurious_int = effects.get("se_decomp_interval")
+    if not spurious_int:
+        spurious_int = effects.get("spurious effect decomposition")
+
+    spurious_point = effects.get("se_decomp")
+    if not spurious_point:
+        spurious_point = effects.get("spurious effect decomposition")
+
+    spurious_decomp = (
+        spurious_int
+        if isinstance(spurious_int, dict) and len(spurious_int) > 0
+        else spurious_point
+    )
+
+    if isinstance(spurious_decomp, dict) and len(spurious_decomp) > 0:
+        for j, (name, val) in enumerate(spurious_decomp.items()):
+            node_id = f"SE_{j}"
+            dot.node(node_id, f"{name}\n({round_or_none(val, nd=5)})")
+            dot.edge("SE", node_id)
+
+    return dot
 
 def build_pairwise_rows(effect_result, value_name: str) -> pd.DataFrame:
     rows = []
