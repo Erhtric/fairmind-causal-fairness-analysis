@@ -796,7 +796,7 @@ def main() -> None:
         st.write(
             f"Detailed results for threshold **{threshold_choice:.6g}** with event **{threshold_direction.replace('threshold', str(round(threshold_choice, 6)))}**."
         )
-        st.graphviz_chart(graphviz_from_sfm(sfm), use_container_width=True)
+        st.graphviz_chart(visualize_sfm(sfm), use_container_width=True)
         render_main_metrics(scalar_results)
 
         detail_rows = pd.DataFrame(
