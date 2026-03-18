@@ -739,15 +739,12 @@ def main() -> None:
         st.subheader("6. All pairwise effects across X states")
         try:
             all_results = compute_all_categorical_results(
-                bn=bn,
-                y_col=y_col,
-                y_value=y_value,
-                x_col=x_col,
-                ordered_states=ordered_x_states if use_ordered_x else x_states,
-                x0=x0,
-                x1=x1,
-                include_decomposition=include_decomposition,
-            )
+                    bn=bn,
+                    y_col=y_col,
+                    y_value=y_value,
+                    x_col=x_col,
+                    ordered_states=ordered_x_states if use_ordered_x else x_states,
+                )
         except Exception as exc:
             st.error(f"Categorical effect computation failed: {exc}")
             return
