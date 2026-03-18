@@ -124,11 +124,25 @@ def unique_states(df: pd.DataFrame, col: str) -> list[Any]:
     return seen
 
 
+def make_matrix_df(res):
+    if res is None:
+        return pd.DataFrame()
 
-def make_matrix_df(res, nd: int = 6) -> pd.DataFrame:
-    df = pd.DataFrame(res.matrix, index=res.x0_states, columns=res.x1_states)
-    return df.applymap(lambda x: round_or_none(x, nd))
+    # dict-style
+    if isinstance(res, dict):
+        matrix = res.get("matrix")
+        x0_states = res.get("x0_states")
+        x1_states = res.get("x1_states")
+    else:
+        # object-style
+        matrix = getattr(res, "matrix", None)
+        x0_states = getattr(res, "x0_states", None)
+        x1_states = getattr(res, "x1_states", None)
 
+    if matrix is None:
+        raise ValueError(f"make_matrix_df expected a matrix result, got: {res}")
+
+    return pd.DataFrame(matrix, index=x0_states, columns=x1_states)
 
 
 
