@@ -796,10 +796,10 @@ def main() -> None:
 
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown(f"SE({x0_state})", round_or_none(sex0_val))
+                st.markdown(f"**SE({x0_state})**: {round_or_none(sex0_val)}")
             with col2:
-                st.markdown(f"SE({x1_state})", round_or_none(sex1_val))
-                if use_ordered_x:
+                st.markdown(f"**SE({x1_state})**: {round_or_none(sex1_val)}")
+            if use_ordered_x:
                     st.markdown("**Stepwise effects**")
                     tv_steps = all_results["tv"].get_stepwise_effects()
                     te_steps = all_results["te"].get_stepwise_effects()
