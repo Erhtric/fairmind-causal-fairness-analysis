@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import Any
-
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -148,8 +148,8 @@ def build_scalar_results(
         "te": total_effect(bn, target, x_col, x0, x1),
         "de": natural_direct_effect(bn, target, x_col, x0, x1),
         "ie": natural_indirect_effect(bn, target, x_col, x1, x0),
-        "se_x1": spurious_effect(bn, target, x_col, x1),
-        "se_x0": spurious_effect(bn, target, x_col, x0),
+        "sex1": spurious_effect(bn, target, x_col, x1),
+        "sex0": spurious_effect(bn, target, x_col, x0),
     }
 
     if include_decomposition:
@@ -192,8 +192,8 @@ def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
         "total_effect": scalar_results.get("te"),
         "direct_effect": scalar_results.get("de"),
         "indirect_effect": scalar_results.get("ie"),
-        "spurious_effect x1": scalar_results.get("se_x1"),  # choose x1 version for the tree
-        "spurious_effect x0": scalar_results.get("se_x0"),  # choose x1 version for the tree
+        "spurious_effect x1": scalar_results.get("sex1"),  # choose x1 version for the tree
+        "spurious_effect x0": scalar_results.get("sex0"),  # choose x1 version for the tree
         "indirect effect decomposition": scalar_results.get("ie_decomposition", {}),
         "spurious effect decomposition x1": scalar_results.get("se_decomposition_x1", {}),
         "spurious effect decomposition x1": scalar_results.get("se_decomposition_x0", {}),
@@ -255,11 +255,38 @@ def build_effect_tree(effects: dict) -> Digraph:
             node_id = f"SEx0_{j}"
             dot.node(node_id, f"{name}\n({round_or_none(val, nd=5)})")
             dot.edge("SEx0", node_id)
-
-
-
-
     return dot
+
+def plot_ordered_effect_curve(
+    res,
+    ylabel: str = "TE",
+    baseline_label: str | None = None,
+):
+    """
+    Plot cumulative ordered effect from the first X state to each later X state.
+    Expects res to be an EffectResult with ordered x0_states/x1_states.
+    """
+    ordered_states = res.x0_states
+    baseline = ordered_states[0]
+
+    y_vals = [0.0]
+    for state in ordered_states[1:]:
+        y_vals.append(float(res.matrix[0, res.x1_states.index(state)]))
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    ax.step(range(len(ordered_states)), y_vals, where="mid")
+    ax.set_xticks(range(len(ordered_states)))
+    ax.set_xticklabels(ordered_states, rotation=20, ha="right")
+    ax.set_ylabel(ylabel)
+    ax.set_xlabel("Ordered X categories")
+    ax.set_title(
+        f"{ylabel} across ordered X states"
+        if baseline_label is None
+        else f"{ylabel} from {baseline_label} across ordered X states"
+    )
+    ax.grid(True, alpha=0.3)
+
+    return fig
 
 def build_pairwise_rows(effect_result, value_name: str) -> pd.DataFrame:
     rows = []
@@ -314,8 +341,8 @@ def render_main_metrics(results: dict[str, Any]) -> None:
     cols[1].metric("TE", round_or_none(results.get("te")))
     cols[2].metric("DE", round_or_none(results.get("de")))
     cols[3].metric("IE", round_or_none(results.get("ie")))
-    cols[4].metric("SE(x1)", round_or_none(results.get("se_x1")))
-    cols[5].metric("SE(x0)", round_or_none(results.get("se_x0")))
+    cols[4].metric("SE(x1)", round_or_none(results.get("sex1")))
+    cols[5].metric("SE(x0)", round_or_none(results.get("sex0")))
 
 
 
@@ -702,12 +729,23 @@ def main() -> None:
         tree_effects = scalar_results_to_tree_effects(scalar_results)
         st.graphviz_chart(build_effect_tree(tree_effects), use_container_width=True)
         if include_decomposition:
-            c8, c9 = st.columns(2)
+            c8, c9, c10 = st.columns(3)
             with c8:
-                render_decomposition_dict("Indirect-effect decomposition", scalar_results.get("ie_decomposition"))
+                render_decomposition_dict(
+                    "Indirect-effect decomposition",
+                    scalar_results.get("ie_decomposition"),
+                )
             with c9:
-                render_decomposition_dict("Spurious-effect decomposition at x1", scalar_results.get("se_decomposition_x1"))
-
+                render_decomposition_dict(
+                    f"Spurious-effect decomposition at x1 = {x1}",
+                    scalar_results.get("se_decomposition_x1"),
+                )
+            with c10:
+                render_decomposition_dict(
+                    f"Spurious-effect decomposition at x0 = {x0}",
+                    scalar_results.get("se_decomposition_x0"),
+                )
+    
         st.subheader("6. All pairwise effects across X states")
         try:
             all_results = compute_all_categorical_results(
@@ -741,9 +779,9 @@ def main() -> None:
                 st.markdown(f"**{label} matrix**")
                 st.dataframe(make_matrix_df(res), use_container_width=True)
 
-                long_df = build_pairwise_rows(res, label.lower())
-                st.markdown("**Long format**")
-                st.dataframe(long_df, use_container_width=True)
+                #long_df = build_pairwise_rows(res, label.lower())
+                #st.markdown("**Long format**")
+                #st.dataframe(long_df, use_container_width=True)
 
                 max_val, max_x0, max_x1 = res.max_disparity()
                 st.caption(
@@ -752,17 +790,53 @@ def main() -> None:
 
                 if use_ordered_x:
                     st.markdown("**Stepwise effects**")
-                    stepwise = res.get_stepwise_effects()
-                    step_rows = pd.DataFrame(
-                        [{"step": k, "value": round_or_none(v)} for k, v in stepwise.items()]
-                    )
-                    st.dataframe(step_rows, use_container_width=True)
+                    tv_steps = all_results["tv"].get_stepwise_effects()
+                    te_steps = all_results["te"].get_stepwise_effects()
+                    de_steps = all_results["de"].get_stepwise_effects()
+                    ie_steps = all_results["ie"].get_stepwise_effects()
 
-                    reversals = res.find_sign_reversals()
-                    if reversals:
-                        st.warning("; ".join(reversals))
+                    all_step_names = []
+                    for d in [tv_steps, te_steps, de_steps, ie_steps]:
+                        for k in d.keys():
+                            if k not in all_step_names:
+                                all_step_names.append(k)
+
+                    step_rows = []
+                    for step in all_step_names:
+                        step_rows.append({
+                            "step": step,
+                            "TV": round_or_none(tv_steps.get(step)),
+                            "TE": round_or_none(te_steps.get(step)),
+                            "DE": round_or_none(de_steps.get(step)),
+                            "IE": round_or_none(ie_steps.get(step)),
+                        })
+
+                    st.dataframe(pd.DataFrame(step_rows), use_container_width=True)
+
+                    reversal_messages = []
+                    for effect_name, effect_res in [
+                        ("TV", all_results["tv"]),
+                        ("TE", all_results["te"]),
+                        ("DE", all_results["de"]),
+                        ("IE", all_results["ie"]),
+                    ]:
+                        reversals = effect_res.find_sign_reversals()
+                        if reversals:
+                            reversal_messages.extend([f"{effect_name}: {msg}" for msg in reversals])
+
+                    if reversal_messages:
+                        st.warning("; ".join(reversal_messages))
                     else:
-                        st.success("No sign reversals detected in adjacent steps.")
+                        st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
+                        st.subheader("Ordered effect curve")
+
+                    te_fig = plot_ordered_effect_curve(
+                        all_results["te"],
+                        ylabel="TE",
+                        baseline_label=str(ordered_x_states[0]),
+                    )
+                    st.pyplot(te_fig)
+
 
         st.subheader("7. Exportable JSON payload")
         llm_payload = build_primary_payload(
