@@ -192,12 +192,11 @@ def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
         "total_effect": scalar_results.get("te"),
         "direct_effect": scalar_results.get("de"),
         "indirect_effect": scalar_results.get("ie"),
-        "spurious_effect x1": scalar_results.get("sex1"),  # choose x1 version for the tree
-        "spurious_effect x0": scalar_results.get("sex0"),  # choose x1 version for the tree
-        "indirect effect decomposition": scalar_results.get("ie_decomposition", {}),
-        "spurious effect decomposition x1": scalar_results.get("se_decomposition_x1", {}),
-        "spurious effect decomposition x1": scalar_results.get("se_decomposition_x0", {}),
-
+        "spurious_effect_x1": scalar_results.get("sex1"),
+        "spurious_effect_x0": scalar_results.get("sex0"),
+        "indirect_effect_decomposition": scalar_results.get("ie_decomposition", {}),
+        "spurious_effect_decomposition_x1": scalar_results.get("se_decomposition_x1", {}),
+        "spurious_effect_decomposition_x0": scalar_results.get("se_decomposition_x0", {}),
     }
 def build_effect_tree(effects: dict) -> Digraph:
     dot = Digraph()
@@ -213,6 +212,7 @@ def build_effect_tree(effects: dict) -> Digraph:
     dot.node("TE", fmt("TE", "total_effect"))
     dot.node("SEx1", fmt("SE(x1)", "spurious_effect_x1"))
     dot.node("SEx0", fmt("SE(x0)", "spurious_effect_x0"))
+
     dot.edge("TV", "TE")
     dot.edge("TV", "SEx0")
     dot.edge("TV", "SEx1")
@@ -222,26 +222,13 @@ def build_effect_tree(effects: dict) -> Digraph:
     dot.edge("TE", "DE")
     dot.edge("TE", "IE")
 
-    indirect_int = effects.get("ie_decomp_interval")
-    if not indirect_int:
-        indirect_int = effects.get("indirect effect decomposition")
-
-    indirect_point = effects.get("ie_decomp")
-    if not indirect_point:
-        indirect_point = effects.get("indirect effect decomposition")
-
-    indirect_decomp = (
-        indirect_int
-        if isinstance(indirect_int, dict) and len(indirect_int) > 0
-        else indirect_point
-    )
-
+    indirect_decomp = effects.get("indirect_effect_decomposition", {})
     if isinstance(indirect_decomp, dict) and len(indirect_decomp) > 0:
         for i, (name, val) in enumerate(indirect_decomp.items()):
             node_id = f"IE_{i}"
             dot.node(node_id, f"{name}\n({round_or_none(val, nd=5)})")
             dot.edge("IE", node_id)
-            
+
     spurious_decomp_x1 = effects.get("spurious_effect_decomposition_x1", {})
     if isinstance(spurious_decomp_x1, dict) and len(spurious_decomp_x1) > 0:
         for j, (name, val) in enumerate(spurious_decomp_x1.items()):
@@ -255,6 +242,7 @@ def build_effect_tree(effects: dict) -> Digraph:
             node_id = f"SEx0_{j}"
             dot.node(node_id, f"{name}\n({round_or_none(val, nd=5)})")
             dot.edge("SEx0", node_id)
+
     return dot
 
 def plot_ordered_effect_curve(
@@ -756,6 +744,9 @@ def main() -> None:
                 y_value=y_value,
                 x_col=x_col,
                 ordered_states=ordered_x_states if use_ordered_x else x_states,
+                x0=x0,
+                x1=x1,
+                include_decomposition=include_decomposition,
             )
         except Exception as exc:
             st.error(f"Categorical effect computation failed: {exc}")
