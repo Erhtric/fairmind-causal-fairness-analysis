@@ -774,18 +774,18 @@ def main() -> None:
 
         for tab, key, label in zip(
             tabs,
-            ["tv", "te", "de", "ie", "sex1","sex0"],
-            ["TV", "TE", "DE", "IE", "SEx1","SEx0"],
+            ["tv", "te", "de", "ie", "sex1", "sex0"],
+            ["TV", "TE", "DE", "IE", "SEx1", "SEx0"],
             strict=False,
         ):
             with tab:
                 res = all_results[key]
+
+                if key in ("sex1", "sex0"):
+                    res = res["value"]
+
                 st.markdown(f"**{label} matrix**")
                 st.dataframe(make_matrix_df(res), use_container_width=True)
-
-                #long_df = build_pairwise_rows(res, label.lower())
-                #st.markdown("**Long format**")
-                #st.dataframe(long_df, use_container_width=True)
 
                 max_val, max_x0, max_x1 = res.max_disparity()
                 st.caption(
