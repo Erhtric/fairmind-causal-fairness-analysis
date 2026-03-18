@@ -158,8 +158,8 @@ def build_scalar_results(
                 bn=bn,
                 target=target,
                 private_attr=x_col,
-                x0=x0,
-                x1=x1,
+                x0=x1,
+                x1=x0,
             )
         except Exception as exc:
             out["ie_decomposition_error"] = str(exc)
@@ -174,6 +174,16 @@ def build_scalar_results(
         except Exception as exc:
             out["se_decomposition_x1_error"] = str(exc)
 
+        try:
+            out["se_decomposition_x0"] = decompose_spurious_effect(
+                bn=bn,
+                target=target,
+                private_attr=x_col,
+                x=x0,
+            )
+        except Exception as exc:
+            out["se_decomposition_x0_error"] = str(exc)
+
     return out
 
 def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
@@ -182,9 +192,12 @@ def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
         "total_effect": scalar_results.get("te"),
         "direct_effect": scalar_results.get("de"),
         "indirect_effect": scalar_results.get("ie"),
-        "spurious_effect": scalar_results.get("se_x1"),  # choose x1 version for the tree
+        "spurious_effect x1": scalar_results.get("se_x1"),  # choose x1 version for the tree
+        "spurious_effect x0": scalar_results.get("se_x0"),  # choose x1 version for the tree
         "indirect effect decomposition": scalar_results.get("ie_decomposition", {}),
-        "spurious effect decomposition": scalar_results.get("se_decomposition_x1", {}),
+        "spurious effect decomposition x1": scalar_results.get("se_decomposition_x1", {}),
+        "spurious effect decomposition x1": scalar_results.get("se_decomposition_x0", {}),
+
     }
 def build_effect_tree(effects: dict) -> Digraph:
     dot = Digraph()
@@ -198,9 +211,11 @@ def build_effect_tree(effects: dict) -> Digraph:
 
     dot.node("TV", fmt("TV", "total_variation"))
     dot.node("TE", fmt("TE", "total_effect"))
-    dot.node("SE", fmt("SE(x1)", "spurious_effect"))
+    dot.node("SEx1", fmt("SE(x1)", "spurious_effect_x1"))
+    dot.node("SEx0", fmt("SE(x0)", "spurious_effect_x0"))
     dot.edge("TV", "TE")
-    dot.edge("TV", "SE")
+    dot.edge("TV", "SEx0")
+    dot.edge("TV", "SEx1")
 
     dot.node("DE", fmt("DE", "direct_effect"))
     dot.node("IE", fmt("IE", "indirect_effect"))
@@ -226,26 +241,23 @@ def build_effect_tree(effects: dict) -> Digraph:
             node_id = f"IE_{i}"
             dot.node(node_id, f"{name}\n({round_or_none(val, nd=5)})")
             dot.edge("IE", node_id)
-
-    spurious_int = effects.get("se_decomp_interval")
-    if not spurious_int:
-        spurious_int = effects.get("spurious effect decomposition")
-
-    spurious_point = effects.get("se_decomp")
-    if not spurious_point:
-        spurious_point = effects.get("spurious effect decomposition")
-
-    spurious_decomp = (
-        spurious_int
-        if isinstance(spurious_int, dict) and len(spurious_int) > 0
-        else spurious_point
-    )
-
-    if isinstance(spurious_decomp, dict) and len(spurious_decomp) > 0:
-        for j, (name, val) in enumerate(spurious_decomp.items()):
-            node_id = f"SE_{j}"
+            
+    spurious_decomp_x1 = effects.get("spurious_effect_decomposition_x1", {})
+    if isinstance(spurious_decomp_x1, dict) and len(spurious_decomp_x1) > 0:
+        for j, (name, val) in enumerate(spurious_decomp_x1.items()):
+            node_id = f"SEx1_{j}"
             dot.node(node_id, f"{name}\n({round_or_none(val, nd=5)})")
-            dot.edge("SE", node_id)
+            dot.edge("SEx1", node_id)
+
+    spurious_decomp_x0 = effects.get("spurious_effect_decomposition_x0", {})
+    if isinstance(spurious_decomp_x0, dict) and len(spurious_decomp_x0) > 0:
+        for j, (name, val) in enumerate(spurious_decomp_x0.items()):
+            node_id = f"SEx0_{j}"
+            dot.node(node_id, f"{name}\n({round_or_none(val, nd=5)})")
+            dot.edge("SEx0", node_id)
+
+
+
 
     return dot
 
@@ -278,12 +290,20 @@ def compute_all_categorical_results(
     tv = categorical_total_variation(bn, target, x_col, ordered_states, ordered_states)
     de = categorical_natural_direct_effect(bn, target, x_col, ordered_states, ordered_states)
     ie = categorical_natural_indirect_effect(bn, target, x_col, ordered_states, ordered_states)
-
+    se = {
+        x: {
+            "value": spurious_effect(bn, target, x_col, x),
+            "decomposition": None,
+            }
+        for x in ordered_states
+        }
     return {
         "te": te,
         "tv": tv,
         "de": de,
         "ie": ie,
+        "se": se,
+
     }
 
 
@@ -664,21 +684,6 @@ def main() -> None:
 
 
         st.subheader("5. General Effects")
-        try:
-            scalar_results = build_scalar_results(
-                bn=bn,
-                y_col=y_col,
-                y_value=y_value,
-                x_col=x_col,
-                x0=x0,
-                x1=x1,
-                include_decomposition=include_decomposition,
-            )
-        except Exception as exc:
-            st.error(f"Effect computation failed: {exc}")
-            return
-
-        render_main_metrics(scalar_results)
         raw_rows = pd.DataFrame(
             [{"effect": k, "value": round_or_none(v)} for k, v in scalar_results.items() if not isinstance(v, dict)]
         )
