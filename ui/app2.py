@@ -799,54 +799,54 @@ def main() -> None:
                 st.markdown(f"**SE({x0_state})**: {round_or_none(sex0_val)}")
             with col2:
                 st.markdown(f"**SE({x1_state})**: {round_or_none(sex1_val)}")
-                if use_ordered_x:
-                    st.markdown("**Stepwise effects**")
-                    tv_steps = all_results["tv"].get_stepwise_effects()
-                    te_steps = all_results["te"].get_stepwise_effects()
-                    de_steps = all_results["de"].get_stepwise_effects()
-                    ie_steps = all_results["ie"].get_stepwise_effects()
+        if use_ordered_x:
+            st.markdown("**Stepwise effects**")
+            tv_steps = all_results["tv"].get_stepwise_effects()
+            te_steps = all_results["te"].get_stepwise_effects()
+            de_steps = all_results["de"].get_stepwise_effects()
+            ie_steps = all_results["ie"].get_stepwise_effects()
 
-                    all_step_names = []
-                    for d in [tv_steps, te_steps, de_steps, ie_steps]:
-                        for k in d.keys():
-                            if k not in all_step_names:
-                                all_step_names.append(k)
+            all_step_names = []
+            for d in [tv_steps, te_steps, de_steps, ie_steps]:
+                for k in d.keys():
+                    if k not in all_step_names:
+                        all_step_names.append(k)
 
-                    step_rows = []
-                    for step in all_step_names:
-                        step_rows.append({
-                            "step": step,
-                            "TV": round_or_none(tv_steps.get(step)),
-                            "TE": round_or_none(te_steps.get(step)),
-                            "DE": round_or_none(de_steps.get(step)),
-                            "IE": round_or_none(ie_steps.get(step)),
-                        })
+            step_rows = []
+            for step in all_step_names:
+                step_rows.append({
+                    "step": step,
+                    "TV": round_or_none(tv_steps.get(step)),
+                    "TE": round_or_none(te_steps.get(step)),
+                    "DE": round_or_none(de_steps.get(step)),
+                    "IE": round_or_none(ie_steps.get(step)),
+                })
 
-                    st.dataframe(pd.DataFrame(step_rows), use_container_width=True)
+            st.dataframe(pd.DataFrame(step_rows), use_container_width=True)
 
-                    reversal_messages = []
-                    for effect_name, effect_res in [
-                        ("TV", all_results["tv"]),
-                        ("TE", all_results["te"]),
-                        ("DE", all_results["de"]),
-                        ("IE", all_results["ie"]),
-                    ]:
-                        reversals = effect_res.find_sign_reversals()
-                        if reversals:
-                            reversal_messages.extend([f"{effect_name}: {msg}" for msg in reversals])
+            reversal_messages = []
+            for effect_name, effect_res in [
+                ("TV", all_results["tv"]),
+                ("TE", all_results["te"]),
+                ("DE", all_results["de"]),
+                ("IE", all_results["ie"]),
+            ]:
+                reversals = effect_res.find_sign_reversals()
+                if reversals:
+                    reversal_messages.extend([f"{effect_name}: {msg}" for msg in reversals])
 
-                    if reversal_messages:
-                        st.warning("; ".join(reversal_messages))
-                    else:
-                        st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
-                        st.subheader("Ordered effect curve")
+            if reversal_messages:
+                st.warning("; ".join(reversal_messages))
+            else:
+                st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
+                st.subheader("Ordered effect curve")
 
-                    te_fig = plot_ordered_effect_curve(
-                        all_results["te"],
-                        ylabel="TE",
-                        baseline_label=str(ordered_x_states[0]),
-                    )
-                    st.pyplot(te_fig)
+            te_fig = plot_ordered_effect_curve(
+                all_results["te"],
+                ylabel="TE",
+                baseline_label=str(ordered_x_states[0]),
+            )
+            st.pyplot(te_fig)
 
 
         st.subheader("7. Exportable JSON payload")
