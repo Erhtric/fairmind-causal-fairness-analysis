@@ -684,6 +684,15 @@ def main() -> None:
 
 
         st.subheader("5. General Effects")
+        scalar_results = build_scalar_results(
+            bn=bn,
+            y_col=y_col,
+            y_value=y_value,
+            x_col=x_col,
+            x0=x0,
+            x1=x1,
+            include_decomposition=include_decomposition,
+        )
         raw_rows = pd.DataFrame(
             [{"effect": k, "value": round_or_none(v)} for k, v in scalar_results.items() if not isinstance(v, dict)]
         )
@@ -717,13 +726,14 @@ def main() -> None:
             "Total Effect",
             "Direct Effect",
             "Indirect Effect",
-            "Spurious Effect",
+            "Spurious Effect x1",
+            "Spurious Effect x0"
         ])
 
         for tab, key, label in zip(
             tabs,
-            ["tv", "te", "de", "ie", "se"],
-            ["TV", "TE", "DE", "IE", "SE"],
+            ["tv", "te", "de", "ie", "sex1","sex0"],
+            ["TV", "TE", "DE", "IE", "SEx1","SEx0"],
             strict=False,
         ):
             with tab:
