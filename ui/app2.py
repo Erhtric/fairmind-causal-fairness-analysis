@@ -781,16 +781,22 @@ def main() -> None:
             with tab:
                 res = all_results[key]
 
-                if key in ("sex1", "sex0"):
+                # unwrap nested SE result if needed
+                if isinstance(res, dict) and "value" in res:
                     res = res["value"]
 
                 st.markdown(f"**{label} matrix**")
-                st.dataframe(make_matrix_df(res), use_container_width=True)
 
-                max_val, max_x0, max_x1 = res.max_disparity()
-                st.caption(
-                    f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
-                )
+                if hasattr(res, "matrix"):
+                    st.dataframe(make_matrix_df(res), use_container_width=True)
+
+                    max_val, max_x0, max_x1 = res.max_disparity()
+                    st.caption(
+                        f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
+                    )
+                else:
+                    st.warning(f"{label} is not a matrix result.")
+                    st.write(res)
 
                 if use_ordered_x:
                     st.markdown("**Stepwise effects**")
