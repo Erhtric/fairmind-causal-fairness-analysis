@@ -762,42 +762,45 @@ def main() -> None:
         except Exception as exc:
             st.error(f"Categorical effect computation failed: {exc}")
             return
-
         tabs = st.tabs([
             "Total Variation",
             "Total Effect",
             "Direct Effect",
             "Indirect Effect",
-            "Spurious Effect x1",
-            "Spurious Effect x0"
+            "Spurious Effect",
         ])
 
         for tab, key, label in zip(
-            tabs,
-            ["tv", "te", "de", "ie", "sex1", "sex0"],
-            ["TV", "TE", "DE", "IE", "SEx1", "SEx0"],
+            tabs[:4],
+            ["tv", "te", "de", "ie"],
+            ["TV", "TE", "DE", "IE"],
             strict=False,
         ):
             with tab:
                 res = all_results[key]
-
-                # unwrap nested SE result if needed
-                if isinstance(res, dict) and "value" in res:
-                    res = res["value"]
-
                 st.markdown(f"**{label} matrix**")
+                st.dataframe(make_matrix_df(res), use_container_width=True)
 
-                if hasattr(res, "matrix"):
-                    st.dataframe(make_matrix_df(res), use_container_width=True)
+                max_val, max_x0, max_x1 = res.max_disparity()
+                st.caption(
+                    f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
+                )
 
-                    max_val, max_x0, max_x1 = res.max_disparity()
-                    st.caption(
-                        f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
-                    )
-                else:
-                    st.warning(f"{label} is not a matrix result.")
-                    st.write(res)
+        with tabs[4]:
+            st.markdown("**Spurious Effect scalar results**")
 
+            sex0_val = all_results["sex0"]["value"]
+            sex1_val = all_results["sex1"]["value"]
+
+            x_states_used = ordered_x_states if use_ordered_x else x_states
+            x0_state = x_states_used[0]
+            x1_state = x_states_used[-1]
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(f"SE({x0_state})", round_or_none(sex0_val))
+            with col2:
+                st.metric(f"SE({x1_state})", round_or_none(sex1_val))
                 if use_ordered_x:
                     st.markdown("**Stepwise effects**")
                     tv_steps = all_results["tv"].get_stepwise_effects()
