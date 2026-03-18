@@ -317,19 +317,21 @@ def compute_all_categorical_results(
     tv = categorical_total_variation(bn, target, x_col, ordered_states, ordered_states)
     de = categorical_natural_direct_effect(bn, target, x_col, ordered_states, ordered_states)
     ie = categorical_natural_indirect_effect(bn, target, x_col, ordered_states, ordered_states)
-    se = {
-        x: {
-            "value": spurious_effect(bn, target, x_col, x),
-            "decomposition": None,
-            }
-        for x in ordered_states
+    sex1 = {
+    "value": spurious_effect(bn, target, x_col, ordered_states[-1]),
+    "decomposition": None,
+        }
+    sex0 = {
+        "value": spurious_effect(bn, target, x_col, ordered_states[0]),
+        "decomposition": None,
         }
     return {
         "te": te,
         "tv": tv,
         "de": de,
         "ie": ie,
-        "se": se,
+        "sex1": sex1,
+        "sex0": sex0,
 
     }
 
