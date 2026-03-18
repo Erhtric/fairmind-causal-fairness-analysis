@@ -787,8 +787,6 @@ def main() -> None:
                 )
 
         with tabs[4]:
-            st.markdown("**Spurious Effect scalar results**")
-
             sex0_val = all_results["sex0"]["value"]
             sex1_val = all_results["sex1"]["value"]
 
@@ -798,9 +796,9 @@ def main() -> None:
 
             col1, col2 = st.columns(2)
             with col1:
-                st.metric(f"SE({x0_state})", round_or_none(sex0_val))
+                st.markdown(f"SE({x0_state})", round_or_none(sex0_val))
             with col2:
-                st.metric(f"SE({x1_state})", round_or_none(sex1_val))
+                st.markdown(f"SE({x1_state})", round_or_none(sex1_val))
                 if use_ordered_x:
                     st.markdown("**Stepwise effects**")
                     tv_steps = all_results["tv"].get_stepwise_effects()
