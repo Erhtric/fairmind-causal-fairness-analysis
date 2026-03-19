@@ -968,9 +968,53 @@ def main() -> None:
                     x1=x1,
                     include_decomposition=include_decomposition,
                 )
+                if use_ordered_x:
+                    st.subheader("Stepwise effects at selected threshold")
+
+                    step_rows = []
+                    for i in range(len(ordered_x_states) - 1):
+                        x0_step = ordered_x_states[i]
+                        x1_step = ordered_x_states[i + 1]
+
+                        step_res = build_scalar_results(
+                            bn=bn,
+                            y_col=y_bin_col,
+                            y_value=y_target,
+                            x_col=x_col,
+                            x0=x0_step,
+                            x1=x1_step,
+                            include_decomposition=False,
+                        )
+
+                        step_rows.append({
+                            "step": f"{x0_step} -> {x1_step}",
+                            "TV": round_or_none(step_res.get("tv")),
+                            "TE": round_or_none(step_res.get("te")),
+                            "DE": round_or_none(step_res.get("de")),
+                            "IE": round_or_none(step_res.get("ie")),
+                        })
+
+                    step_df = pd.DataFrame(step_rows)
+                    st.dataframe(step_df, use_container_width=True)
+
+                    y_vals = [0.0]
+                    for val in step_df["TE"]:
+                        y_vals.append(y_vals[-1] + float(val))
+
+                    fig, ax = plt.subplots(figsize=(8, 4.5))
+                    ax.step(range(len(ordered_x_states)), y_vals, where="mid")
+                    ax.set_xticks(range(len(ordered_x_states)))
+                    ax.set_xticklabels(ordered_x_states, rotation=20, ha="right")
+                    ax.set_ylabel("TE")
+                    ax.set_xlabel("Ordered X categories")
+                    ax.set_title(f"TE from {ordered_x_states[0]} across ordered X states")
+                    ax.grid(True, alpha=0.3)
+
+                    st.pyplot(fig)
         except Exception as exc:
             st.error(f"Detailed threshold analysis failed: {exc}")
             return
+        
 
         st.subheader("5. Selected-threshold results")
         st.write(
@@ -978,7 +1022,6 @@ def main() -> None:
         )
         fig = visualize_sfm(sfm)
         st.pyplot(fig)
-        render_main_metrics(scalar_results)
 
         detail_rows = pd.DataFrame(
             [{"effect": k, "value": round_or_none(v)} for k, v in scalar_results.items() if not isinstance(v, dict)]
