@@ -824,22 +824,22 @@ def main() -> None:
 
             st.dataframe(pd.DataFrame(step_rows), use_container_width=True)
 
-            reversal_messages = []
-            for effect_name, effect_res in [
-                ("TV", all_results["tv"]),
-                ("TE", all_results["te"]),
-                ("DE", all_results["de"]),
-                ("IE", all_results["ie"]),
-            ]:
-                reversals = effect_res.find_sign_reversals()
-                if reversals:
-                    reversal_messages.extend([f"{effect_name}: {msg}" for msg in reversals])
+            # reversal_messages = []
+            # for effect_name, effect_res in [
+            #     ("TV", all_results["tv"]),
+            #     ("TE", all_results["te"]),
+            #     ("DE", all_results["de"]),
+            #     ("IE", all_results["ie"]),
+            # ]:
+            #     reversals = effect_res.find_sign_reversals()
+            #     if reversals:
+            #         reversal_messages.extend([f"{effect_name}: {msg}" for msg in reversals])
 
-            if reversal_messages:
-                st.warning("; ".join(reversal_messages))
-            else:
-                st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
-                st.subheader("Ordered effect curve")
+            # if reversal_messages:
+            #     st.warning("; ".join(reversal_messages))
+            # else:
+            #     st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
+            st.subheader("Ordered effect curve")
 
             te_fig = plot_ordered_effect_curve(
                 all_results["te"],
