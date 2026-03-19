@@ -833,13 +833,20 @@ def main() -> None:
             #     st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
             st.markdown("Ordered effect curve")
 
-            te_fig = plot_ordered_effect_curve(
-                step_df["TE"],
-                ylabel="TE",
-                baseline_label=str(ordered_x_states[0]),
-            )
-            st.pyplot(te_fig)
+            y_vals = [0.0]
+            for val in step_df["TE"]:
+                y_vals.append(y_vals[-1] + float(val))
 
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+            ax.step(range(len(ordered_x_states)), y_vals, where="mid")
+            ax.set_xticks(range(len(ordered_x_states)))
+            ax.set_xticklabels(ordered_x_states, rotation=20, ha="right")
+            ax.set_ylabel("TE")
+            ax.set_xlabel("Ordered X categories")
+            ax.set_title(f"TE from {ordered_x_states[0]} across ordered X states")
+            ax.grid(True, alpha=0.3)
+
+            st.pyplot(fig)
 
         st.subheader("7. Exportable JSON payload")
         llm_payload = build_primary_payload(
