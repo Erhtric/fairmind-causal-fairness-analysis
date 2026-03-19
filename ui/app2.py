@@ -751,17 +751,6 @@ def main() -> None:
                 )
     
         # st.subheader("6. All pairwise effects across X states")
-        try:
-            all_results = compute_all_categorical_results(
-                    bn=bn,
-                    y_col=y_col,
-                    y_value=y_value,
-                    x_col=x_col,
-                    ordered_states=ordered_x_states if use_ordered_x else x_states,
-                )
-        except Exception as exc:
-            st.error(f"Categorical effect computation failed: {exc}")
-            return
         # tabs = st.tabs([
         #     "Total Variation",
         #     "Total Effect",
@@ -842,10 +831,10 @@ def main() -> None:
             #     st.warning("; ".join(reversal_messages))
             # else:
             #     st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
-            st.subheader("Ordered effect curve")
+            st.markdown("Ordered effect curve")
 
             te_fig = plot_ordered_effect_curve(
-                all_results["te"],
+                step_rows["te"],
                 ylabel="TE",
                 baseline_label=str(ordered_x_states[0]),
             )
