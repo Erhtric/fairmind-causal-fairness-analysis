@@ -750,57 +750,57 @@ def main() -> None:
                     scalar_results.get("se_decomposition_x0"),
                 )
     
-        st.subheader("6. All pairwise effects across X states")
-        try:
-            all_results = compute_all_categorical_results(
-                    bn=bn,
-                    y_col=y_col,
-                    y_value=y_value,
-                    x_col=x_col,
-                    ordered_states=ordered_x_states if use_ordered_x else x_states,
-                )
-        except Exception as exc:
-            st.error(f"Categorical effect computation failed: {exc}")
-            return
-        tabs = st.tabs([
-            "Total Variation",
-            "Total Effect",
-            "Direct Effect",
-            "Indirect Effect",
-            "Spurious Effect",
-        ])
+        # st.subheader("6. All pairwise effects across X states")
+        # try:
+        #     all_results = compute_all_categorical_results(
+        #             bn=bn,
+        #             y_col=y_col,
+        #             y_value=y_value,
+        #             x_col=x_col,
+        #             ordered_states=ordered_x_states if use_ordered_x else x_states,
+        #         )
+        # except Exception as exc:
+        #     st.error(f"Categorical effect computation failed: {exc}")
+        #     return
+        # tabs = st.tabs([
+        #     "Total Variation",
+        #     "Total Effect",
+        #     "Direct Effect",
+        #     "Indirect Effect",
+        #     "Spurious Effect",
+        # ])
 
-        for tab, key, label in zip(
-            tabs[:4],
-            ["tv", "te", "de", "ie"],
-            ["TV", "TE", "DE", "IE"],
-            strict=False,
-        ):
-            with tab:
-                res = all_results[key]
-                st.markdown(f"**{label} matrix**")
-                st.dataframe(make_matrix_df(res), use_container_width=True)
+        # for tab, key, label in zip(
+        #     tabs[:4],
+        #     ["tv", "te", "de", "ie"],
+        #     ["TV", "TE", "DE", "IE"],
+        #     strict=False,
+        # ):
+        #     with tab:
+        #         res = all_results[key]
+        #         st.markdown(f"**{label} matrix**")
+        #         st.dataframe(make_matrix_df(res), use_container_width=True)
 
-                max_val, max_x0, max_x1 = res.max_disparity()
-                st.caption(
-                    f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
-                )
+        #         max_val, max_x0, max_x1 = res.max_disparity()
+        #         st.caption(
+        #             f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
+        #         )
 
-        with tabs[4]:
-            sex0_val = all_results["sex0"]["value"]
-            sex1_val = all_results["sex1"]["value"]
+        # with tabs[4]:
+        #     sex0_val = all_results["sex0"]["value"]
+        #     sex1_val = all_results["sex1"]["value"]
 
-            x_states_used = ordered_x_states if use_ordered_x else x_states
-            x0_state = x_states_used[0]
-            x1_state = x_states_used[-1]
+        #     x_states_used = ordered_x_states if use_ordered_x else x_states
+        #     x0_state = x_states_used[0]
+        #     x1_state = x_states_used[-1]
 
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown(f"**SE({x0_state})**: {round_or_none(sex0_val)}")
-            with col2:
-                st.markdown(f"**SE({x1_state})**: {round_or_none(sex1_val)}")
+        #     col1, col2 = st.columns(2)
+        #     with col1:
+        #         st.markdown(f"**SE({x0_state})**: {round_or_none(sex0_val)}")
+        #     with col2:
+        #         st.markdown(f"**SE({x1_state})**: {round_or_none(sex1_val)}")
         if use_ordered_x:
-            st.markdown("**Stepwise effects**")
+            st.st.subheader("**Stepwise effects**")
             tv_steps = all_results["tv"].get_stepwise_effects()
             te_steps = all_results["te"].get_stepwise_effects()
             de_steps = all_results["de"].get_stepwise_effects()
