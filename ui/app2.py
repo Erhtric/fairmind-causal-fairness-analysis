@@ -751,17 +751,17 @@ def main() -> None:
                 )
     
         # st.subheader("6. All pairwise effects across X states")
-        # try:
-        #     all_results = compute_all_categorical_results(
-        #             bn=bn,
-        #             y_col=y_col,
-        #             y_value=y_value,
-        #             x_col=x_col,
-        #             ordered_states=ordered_x_states if use_ordered_x else x_states,
-        #         )
-        # except Exception as exc:
-        #     st.error(f"Categorical effect computation failed: {exc}")
-        #     return
+        try:
+            all_results = compute_all_categorical_results(
+                    bn=bn,
+                    y_col=y_col,
+                    y_value=y_value,
+                    x_col=x_col,
+                    ordered_states=ordered_x_states if use_ordered_x else x_states,
+                )
+        except Exception as exc:
+            st.error(f"Categorical effect computation failed: {exc}")
+            return
         # tabs = st.tabs([
         #     "Total Variation",
         #     "Total Effect",
@@ -801,10 +801,10 @@ def main() -> None:
         #         st.markdown(f"**SE({x1_state})**: {round_or_none(sex1_val)}")
         if use_ordered_x:
             st.subheader("**Stepwise effects**")
-            tv_steps = scalar_results["tv"].get_stepwise_effects()
-            te_steps = scalar_results["te"].get_stepwise_effects()
-            de_steps = scalar_results["de"].get_stepwise_effects()
-            ie_steps = scalar_results["ie"].get_stepwise_effects()
+            tv_steps = all_results["tv"].get_stepwise_effects()
+            te_steps = all_results["te"].get_stepwise_effects()
+            de_steps = all_results["de"].get_stepwise_effects()
+            ie_steps = all_results["ie"].get_stepwise_effects()
 
             all_step_names = []
             for d in [tv_steps, te_steps, de_steps, ie_steps]:
@@ -824,25 +824,25 @@ def main() -> None:
 
             st.dataframe(pd.DataFrame(step_rows), use_container_width=True)
 
-            # reversal_messages = []
-            # for effect_name, effect_res in [
-            #     ("TV", all_results["tv"]),
-            #     ("TE", all_results["te"]),
-            #     ("DE", all_results["de"]),
-            #     ("IE", all_results["ie"]),
-            # ]:
-            #     reversals = effect_res.find_sign_reversals()
-            #     if reversals:
-            #         reversal_messages.extend([f"{effect_name}: {msg}" for msg in reversals])
+            reversal_messages = []
+            for effect_name, effect_res in [
+                ("TV", all_results["tv"]),
+                ("TE", all_results["te"]),
+                ("DE", all_results["de"]),
+                ("IE", all_results["ie"]),
+            ]:
+                reversals = effect_res.find_sign_reversals()
+                if reversals:
+                    reversal_messages.extend([f"{effect_name}: {msg}" for msg in reversals])
 
-            # if reversal_messages:
-            #     st.warning("; ".join(reversal_messages))
-            # else:
-            #     st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
-            st.subheader("Ordered effect curve")
+            if reversal_messages:
+                st.warning("; ".join(reversal_messages))
+            else:
+                st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
+                st.subheader("Ordered effect curve")
 
             te_fig = plot_ordered_effect_curve(
-                scalar_results["te"],
+                all_results["te"],
                 ylabel="TE",
                 baseline_label=str(ordered_x_states[0]),
             )
@@ -862,7 +862,7 @@ def main() -> None:
             x1=x1,
             y_target=y_value,
             scalar_results=scalar_results,
-            all_results=scalar_results,
+            all_results=all_results,
             use_ordered_x=use_ordered_x,
             sorted_mediators=sorted_mediators,
             sorted_confounders=sorted_confounders,
