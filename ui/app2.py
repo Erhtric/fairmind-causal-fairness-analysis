@@ -689,7 +689,13 @@ def main() -> None:
     )
 
 
-    if not st.button("Run analysis", type="primary"):
+    if "analysis_ran" not in st.session_state:
+        st.session_state.analysis_ran = False
+
+    if st.button("Run analysis", type="primary"):
+        st.session_state.analysis_ran = True
+
+    if not st.session_state.analysis_ran:
         return
 
     if y_mode == "Categorical / discrete":
