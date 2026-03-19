@@ -831,7 +831,7 @@ def main() -> None:
             #     st.warning("; ".join(reversal_messages))
             # else:
             #     st.success("No sign reversals detected in adjacent steps for TV, TE, DE, or IE.")
-            st.markdown("Ordered effect curve")
+            st.markdown("**Ordered effect curve**")
 
             y_vals = [0.0]
             for val in step_df["TE"]:
