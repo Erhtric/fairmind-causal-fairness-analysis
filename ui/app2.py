@@ -800,30 +800,33 @@ def main() -> None:
         #     with col2:
         #         st.markdown(f"**SE({x1_state})**: {round_or_none(sex1_val)}")
         if use_ordered_x:
-            st.subheader("**Stepwise effects**")
-            tv_steps = all_results["tv"].get_stepwise_effects()
-            te_steps = all_results["te"].get_stepwise_effects()
-            de_steps = all_results["de"].get_stepwise_effects()
-            ie_steps = all_results["ie"].get_stepwise_effects()
-
-            all_step_names = []
-            for d in [tv_steps, te_steps, de_steps, ie_steps]:
-                for k in d.keys():
-                    if k not in all_step_names:
-                        all_step_names.append(k)
+            st.subheader("Stepwise effects")
 
             step_rows = []
-            for step in all_step_names:
+            for i in range(len(ordered_x_states) - 1):
+                x0_step = ordered_x_states[i]
+                x1_step = ordered_x_states[i + 1]
+
+                step_res = build_scalar_results(
+                    bn=bn,
+                    y_col=y_col,
+                    y_value=y_value,
+                    x_col=x_col,
+                    x0=x0_step,
+                    x1=x1_step,
+                    include_decomposition=False,  # not needed for stepwise table
+                )
+
                 step_rows.append({
-                    "step": step,
-                    "TV": round_or_none(tv_steps.get(step)),
-                    "TE": round_or_none(te_steps.get(step)),
-                    "DE": round_or_none(de_steps.get(step)),
-                    "IE": round_or_none(ie_steps.get(step)),
+                    "step": f"{x0_step} -> {x1_step}",
+                    "TV": round_or_none(step_res.get("tv")),
+                    "TE": round_or_none(step_res.get("te")),
+                    "DE": round_or_none(step_res.get("de")),
+                    "IE": round_or_none(step_res.get("ie")),
                 })
 
             st.dataframe(pd.DataFrame(step_rows), use_container_width=True)
-
+        
             # reversal_messages = []
             # for effect_name, effect_res in [
             #     ("TV", all_results["tv"]),
