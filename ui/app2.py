@@ -813,8 +813,8 @@ def main() -> None:
                     "DE": round_or_none(step_res.get("de")),
                     "IE": round_or_none(step_res.get("ie")),
                 })
-
-            st.dataframe(pd.DataFrame(step_rows), use_container_width=True)
+            step_df = pd.DataFrame(step_rows)
+            st.dataframe(pd.DataFrame(step_df), use_container_width=True)
         
             # reversal_messages = []
             # for effect_name, effect_res in [
@@ -834,7 +834,7 @@ def main() -> None:
             st.markdown("Ordered effect curve")
 
             te_fig = plot_ordered_effect_curve(
-                step_rows["te"],
+                step_df["TE"],
                 ylabel="TE",
                 baseline_label=str(ordered_x_states[0]),
             )
