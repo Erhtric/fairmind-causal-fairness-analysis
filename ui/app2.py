@@ -538,11 +538,23 @@ def main() -> None:
         y_col = st.selectbox("Y: outcome", options=remaining_y)
     with c2:
         remaining_other = [c for c in columns if c not in {x_col, y_col}]
-        w_cols = st.multiselect("W: mediators", options=remaining_other)
-        z_cols = st.multiselect(
-            "Z: confounders",
-            options=[c for c in remaining_other if c not in set(w_cols)],
+
+        w_cols = st.multiselect(
+            "W: mediators (select in topological order)",
+            options=remaining_other,
+            help="Select mediators from upstream to downstream in the causal graph."
         )
+
+        z_cols = st.multiselect(
+            "Z: confounders (select in topological order)",
+            options=[c for c in remaining_other if c not in set(w_cols)],
+            help="Select confounders in topological order."
+        )
+
+        if w_cols:
+            st.caption("Mediator order: " + " → ".join(w_cols))
+        if z_cols:
+        st.caption("Confounder order: " + " → ".join(z_cols))
 
     if set(w_cols) & set(z_cols):
         st.error("W and Z must be disjoint.")
@@ -620,14 +632,15 @@ def main() -> None:
             st.error("To compute ordered effects, include all X states exactly once.")
             return
 
-    sorted_mediators = False
-    if len(w_cols) > 1:
-        sorted_mediators = st.checkbox("Mediators are topologically ordered", value=False)
+    # sorted_mediators = False
+    # if len(w_cols) > 1:
+    #     sorted_mediators = st.checkbox("Mediators are topologically ordered", value=False)
 
-    sorted_confounders = False
-    if len(z_cols) > 1:
-        sorted_confounders = st.checkbox("Confounders are topologically ordered", value=False)
-
+    # sorted_confounders = False
+    # if len(z_cols) > 1:
+    #     sorted_confounders = st.checkbox("Confounders are topologically ordered", value=False)
+    sorted_mediators = len(w_cols) > 1
+    sorted_confounders = len(z_cols) > 1   
     include_decomposition = st.checkbox("Compute mediator/confounder decompositions", value=True)
     variable_notes = st.text_area(
         "Variable notes (optional)",
