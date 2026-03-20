@@ -554,7 +554,7 @@ def main() -> None:
         if w_cols:
             st.caption("Mediator order: " + " → ".join(w_cols))
         if z_cols:
-        st.caption("Confounder order: " + " → ".join(z_cols))
+            st.caption("Confounder order: " + " → ".join(z_cols))
 
     if set(w_cols) & set(z_cols):
         st.error("W and Z must be disjoint.")
