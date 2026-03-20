@@ -123,7 +123,7 @@ def unique_states(df: pd.DataFrame, col: str) -> list[Any]:
             seen.append(v)
     return seen
 
-
+#NOT USED
 def make_matrix_df(res):
     if res is None:
         return pd.DataFrame()
@@ -212,6 +212,7 @@ def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
         "spurious_effect_decomposition_x1": scalar_results.get("se_decomposition_x1", {}),
         "spurious_effect_decomposition_x0": scalar_results.get("se_decomposition_x0", {}),
     }
+
 def build_effect_tree(effects: dict) -> Digraph:
     dot = Digraph()
     dot.attr("node", shape="box", style="rounded,filled", fontsize="10")
@@ -259,52 +260,6 @@ def build_effect_tree(effects: dict) -> Digraph:
 
     return dot
 
-def plot_ordered_effect_curve(
-    res,
-    ylabel: str = "TE",
-    baseline_label: str | None = None,
-):
-    """
-    Plot cumulative ordered effect from the first X state to each later X state.
-    Expects res to be an EffectResult with ordered x0_states/x1_states.
-    """
-    ordered_states = res.x0_states
-    baseline = ordered_states[0]
-
-    y_vals = [0.0]
-    for state in ordered_states[1:]:
-        y_vals.append(float(res.matrix[0, res.x1_states.index(state)]))
-
-    fig, ax = plt.subplots(figsize=(8, 4.5))
-    ax.step(range(len(ordered_states)), y_vals, where="mid")
-    ax.set_xticks(range(len(ordered_states)))
-    ax.set_xticklabels(ordered_states, rotation=20, ha="right")
-    ax.set_ylabel(ylabel)
-    ax.set_xlabel("Ordered X categories")
-    ax.set_title(
-        f"{ylabel} across ordered X states"
-        if baseline_label is None
-        else f"{ylabel} from {baseline_label} across ordered X states"
-    )
-    ax.grid(True, alpha=0.3)
-
-    return fig
-
-def build_pairwise_rows(effect_result, value_name: str) -> pd.DataFrame:
-    rows = []
-    for i, x0 in enumerate(effect_result.x0_states):
-        for j, x1 in enumerate(effect_result.x1_states):
-            rows.append({
-                "x0": x0,
-                "x1": x1,
-                value_name: effect_result.matrix[i, j],
-            })
-    out = pd.DataFrame(rows)
-    if value_name in out.columns:
-        out[value_name] = out[value_name].round(6)
-    return out
-
-
 
 def compute_all_categorical_results(
     bn,
@@ -336,18 +291,6 @@ def compute_all_categorical_results(
         "sex0": sex0,
 
     }
-
-
-
-def render_main_metrics(results: dict[str, Any]) -> None:
-    cols = st.columns(6)
-    cols[0].metric("TV", round_or_none(results.get("tv")))
-    cols[1].metric("TE", round_or_none(results.get("te")))
-    cols[2].metric("DE", round_or_none(results.get("de")))
-    cols[3].metric("IE", round_or_none(results.get("ie")))
-    cols[4].metric("SE(x1)", round_or_none(results.get("sex1")))
-    cols[5].metric("SE(x0)", round_or_none(results.get("sex0")))
-
 
 
 def render_decomposition_dict(title: str, data: dict[str, Any] | None) -> None:
@@ -450,7 +393,7 @@ def compute_continuous_threshold_curve(
     return pd.DataFrame(rows).sort_values("threshold").reset_index(drop=True)
 
 
-
+# it works for continuous 
 def build_primary_payload(
     uploaded_name: str,
     sfm,
@@ -512,6 +455,7 @@ def build_primary_payload(
             "Pairwise matrices are computed over all selected X states.",
         ],
     )
+
 
 
 # -------------------------------------------------------------------
@@ -721,6 +665,13 @@ def main() -> None:
 
 
         st.subheader("5. General Effects")
+        all_results = compute_all_categorical_results(
+                bn=bn,
+                y_col=y_col,
+                y_value=y_value,
+                x_col=x_col,
+                ordered_states=ordered_x_states if use_ordered_x else x_states,
+            )
         scalar_results = build_scalar_results(
             bn=bn,
             y_col=y_col,
@@ -1029,12 +980,22 @@ def main() -> None:
         st.dataframe(detail_rows, use_container_width=True)
 
         if include_decomposition:
-            c10, c11 = st.columns(2)
+            c10, c11, c12 = st.columns(3)
             with c10:
-                render_decomposition_dict("Indirect-effect decomposition", scalar_results.get("ie_decomposition"))
+                render_decomposition_dict(
+                    "Indirect-effect decomposition",
+                    scalar_results.get("ie_decomposition")
+                )
             with c11:
-                render_decomposition_dict("Spurious-effect decomposition at x1", scalar_results.get("se_decomposition_x1"))
-
+                render_decomposition_dict(
+                    "Spurious-effect decomposition at x1",
+                    scalar_results.get("se_decomposition_x1")
+                )
+            with c12:
+                render_decomposition_dict(
+                    "Spurious-effect decomposition at x0",
+                    scalar_results.get("se_decomposition_x0")
+                )
         st.subheader("6. LLM payload for selected threshold")
         llm_payload = {
             "analysis_type": "continuous_threshold",
@@ -1067,7 +1028,7 @@ def main() -> None:
         }
 
         payload_json = json.dumps(llm_payload, indent=2, ensure_ascii=False, default=str)
-        st.code(payload_json, language="json")
+        #st.code(payload_json, language="json")
         st.download_button(
             "Download JSON payload",
             data=payload_json.encode("utf-8"),
