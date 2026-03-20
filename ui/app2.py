@@ -406,7 +406,7 @@ def build_primary_payload(
     x1: Any,
     y_target: Any,
     scalar_results: dict[str, Any],
-    all_results: dict[str, Any],
+    all_results: dict[str, Any]| None,
     use_ordered_x: bool,
     sorted_mediators: bool,
     sorted_confounders: bool,
@@ -665,13 +665,6 @@ def main() -> None:
 
 
         st.subheader("5. General Effects")
-        all_results = compute_all_categorical_results(
-                bn=bn,
-                y_col=y_col,
-                y_value=y_value,
-                x_col=x_col,
-                ordered_states=ordered_x_states if use_ordered_x else x_states,
-            )
         scalar_results = build_scalar_results(
             bn=bn,
             y_col=y_col,
