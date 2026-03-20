@@ -490,6 +490,8 @@ def main() -> None:
     *total effect*, *indirect effect*, *direct effect*, and *spurious effect*.
     
     Finally, the LLM generates a **report** summarizing the main findings.
+
+    This application is developed as part of the research presented in the paper “Automatic Causal Fairness Analysis with LLM-Generated Reporting.”
     """
         )
 
@@ -546,7 +548,7 @@ def main() -> None:
         )
 
         if w_cols:
-            st.caption("Mediator order: " + " → ".join(w_cols))
+            st.info("Mediator order: " + " → ".join(w_cols))
 
         z_cols = st.multiselect(
             "Z: confounders (select in topological order)",
@@ -555,7 +557,7 @@ def main() -> None:
         )
 
         if z_cols:
-            st.caption("Confounder order: " + " → ".join(z_cols))
+            st.info("Confounder order: " + " → ".join(z_cols))
 
     if set(w_cols) & set(z_cols):
         st.error("W and Z must be disjoint.")
