@@ -822,7 +822,7 @@ def main() -> None:
         )
 
         payload_json = json.dumps(llm_payload, indent=2, ensure_ascii=False, default=str)
-        st.code(payload_json, language="json")
+        #st.code(payload_json, language="json")
         st.download_button(
             "Download JSON payload",
             data=payload_json.encode("utf-8"),
