@@ -665,6 +665,7 @@ def main() -> None:
 
 
         st.subheader("5. General Effects")
+        all_results=None
         scalar_results = build_scalar_results(
             bn=bn,
             y_col=y_col,
