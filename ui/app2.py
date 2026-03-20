@@ -533,7 +533,7 @@ def main() -> None:
         enable_discretization = st.checkbox(
             "Group numeric variables into categories before analysis",
             value=False,
-            help="Useful because the causal analysis relies on a discrete Bayesian network."
+            help="Useful for numeric variables with many distinct values."
         )
 
         if enable_discretization:
@@ -547,7 +547,7 @@ def main() -> None:
 
                 method = st.radio(
                     f"Method for {col}",
-                    options=["Equal width", "Quantile", "Custom bins"],
+                    options=["Equal width", "Quantile"],
                     key=f"method_{col}",
                     horizontal=True,
                 )
@@ -574,7 +574,7 @@ def main() -> None:
                             include_lowest=True,
                         ).astype(str)
 
-                    elif method == "Quantile":
+                    else:
                         q = st.slider(
                             f"Number of quantile groups for {col}",
                             min_value=2,
@@ -589,46 +589,6 @@ def main() -> None:
                             q=q,
                             duplicates="drop",
                         ).astype(str)
-
-                    else:  # Custom bins
-                        st.caption(
-                            "Enter comma-separated bin edges, e.g. 0,25,45,65,100"
-                        )
-                        raw_bins = st.text_input(
-                            f"Custom bin edges for {col}",
-                            value="",
-                            key=f"custom_bins_{col}",
-                        )
-
-                        custom_labels = st.text_input(
-                            f"Optional labels for {col} (comma-separated)",
-                            value="",
-                            key=f"custom_labels_{col}",
-                        )
-
-                        if raw_bins.strip():
-                            bin_edges = [float(x.strip()) for x in raw_bins.split(",")]
-
-                            labels = None
-                            if custom_labels.strip():
-                                labels = [x.strip() for x in custom_labels.split(",")]
-                                if len(labels) != len(bin_edges) - 1:
-                                    st.error(
-                                        f"For `{col}`, the number of labels must be exactly len(bins)-1."
-                                    )
-                                else:
-                                    df[new_col_name] = pd.cut(
-                                        df[col],
-                                        bins=bin_edges,
-                                        labels=labels,
-                                        include_lowest=True,
-                                    ).astype(str)
-                            else:
-                                df[new_col_name] = pd.cut(
-                                    df[col],
-                                    bins=bin_edges,
-                                    include_lowest=True,
-                                ).astype(str)
 
                     st.success(f"Created grouped variable: `{new_col_name}`")
 
