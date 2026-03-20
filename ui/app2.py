@@ -661,7 +661,7 @@ def main() -> None:
         st.success("Model fitted successfully.")
         st.subheader("4. Causal graph (SFM)")
         fig = visualize_sfm(sfm)
-        st.pyplot(fig)
+        st.pyplot(fig, use_container_width=False)
 
 
         st.subheader("5. General Effects")
@@ -972,7 +972,7 @@ def main() -> None:
             f"Detailed results for threshold **{threshold_choice:.6g}** with event **{threshold_direction.replace('threshold', str(round(threshold_choice, 6)))}**."
         )
         fig = visualize_sfm(sfm)
-        st.pyplot(fig)
+        st.pyplot(fig,use_container_width=False)
 
         detail_rows = pd.DataFrame(
             [{"effect": k, "value": round_or_none(v)} for k, v in scalar_results.items() if not isinstance(v, dict)]
