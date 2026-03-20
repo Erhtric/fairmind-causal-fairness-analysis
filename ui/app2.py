@@ -545,14 +545,15 @@ def main() -> None:
             help="Select mediators from upstream to downstream in the causal graph."
         )
 
+        if w_cols:
+            st.caption("Mediator order: " + " → ".join(w_cols))
+
         z_cols = st.multiselect(
             "Z: confounders (select in topological order)",
             options=[c for c in remaining_other if c not in set(w_cols)],
             help="Select confounders in topological order."
         )
 
-        if w_cols:
-            st.caption("Mediator order: " + " → ".join(w_cols))
         if z_cols:
             st.caption("Confounder order: " + " → ".join(z_cols))
 
@@ -814,7 +815,7 @@ def main() -> None:
 
             st.pyplot(fig)
 
-        st.subheader("7. Exportable JSON payload")
+        st.subheader("7. Exportable JSON results")
         llm_payload = build_primary_payload(
             uploaded_name=uploaded.name,
             sfm=sfm,
