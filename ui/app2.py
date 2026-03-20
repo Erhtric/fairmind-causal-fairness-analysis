@@ -412,6 +412,7 @@ def build_primary_payload(
     sorted_confounders: bool,
     variable_notes: str,
 ) -> dict[str, Any]:
+    
     x_states = unique_states(df, x_col)
     y_states = unique_states(df, y_col)
     state_names = {
@@ -420,6 +421,7 @@ def build_primary_payload(
         **{c: unique_states(df, c) for c in w_cols},
         **{c: unique_states(df, c) for c in z_cols},
     }
+    all_results = all_results or {}
 
     return prepare_llm_payload_general(
         dataset_name=uploaded_name,
