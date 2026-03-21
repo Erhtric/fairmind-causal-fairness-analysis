@@ -392,6 +392,11 @@ def compute_continuous_threshold_curve(
     status.empty()
     return pd.DataFrame(rows).sort_values("threshold").reset_index(drop=True)
 
+def reset_analysis_state():
+    st.session_state.analysis_ran = False
+    st.session_state.pop("results", None)
+    st.session_state.pop("report", None)
+    st.session_state.pop("effect_table", None)
 
 # it works for continuous 
 def build_primary_payload(
@@ -510,6 +515,7 @@ def main() -> None:
      "What is the status of your dataset?",
     ("Processed", "Raw (removing NaN and invalid symbols)"),
         horizontal=True,
+        on_change=reset_analysis_state,
     )
 
 
@@ -533,13 +539,15 @@ def main() -> None:
         enable_discretization = st.checkbox(
             "Group numeric variables into categories before analysis",
             value=False,
-            help="Useful for numeric variables with many distinct values."
+            help="Useful for numeric variables with many distinct values.",
+            on_change=reset_analysis_state,
         )
 
         if enable_discretization:
             vars_to_discretize = st.multiselect(
                 "Select numeric variables to group",
                 options=numeric_columns,
+                on_change=reset_analysis_state,
             )
 
             for col in vars_to_discretize:
