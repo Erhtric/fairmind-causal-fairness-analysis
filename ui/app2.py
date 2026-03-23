@@ -162,7 +162,15 @@ def make_matrix_df(res):
             raise ValueError(
                 f"Cannot reshape 1D matrix of shape {matrix.shape} to {expected_shape}"
             )
-
+    elif matrix.ndim == 3:
+        if matrix.shape[1:] != expected_shape:
+            raise ValueError(
+                f"3D matrix shape mismatch: got {matrix.shape}, expected (*, {expected_shape[0]}, {expected_shape[1]})"
+            )
+        return {
+            f"slice_{i}": pd.DataFrame(matrix[i], index=x0_states, columns=x1_states)
+            for i in range(matrix.shape[0])
+        }
     if matrix.shape != expected_shape:
         raise ValueError(
             f"Shape mismatch: got {matrix.shape}, expected {expected_shape}"
@@ -843,28 +851,28 @@ def main() -> None:
             "Indirect Effect",
         ])
 
+
         for tab, key, label in zip(
             tabs,
             ["tv", "te", "de", "ie"],
             ["TV", "TE", "DE", "IE"],
             strict=False,
         ):
-            
             with tab:
                 res = all_results[key]
                 st.markdown(f"**{label} matrix**")
-            
-                if key != "ie":
-                    st.dataframe(make_matrix_df(res.matrix), use_container_width=True)
+                if isinstance(df, dict):
+                    for name, subdf in df.items():
+                        st.markdown(f"**{label} {name}**")
+                        st.dataframe(subdf, use_container_width=True)
                 else:
-                    for i, mat in enumerate(res.matrix):
-                        st.markdown(f"**IE matrix — slice {i}**")
-                        st.dataframe(make_matrix_df(mat), use_container_width=True)
-            
+                    st.dataframe(df, use_container_width=True)
+
                 max_val, max_x0, max_x1 = res.max_disparity()
                 st.caption(
                     f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
                 )
+
 
         if use_ordered_x:
             st.subheader("Stepwise effects")
