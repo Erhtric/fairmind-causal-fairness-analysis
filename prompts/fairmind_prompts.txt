@@ -69,16 +69,6 @@ Provide a **bullet list** focusing on:
 
 For each bullet, briefly interpret the effect in terms of fairness and potential discrimination. Always refer to mediators/confounders by **their variable names**; avoid generic terms.
 
-#### X-specific and Z-specific extrema reporting (REQUIRED if present in JSON)
-- **X-specific**:
-  - Report the `X_value` with the **largest and smallest** direct, indirect, and total effect.
-  - If not determinable: `X-specific results not provided or insufficient to determine extrema.`
-  - If missing/empty: `X-specific results not provided.`
-- **Z-specific (z_specific)**:
-  - Same rules:
-    - If not determinable: `Z-specific results not provided or insufficient to determine extrema.`
-    - If missing/empty: `Z-specific results not provided.`
-
 Do not provide generic summaries; tie statements to actual numeric results and named variables when present.
 
 ### 3) Stepwise Effects Across Ordered Levels of X (CONDITIONAL)
