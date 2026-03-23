@@ -123,7 +123,7 @@ def unique_states(df: pd.DataFrame, col: str) -> list[Any]:
             seen.append(v)
     return seen
 
-#NOT USED
+
 def make_matrix_df(res):
     if res is None:
         return pd.DataFrame()
@@ -142,8 +142,33 @@ def make_matrix_df(res):
     if matrix is None:
         raise ValueError(f"make_matrix_df expected a matrix result, got: {res}")
 
-    return pd.DataFrame(matrix, index=x0_states, columns=x1_states)
+    x0_states = list(x0_states or [])
+    x1_states = list(x1_states or [])
 
+    matrix = np.asarray(matrix)
+
+    expected_shape = (len(x0_states), len(x1_states))
+
+    if matrix.ndim == 0:
+        matrix = matrix.reshape(1, 1)
+    elif matrix.ndim == 1:
+        if matrix.size == expected_shape[0] * expected_shape[1]:
+            matrix = matrix.reshape(expected_shape)
+        elif expected_shape[0] == 1:
+            matrix = matrix.reshape(1, -1)
+        elif expected_shape[1] == 1:
+            matrix = matrix.reshape(-1, 1)
+        else:
+            raise ValueError(
+                f"Cannot reshape 1D matrix of shape {matrix.shape} to {expected_shape}"
+            )
+
+    if matrix.shape != expected_shape:
+        raise ValueError(
+            f"Shape mismatch: got {matrix.shape}, expected {expected_shape}"
+        )
+
+    return pd.DataFrame(matrix, index=x0_states, columns=x1_states)
 
 
 
