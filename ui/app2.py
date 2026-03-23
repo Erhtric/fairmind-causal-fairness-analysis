@@ -1,6 +1,6 @@
 import json
 import os
-from pathlib import Path
+from pathlib import Pathƒ
 from typing import Any
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -850,7 +850,7 @@ def main() -> None:
         ):
             with tab:
                 res = all_results[key]
-                st.markdown(f"**{label} matrix**") 
+                st.write(f"**{label} matrix**") 
                 dfs = make_matrix_df(res)
                 for name, df1 in dfs:
                     st.markdown(f"**{name}**")
