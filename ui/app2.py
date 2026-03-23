@@ -123,34 +123,51 @@ def unique_states(df: pd.DataFrame, col: str) -> list[Any]:
             seen.append(v)
     return seen
 
+
 def make_matrix_df(res):
     if res is None:
-        return pd.DataFrame()
+        return None
 
     if isinstance(res, dict):
         matrix = res.get("matrix")
         x0_states = res.get("x0_states")
         x1_states = res.get("x1_states")
+        mediators = res.get("mediators", None)  # optional
     else:
         matrix = getattr(res, "matrix", None)
         x0_states = getattr(res, "x0_states", None)
         x1_states = getattr(res, "x1_states", None)
+        mediators = getattr(res, "mediators", None)
 
     if matrix is None:
         raise ValueError(f"make_matrix_df expected a matrix result, got: {res}")
 
     arr = np.asarray(matrix)
 
-
-    if arr.ndim == 3:
-        if arr.shape[-1] == 1:
-            arr = arr[:, :, 0]
-        else:
-            arr = arr[:, :, 0]
-
-    return pd.DataFrame(arr, index=x0_states, columns=x1_states)
+    if arr.ndim == 2:
+        return [("Total", pd.DataFrame(arr, index=x0_states, columns=x1_states))]
 
 
+    elif arr.ndim == 3:
+        slices = []
+        for i in range(arr.shape[2]):
+            name = (
+                mediators[i]
+                if mediators is not None and i < len(mediators)
+                else f"Mediator {i}"
+            )
+
+            df = pd.DataFrame(
+                arr[:, :, i],
+                index=x0_states,
+                columns=x1_states
+            )
+            slices.append((name, df))
+
+        return slices
+
+    else:
+        raise ValueError(f"Unsupported matrix shape: {arr.shape}")
 
 def build_scalar_results(
     bn,
