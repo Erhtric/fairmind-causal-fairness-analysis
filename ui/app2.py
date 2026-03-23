@@ -843,12 +843,20 @@ def main() -> None:
             "Indirect Effect",
         ])
 
+        for key in ["tv", "te", "de", "ie"]:
+            res = all_results[key]
+            st.write(f"{key}: type={type(res)}")
+            st.write(f"{key}: shape={getattr(res, 'shape', None)}")
+            st.write(f"{key}: matrix shape={getattr(getattr(res, 'matrix', None), 'shape', None)}")
+            st.write(f"{key}: value=", res)
+            
         for tab, key, label in zip(
             tabs,
             ["tv", "te", "de", "ie"],
             ["TV", "TE", "DE", "IE"],
             strict=False,
         ):
+            
             with tab:
                 res = all_results[key]
                 st.markdown(f"**{label} matrix**")
