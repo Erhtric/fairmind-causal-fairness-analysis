@@ -409,7 +409,7 @@ def reset_analysis_state():
     st.session_state.pop("report", None)
     st.session_state.pop("effect_table", None)
 
-# it works for continuous 
+
 def build_primary_payload(
     uploaded_name: str,
     sfm,
@@ -851,15 +851,16 @@ def main() -> None:
                 res = all_results[key]
                 st.markdown(f"**{label} matrix**") 
                 dfs = make_matrix_df(res)
-                for name, df in dfs:
+                for name, df1 in dfs:
                     st.markdown(f"**{name}**")
-                    st.dataframe(df, use_container_width=True)
-                
+                    st.dataframe(df1, use_container_width=True)
+                    total = sum(df.values for _, df in dfs)
+                st.dataframe(total,use_container_width=True)
                 max_val, max_x0, max_x1 = res.max_disparity()
                 st.caption(
                     f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
                 )
-
+        
 
         if use_ordered_x:
             st.subheader("Stepwise effects")
