@@ -150,21 +150,32 @@ def make_matrix_df(res):
 
 
     elif arr.ndim == 3:
+    elif arr.ndim == 3:
         slices = []
+
+        total = np.zeros((len(x0_states), len(x1_states)))
+    
         for i in range(arr.shape[2]):
             name = (
                 mediators[i]
                 if mediators is not None and i < len(mediators)
                 else f"Mediator {i}"
             )
-
+    
+            slice_matrix = arr[:, :, i]
+            total += slice_matrix
             df = pd.DataFrame(
-                arr[:, :, i],
+                slice_matrix,
                 index=x0_states,
                 columns=x1_states
             )
             slices.append((name, df))
-
+        total_df = pd.DataFrame(
+            total,
+            index=x0_states,
+            columns=x1_states
+        )
+        slices.append(("Total (sum of mediators)", total_df))
         return slices
 
     else:
