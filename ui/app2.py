@@ -123,9 +123,6 @@ def unique_states(df: pd.DataFrame, col: str) -> list[Any]:
             seen.append(v)
     return seen
 
-import numpy as np
-import pandas as pd
-
 def make_matrix_df(res):
     if res is None:
         return pd.DataFrame()
@@ -142,55 +139,18 @@ def make_matrix_df(res):
     if matrix is None:
         raise ValueError(f"make_matrix_df expected a matrix result, got: {res}")
 
-    x0_states = list(x0_states or [])
-    x1_states = list(x1_states or [])
+    arr = np.asarray(matrix)
 
-    arr = np.asarray(matrix, dtype=object)
-    expected_shape = (len(x0_states), len(x1_states))
 
-    if arr.ndim == 0:
-        arr = arr.reshape(1, 1)
-    elif arr.ndim == 1:
-        if arr.size == expected_shape[0] * expected_shape[1]:
-            arr = arr.reshape(expected_shape)
-        elif expected_shape[0] == 1:
-            arr = arr.reshape(1, -1)
-        elif expected_shape[1] == 1:
-            arr = arr.reshape(-1, 1)
+    if arr.ndim == 3:
+        if arr.shape[-1] == 1:
+            arr = arr[:, :, 0]
         else:
-            raise ValueError(
-                f"Cannot reshape 1D matrix of shape {arr.shape} to {expected_shape}"
-            )
+            arr = arr[:, :, 0]
 
-    if arr.shape != expected_shape:
-        raise ValueError(
-            f"Shape mismatch: got {arr.shape}, expected {expected_shape}"
-        )
+    return pd.DataFrame(arr, index=x0_states, columns=x1_states)
 
-    # Convert every cell to a scalar Streamlit can render
-    clean = np.empty(arr.shape, dtype=float)
-    for i in range(arr.shape[0]):
-        for j in range(arr.shape[1]):
-            val = arr[i, j]
 
-            if isinstance(val, (list, tuple, np.ndarray)):
-                val = np.asarray(val)
-                if val.size != 1:
-                    raise ValueError(
-                        f"Cell ({i}, {j}) is not scalar: {val!r} with shape {val.shape}"
-                    )
-                val = val.item()
-
-            if val is None:
-                clean[i, j] = np.nan
-            else:
-                clean[i, j] = float(val)
-
-    return pd.DataFrame(
-        clean,
-        index=[str(x) for x in x0_states],
-        columns=[str(x) for x in x1_states],
-    )
 
 def build_scalar_results(
     bn,
