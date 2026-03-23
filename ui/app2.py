@@ -147,9 +147,6 @@ def make_matrix_df(res):
     if arr.ndim == 2:
         return [("", pd.DataFrame(arr, index=x0_states, columns=x1_states))]
 
-
-
-    elif arr.ndim == 3:
     elif arr.ndim == 3:
         slices = []
 
