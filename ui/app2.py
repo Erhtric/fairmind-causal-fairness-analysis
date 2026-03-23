@@ -145,7 +145,7 @@ def make_matrix_df(res):
     arr = np.asarray(matrix)
 
     if arr.ndim == 2:
-        return [("Total", pd.DataFrame(arr, index=x0_states, columns=x1_states))]
+        return [( pd.DataFrame(arr, index=x0_states, columns=x1_states))]
 
 
     elif arr.ndim == 3:
