@@ -854,8 +854,6 @@ def main() -> None:
                 for name, df1 in dfs:
                     st.markdown(f"**{name}**")
                     st.dataframe(df1, use_container_width=True)
-                    total = sum(df.values for _, df in dfs)
-                st.dataframe(total,use_container_width=True)
                 max_val, max_x0, max_x1 = res.max_disparity()
                 st.caption(
                     f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
