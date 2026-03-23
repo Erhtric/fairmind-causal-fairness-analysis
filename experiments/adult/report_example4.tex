@@ -1,0 +1,32 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{amsmath}
+\begin{document}
+
+\section*{Title: "Fairness Decomposition Report"}
+
+\subsection*{Overview of the Fairness Analysis}
+This analysis decomposes disparities in hours-per-week between the groups $X=x0$ (Female) and $X=x1$ (Male) in the Adult Dataset, focusing on the thresholded outcome around 40 hours/week. The decomposition separates total variation into natural direct and indirect effects with mediator variable \texttt{occupation}. Across the provided continuous threshold curve (y from 1 to 99) the total variation and total effect vary with the threshold (they are not constant), the natural direct effect (NDE) generally becomes more negative at some intermediate thresholds while the natural indirect effect (NIE) is positive at many thresholds; the NDE shows the largest changes in magnitude across thresholds. Choosing a higher versus lower threshold changes the observed disparity: higher thresholds change both NDE and NIE and generally reduce the negative total variation observed at some mid-range thresholds because the NIE (positive) offsets some of the negative NDE; the exact pattern is non-monotonic across the full grid. The selected threshold for reporting is $Y \leq 40$, which corresponds to the user-selected value $40$ and is relatively low-to-mid within the provided $1$--$99$ grid.
+
+\subsection*{Decomposition of Effects}
+\begin{itemize}
+\item \textbf{Total variation (TV):} For threshold $Y \leq 40$ the reported TV is $-0.1783$. This indicates a substantive disparity in the probability of $Y \leq 40$ between Male and Female.
+\item \textbf{Total effect (TE):} TE equals $-0.1783$ for $Y \leq 40$ (TE matches TV in the provided results); this is the overall causal difference between Male ($x1$) and Female ($x0$).
+\item \textbf{Indirect effect (NIE):} NIE $= 0.0374$ for $Y \leq 40$. By the decomposition convention used here, the indirect effect is interpreted as the component that would result from using the baseline $x1$ (Male) for the mediated path while keeping other variables at $x0$ (Female). The mediator listed is \texttt{occupation}; the positive NIE implies that differences in \texttt{occupation} between Male and Female partially offset the negative direct effect.
+  \begin{itemize}
+  \item Mediator-specific decomposition: \texttt{occupation} is the only mediator provided; its NIE contribution is $0.0374$ for $Y \leq 40$.
+  \end{itemize}
+\item \textbf{Direct effect (NDE):} NDE $= -0.1409$ for $Y \leq 40$. The negative NDE is the portion of the disparity not mediated by \texttt{occupation}.
+\item \textbf{Spurious effect:} No confounders ($Z$ is empty) are provided, so no spurious-effect decomposition is available.
+\item \textbf{X-specific results:} X-specific results not provided.
+\item \textbf{Z-specific results:} Z-specific results not provided.
+\end{itemize}
+
+\subsection*{Stepwise Effects Across Ordered Levels of X}
+% (Not included because stepwise results were not enabled or effects_by_step is empty.)
+
+\subsection*{Recap}
+For the selected threshold $Y \leq 40$, Males (x1) have a lower probability of being at or below 40 hours-per-week than Females (x0) (TV $= -0.1783$), which implies Males are more likely to work longer hours relative to Females at this threshold. The observed disparity is mainly driven by the negative direct effect (NDE $= -0.1409$), with a smaller positive indirect effect through \texttt{occupation} (NIE $= 0.0374$) partially offsetting the direct component. No spurious/confounder effects were reported.
+
+\end{document}

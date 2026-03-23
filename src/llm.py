@@ -63,6 +63,7 @@ def generate_report_from_file_id(
     try:
         resp = client.responses.create(
             model=model,
+            reasoning={"effort": "high"},
             instructions=system_prompt,
             tools=[
                 {
@@ -112,17 +113,22 @@ def prepare_llm_payload_general(
     results=None,
     stepwise_results=None,
     variable_metadata=None,
+    cont_results=None,
     state_names=None,
     graph_edges=None,
     checks=None,
     notes=None,
+    ie_decomp=None,
+    se_decomp=None
 ):
     W = [] if W is None else W
     Z = [] if Z is None else Z
     variable_metadata = {} if variable_metadata is None else variable_metadata
     checks = {} if checks is None else checks
     stepwise_results = [] if stepwise_results is None else stepwise_results
-
+    cont_results=[] if cont_results is None else cont_results
+    ie_decomp=[] if ie_decomp is None else ie_decomp
+    se_decomp=[] if se_decomp is None else se_decomp
     if isinstance(results, pd.Series):
         results = results.to_dict()
     elif isinstance(results, pd.DataFrame):
@@ -150,6 +156,9 @@ def prepare_llm_payload_general(
         "graph_edges": graph_edges,
         "results": results,
         "stepwise_results": stepwise_results,
+        "continuous_results":cont_results,
+        "ie_decomp":ie_decomp,
+        "se_decomp":se_decomp,
         "checks": checks,
         "notes": notes,
     }
@@ -176,6 +185,7 @@ Here are the fairness decomposition results in JSON:
 
     resp = client.responses.create(
         model="gpt-5-mini",
+        reasoning={"effort": "high"},
         instructions=system_prompt,
         input=[
             {

@@ -1,0 +1,24 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{amsmath}
+\begin{document}
+\section*{Title: "Fairness Decomposition Report"}
+
+\subsection*{Overview of the Fairness Analysis}
+This analysis examines fairness in the Adult Dataset by decomposing the observed difference in the probability of T\_income (target $Y \leq 50K$) between S2\_gender groups: Male (x0) vs Female (x1). The decomposition separates the observed total variation into a causal total effect (TE), a natural direct effect (NDE), a natural indirect effect (NIE) through the mediator hours-per-week, and spurious effects associated with the confounder relationship. The mediator included is hours-per-week and the confounder is relationship. No continuous threshold/curve data were provided; trend-over-threshold cannot be assessed.
+
+\subsection*{Decomposition of Effects}
+\begin{itemize}
+\item Total variation (TV) between Male (x0) and Female (x1): $0.1939$. Interpretation: the observed marginal difference in the distribution of T\_income ($\leq 50K$) between genders, indicating a substantial raw disparity.
+\item Total effect (TE): $0.0225$. Interpretation: the estimated causal change in probability of T\_income $\leq 50K$ when changing S2\_gender from Male to Female; this is small relative to TV.
+\item Indirect effect (NIE): $0.0248$. Interpretation (mediator-specific): effect transmitted through the mediator \emph{hours-per-week}, interpreted as setting hours-per-week to its distribution under Female (x1) while other factors are at Male (x0).
+\item Direct effect (NDE): $0.0473$. Interpretation: the direct effect of S2\_gender on T\_income when hours-per-week is held at the Male (x0) distribution.
+\item Spurious effect (confounding by Z = relationship): $SE(x_0) = -0.0523$; $SE(x_1) = 0.1191$. Interpretation: these spurious components reflect confounding linked to the variable \emph{relationship}; the magnitude of $SE(x_1)$ is large relative to TE and indicates that differences in relationship status across genders explain much of the observed TV.
+\item X-specific results not provided.
+\item Z-specific results not provided.
+\end{itemize}
+
+\subsection*{Recap}
+Females (x1) have a higher probability of T\_income $\leq 50K$ than Males (x0): the estimated causal total effect is $0.0225$ toward higher probability for Females, while the observed total variation is $0.1939$. The disparity is mainly driven by spurious/confounding differences associated with the confounder \emph{relationship} (notably $SE(x_1)=0.1191$ and $SE(x_0)=-0.0523$) rather than being primarily explained by the indirect pathway through \emph{hours-per-week} ($NIE=0.0248$) or the direct effect alone ($NDE=0.0473$).
+\end{document}

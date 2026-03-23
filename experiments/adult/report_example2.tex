@@ -1,0 +1,39 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{amsmath}
+\begin{document}
+
+Title: "Fairness Decomposition Report"
+
+\subsection*{Overview of the Fairness Analysis}
+This analysis examines disparities in the Adult Dataset comparing S2\_gender = Male (x0) versus S2\_gender = Female (x1). The outcome $T\_income$ is the binary income target; the reported target event is $T\_income \leq 50K$. We decomposed the observed total variation in the probability of $T\_income \leq 50K$ into causal components (total effect, natural direct effect, natural indirect effect) and spurious (confounding) components, and we further decomposed the indirect and spurious pieces by mediators and confounders. The mediators are hours-per-week and occupation; the confounders are relationship and native-country.
+
+\subsection*{Decomposition of Effects}
+\begin{itemize}
+  \item Total variation (TV): $0.1736$. This is the observed difference (Female minus Male) in the probability of $T\_income \leq 50K$ (about $17.36\%$).
+  \item Total effect (TE): $0.0053$. The causal total effect of changing S2\_gender from Male (x0) to Female (x1) on $P(T\_income \leq 50K)$ is small and positive (≈ $0.53$ percentage points).
+  \item Indirect effect (NIE): $-0.0104$. Interpreted as the effect when mediators are set to their values under $X=x1$ (Female) while other variables remain at baseline $X=x0$ (Male). The NIE is negative and small, indicating the mediated pathways slightly oppose the observed raw disparity.
+    \begin{itemize}
+      \item Mediator-specific decomposition: hours-per-week = $-0.0027$; occupation = $-0.0077$. Occupation contributes more to the negative indirect effect.
+    \end{itemize}
+  \item Direct effect (NDE): $-0.0051$. The natural direct effect is small and negative, meaning the direct (non-mediated) pathway slightly counteracts the observed raw disparity.
+  \item Spurious effects (confounding):
+    \begin{itemize}
+      \item SE(x0) for Male: $-0.0436$.
+      \item SE(x1) for Female: $0.1247$.
+    \end{itemize}
+    Confounder-specific decomposition:
+    \begin{itemize}
+      \item For Male (x0): relationship = $-0.0430$; native-country = $-0.0007$.
+      \item For Female (x1): relationship = $0.1255$; native-country = $-0.0009$.
+    \end{itemize}
+    The difference in the 'relationship' contribution (Female minus Male) is approximately $0.1685$, and the net spurious difference SE(x1) - SE(x0) is approximately $0.1683$, which explains the bulk of TV ($0.1736$).
+  \item X-specific results not provided.
+  \item Z-specific results not provided.
+\end{itemize}
+
+\subsection*{Recap}
+Females (x1) have a higher probability than Males (x0) of $T\_income \leq 50K$ (observed TV = $0.1736$, about $17.36\%$). Although the causal total effect is small and positive (TE = $0.0053$), the observed disparity is mainly driven by spurious/confounding differences (SE(x1) - SE(x0) $\approx 0.1683$), primarily attributable to the confounder \textit{relationship} (Female contribution $\approx 0.1255$ vs Male $\approx -0.0430$). The direct and indirect causal components (NDE = $-0.0051$, NIE = $-0.0104$) are small and partly offsetting; the mediator occupation ($-0.0077$) is the largest mediator but acts to reduce rather than increase the observed gap. Thus, most of the observed income gap here appears attributable to confounding by \textit{relationship} rather than a large direct or mediated causal effect of gender.
+
+\end{document}
