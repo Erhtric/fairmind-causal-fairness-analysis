@@ -123,29 +123,60 @@ def unique_states(df: pd.DataFrame, col: str) -> list[Any]:
             seen.append(v)
     return seen
 
-#NOT USED
+
 def make_matrix_df(res):
     if res is None:
-        return pd.DataFrame()
+        return None
 
-    # dict-style
     if isinstance(res, dict):
         matrix = res.get("matrix")
         x0_states = res.get("x0_states")
         x1_states = res.get("x1_states")
+        mediators = res.get("mediators", None)  # optional
     else:
-        # object-style
         matrix = getattr(res, "matrix", None)
         x0_states = getattr(res, "x0_states", None)
         x1_states = getattr(res, "x1_states", None)
+        mediators = getattr(res, "mediators", None)
 
     if matrix is None:
         raise ValueError(f"make_matrix_df expected a matrix result, got: {res}")
 
-    return pd.DataFrame(matrix, index=x0_states, columns=x1_states)
+    arr = np.asarray(matrix)
 
+    if arr.ndim == 2:
+        return [("", pd.DataFrame(arr, index=x0_states, columns=x1_states))]
 
+    elif arr.ndim == 3:
+        slices = []
 
+        total = np.zeros((len(x0_states), len(x1_states)))
+    
+        for i in range(arr.shape[2]):
+            name = (
+                mediators[i]
+                if mediators is not None and i < len(mediators)
+                else f"Mediator {i}"
+            )
+    
+            slice_matrix = arr[:, :, i]
+            total += slice_matrix
+            df = pd.DataFrame(
+                slice_matrix,
+                index=x0_states,
+                columns=x1_states
+            )
+            slices.append((name, df))
+        total_df = pd.DataFrame(
+            total,
+            index=x0_states,
+            columns=x1_states
+        )
+        slices.append(("Total (sum of mediators)", total_df))
+        return slices
+
+    else:
+        raise ValueError(f"Unsupported matrix shape: {arr.shape}")
 
 def build_scalar_results(
     bn,
@@ -387,7 +418,7 @@ def reset_analysis_state():
     st.session_state.pop("report", None)
     st.session_state.pop("effect_table", None)
 
-# it works for continuous 
+
 def build_primary_payload(
     uploaded_name: str,
     sfm,
@@ -818,6 +849,7 @@ def main() -> None:
             "Indirect Effect",
         ])
 
+
         for tab, key, label in zip(
             tabs,
             ["tv", "te", "de", "ie"],
@@ -826,13 +858,16 @@ def main() -> None:
         ):
             with tab:
                 res = all_results[key]
-                st.markdown(f"**{label} matrix**")
-                st.dataframe(make_matrix_df(res), use_container_width=True)
-
+                st.write(f"**{label} matrix**") 
+                dfs = make_matrix_df(res)
+                for name, df1 in dfs:
+                    st.markdown(f"**{name}**")
+                    st.dataframe(df1, use_container_width=True)
                 max_val, max_x0, max_x1 = res.max_disparity()
                 st.caption(
                     f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
                 )
+        
 
         if use_ordered_x:
             st.subheader("Stepwise effects")
