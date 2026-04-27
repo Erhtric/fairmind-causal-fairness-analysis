@@ -39,6 +39,4 @@ Thumbs.db
 # Project-specific
 copilot_*
 
-# GitHub metadata (keep only if intentionally excluded)
-.github/
-
+.DS_Store
