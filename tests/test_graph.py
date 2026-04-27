@@ -5,7 +5,8 @@ import networkx as nx
 import pytest
 
 matplotlib.use("Agg")  # Use non-interactive backend for testing
-from src.graph import build_sfm, visualize_sfm
+from src.graph import build_sfm
+from src.visualisation.graph import visualize_sfm
 
 
 class TestBuildSFM:
