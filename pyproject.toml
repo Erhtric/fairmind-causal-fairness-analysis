@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.14"
 
 dependencies = [
-    "arviz>=0.23.4",
     "arviz-base>=1.0.0",
     "arviz-plots>=1.0.0",
     "arviz-stats>=1.0.0",
@@ -21,8 +20,6 @@ dependencies = [
     "pandas>=2.3.3",
     "pgmpy>=1.0.0",
     "plotly>=5.22.0",
-    "pyagrum>=2.3.0",
-    "pymc>=5.26.1",
     "python-dotenv>=1.0.1",
     "reportlab>=4.0.0",
     "scipy>=1.16.3",
