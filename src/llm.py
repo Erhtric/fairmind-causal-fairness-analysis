@@ -1,11 +1,11 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 import json
 import pandas as pd
+from openai import BadRequestError
+
 
 # ONLY LLM, no results
-
-
 def summarize_with_llm_combined_dataset_only():
     """
     Dataset-only version:
@@ -35,7 +35,7 @@ def summarize_with_llm_combined_dataset_only():
 
         Your task:
         1. Analyze the dataset.
-        2. Compute the fairness decomposition according to Bareimboim and Plecko theory, both general and X-Z specific effects.
+        2. Compute the fairness decomposition according to Plecko and Bareinboim theory, both general and X-Z specific effects.
         3. Produce a structured report.
 
         Output format MUST be:
@@ -49,6 +49,7 @@ def summarize_with_llm_combined_dataset_only():
 
     return system_prompt, user_prompt
 
+
 def generate_report_from_file_id(
     file_id: str,
     client,
@@ -57,7 +58,9 @@ def generate_report_from_file_id(
 ):
     prompt_kwargs = prompt_kwargs or {}
 
-    system_prompt, user_prompt = summarize_with_llm_combined_dataset_only(**prompt_kwargs)
+    system_prompt, user_prompt = summarize_with_llm_combined_dataset_only(
+        **prompt_kwargs
+    )
 
     print("USER_PROMPT:", user_prompt)
     try:
@@ -97,9 +100,8 @@ def generate_report_from_file_id(
     text_part, latex_part = full_output.split("LATEX:", 1)
     return text_part.replace("TEXT:", "").strip(), latex_part.strip()
 
+
 # LLM, with results
-
-
 def prepare_llm_payload_general(
     *,
     dataset_name: str,
@@ -119,16 +121,16 @@ def prepare_llm_payload_general(
     checks=None,
     notes=None,
     ie_decomp=None,
-    se_decomp=None
+    se_decomp=None,
 ):
     W = [] if W is None else W
     Z = [] if Z is None else Z
     variable_metadata = {} if variable_metadata is None else variable_metadata
     checks = {} if checks is None else checks
     stepwise_results = [] if stepwise_results is None else stepwise_results
-    cont_results=[] if cont_results is None else cont_results
-    ie_decomp=[] if ie_decomp is None else ie_decomp
-    se_decomp=[] if se_decomp is None else se_decomp
+    cont_results = [] if cont_results is None else cont_results
+    ie_decomp = [] if ie_decomp is None else ie_decomp
+    se_decomp = [] if se_decomp is None else se_decomp
     if isinstance(results, pd.Series):
         results = results.to_dict()
     elif isinstance(results, pd.DataFrame):
@@ -156,16 +158,17 @@ def prepare_llm_payload_general(
         "graph_edges": graph_edges,
         "results": results,
         "stepwise_results": stepwise_results,
-        "continuous_results":cont_results,
-        "ie_decomp":ie_decomp,
-        "se_decomp":se_decomp,
+        "continuous_results": cont_results,
+        "ie_decomp": ie_decomp,
+        "se_decomp": se_decomp,
         "checks": checks,
         "notes": notes,
     }
 
     return payload
 
-def payload_to_json(payload: Dict[str, Any], indent: int = 2) -> str:
+
+def payload_to_json(payload: dict[str, Any], indent: int = 2) -> str:
     return json.dumps(payload, indent=indent, ensure_ascii=False, default=str)
 
 

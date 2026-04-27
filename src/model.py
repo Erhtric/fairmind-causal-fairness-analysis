@@ -5,7 +5,7 @@ import pandas as pd
 from loguru import logger
 from pgmpy.models import DiscreteBayesianNetwork
 
-from src.graph import filter_nodes_by_type
+from .graph import filter_nodes_by_type
 
 
 def fit_discrete_bayesian_model(

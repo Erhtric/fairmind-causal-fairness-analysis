@@ -1,7 +1,8 @@
-from src.graph import filter_nodes_by_type
 import matplotlib.pyplot as plt
 import networkx as nx
 from daft import PGM
+
+from ..graph import filter_nodes_by_type
 
 
 def visualize_sfm(sfm: nx.DiGraph, scale_factor: float = 1.7) -> PGM:

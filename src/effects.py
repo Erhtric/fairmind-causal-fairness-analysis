@@ -9,7 +9,7 @@ from loguru import logger
 from pgmpy.inference import CausalInference, VariableElimination
 from pgmpy.models import DiscreteBayesianNetwork
 
-from src.graph import filter_nodes_by_type
+from .graph import filter_nodes_by_type
 
 ############################################################
 ######### Effect computation via ID Expr on SFM ############
