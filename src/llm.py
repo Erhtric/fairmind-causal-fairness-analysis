@@ -6,7 +6,19 @@ from openai import BadRequestError
 
 
 # ONLY LLM, no results
-def summarize_with_llm_combined_dataset_only():
+def summarize_with_llm_combined_dataset_only(
+    x,
+    y,
+    z=None,
+    w=None,
+    x0,
+    x1,
+    y_value,
+    w_values=None,
+    z_values=None,
+):
+    z = [] if z is None else z
+    w = [] if w is None else w
     """
     Dataset-only version:
     - Dataset is attached as an input file.
