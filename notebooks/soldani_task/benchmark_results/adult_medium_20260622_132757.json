@@ -1,0 +1,85 @@
+{
+  "dataset": "adult",
+  "effort": "medium",
+  "config": {
+    "dataset_name": "adult",
+    "target_col": "T_income",
+    "target_val": ">50K",
+    "protected": "S2_gender",
+    "x0": "Female",
+    "x1": "Male",
+    "mediators": [
+      "hours-per-week"
+    ],
+    "confounders": [
+      "education"
+    ]
+  },
+  "fairmind": {
+    "TV": 0.19447044911742456,
+    "TE": 0.1831613982507901,
+    "SE": -0.007296039571025495,
+    "DE": 0.13704949010365386,
+    "IE": -0.04611190814713623
+  },
+  "gpt": {
+    "TV": 0.1825,
+    "TE": 0.1673,
+    "SE": 0.0153,
+    "DE": 0.12,
+    "IE": 0.0473
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.19447,
+      "gpt": 0.1825,
+      "abs_error": 0.01197,
+      "rel_error_%": 6.16,
+      "effort": "medium"
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.183161,
+      "gpt": 0.1673,
+      "abs_error": 0.015861,
+      "rel_error_%": 8.66,
+      "effort": "medium"
+    },
+    {
+      "effect": "SE",
+      "fairmind": -0.007296,
+      "gpt": 0.0153,
+      "abs_error": 0.022596,
+      "rel_error_%": 309.7,
+      "effort": "medium"
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.137049,
+      "gpt": 0.12,
+      "abs_error": 0.017049,
+      "rel_error_%": 12.44,
+      "effort": "medium"
+    },
+    {
+      "effect": "IE",
+      "fairmind": -0.046112,
+      "gpt": 0.0473,
+      "abs_error": 0.093412,
+      "rel_error_%": 202.58,
+      "effort": "medium"
+    }
+  ],
+  "token_usage": {
+    "effort": "medium",
+    "input_tokens": 3662,
+    "output_tokens": 74187,
+    "reasoning_tokens": 37056,
+    "total_tokens": 77849
+  },
+  "timing": {
+    "fairmind_seconds": 0.00732,
+    "gpt_seconds": 175.23482
+  }
+}

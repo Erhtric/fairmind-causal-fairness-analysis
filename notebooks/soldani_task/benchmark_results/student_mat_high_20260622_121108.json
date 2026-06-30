@@ -1,0 +1,83 @@
+{
+  "dataset": "student_mat",
+  "effort": "high",
+  "config": {
+    "dataset_name": "student_mat",
+    "target_col": "T_grade",
+    "target_val": "1",
+    "protected": "S2_sex",
+    "x0": "F",
+    "x1": "M",
+    "mediators": [
+      "studytime"
+    ],
+    "confounders": []
+  },
+  "fairmind": {
+    "TV": 0.0653990060103159,
+    "TE": 0.0653990060103159,
+    "SE": 0.0,
+    "DE": 0.12147485828543314,
+    "IE": 0.056075852275117244
+  },
+  "gpt": {
+    "TV": 0.0823,
+    "TE": 0.0823,
+    "SE": 0.0,
+    "DE": 0.1377,
+    "IE": -0.0588
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.065399,
+      "gpt": 0.0823,
+      "abs_error": 0.016901,
+      "rel_error_%": 25.84,
+      "effort": "high"
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.065399,
+      "gpt": 0.0823,
+      "abs_error": 0.016901,
+      "rel_error_%": 25.84,
+      "effort": "high"
+    },
+    {
+      "effect": "SE",
+      "fairmind": 0.0,
+      "gpt": 0.0,
+      "abs_error": 0.0,
+      "rel_error_%": NaN,
+      "effort": "high"
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.121475,
+      "gpt": 0.1377,
+      "abs_error": 0.016225,
+      "rel_error_%": 13.36,
+      "effort": "high"
+    },
+    {
+      "effect": "IE",
+      "fairmind": 0.056076,
+      "gpt": -0.0588,
+      "abs_error": 0.114876,
+      "rel_error_%": 204.86,
+      "effort": "high"
+    }
+  ],
+  "token_usage": {
+    "effort": "high",
+    "input_tokens": 2100,
+    "output_tokens": 81269,
+    "reasoning_tokens": 40576,
+    "total_tokens": 83369
+  },
+  "timing": {
+    "fairmind_seconds": 0.00382,
+    "gpt_seconds": 207.4768
+  }
+}
