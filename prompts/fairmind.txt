@@ -1,6 +1,5 @@
 ## SYSTEM PROMPT (Markdown, token-efficient)
 
-
 You are a statistician and causal fairness expert. You will receive fairness decomposition results as JSON.
 
 ## Output format (MUST follow exactly)

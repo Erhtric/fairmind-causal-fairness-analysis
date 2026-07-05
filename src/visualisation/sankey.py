@@ -17,6 +17,7 @@ def plot_effect_sankey_percent(
     title: str = "",
     renderer: str = "notebook",
     save_path: str | None = None,
+    color_by_sign: bool = False,
 ):
     # If no decompositions are provided, default to empty lists/dicts
     se_decomp = se_decomp or {label: {} for label in se}
@@ -174,7 +175,10 @@ def plot_effect_sankey_percent(
         if node_val is None:
             node_labels.append(node_name)
         else:
-            node_labels.append(f"{node_name}<br>{node_val:+.4f}")
+            if color_by_sign:
+                node_labels.append(f"{node_name}<br>{node_val:+.4f}")
+            else:
+                node_labels.append(f"{node_name}<br>{abs(node_val):.4f}")
 
     sources, targets, values, link_labels, link_colors = [], [], [], [], []
     for src, tgt, share, eff in flows:
@@ -185,15 +189,23 @@ def plot_effect_sankey_percent(
         targets.append(label_to_idx[tgt])
         values.append(share * 100)  # Convert to percentage for width
 
-        sign = "positive" if eff >= 0 else "negative"
-        link_labels.append(
-            f"{src} → {tgt}<br>"
-            f"effect = {eff:+.4f}<br>"
-            f"share ≈ {share * 100:.1f}% of |TV| ({sign})"
-        )
-        link_colors.append(
-            "rgba(120,180,120,0.5)" if eff >= 0 else "rgba(220,90,90,0.5)"
-        )
+        if color_by_sign:
+            sign = "positive" if eff >= 0 else "negative"
+            link_labels.append(
+                f"{src} → {tgt}<br>"
+                f"effect = {eff:+.4f}<br>"
+                f"share ≈ {share * 100:.1f}% of |TV| ({sign})"
+            )
+            link_colors.append(
+                "rgba(120,180,120,0.5)" if eff >= 0 else "rgba(220,90,90,0.5)"
+            )
+        else:
+            link_labels.append(
+                f"{src} → {tgt}<br>"
+                f"effect = {abs(eff):.4f}<br>"
+                f"share ≈ {share * 100:.1f}% of |TV|"
+            )
+            link_colors.append("rgba(120,180,120,0.5)")
 
     node_colors = ["rgba(230,230,230,1)" for _ in node_names]
 
@@ -225,7 +237,7 @@ def plot_effect_sankey_percent(
                 arrangement="snap",
                 textfont={"size": 18, "family": "Arial", "color": "black"},
                 node={
-                    "pad": 20,
+                    "pad": 10,
                     "thickness": 20,
                     "label": node_labels,
                     "color": node_colors,
@@ -253,16 +265,16 @@ def plot_effect_sankey_percent(
         title_font_size=16,
         title_font_color="black",
         font_size=12,
-        width=1600,
-        height=800,
+        width=700,
+        height=350,
         # margin={"l": 40, "r": 40, "t": 90, "b": 30},
     )
 
     if save_path is not None:
         filename = Path(save_path)
         fig.write_html(filename.with_suffix(".html"))
-        fig.write_image(filename.with_suffix(".svg"), width=1600, height=800, scale=2)
-        fig.write_image(filename.with_suffix(".pdf"), width=1600, height=800, scale=2)
+        fig.write_image(filename.with_suffix(".jpg"), format="jpg")
+        fig.write_image(filename.with_suffix(".pdf"), format="pdf")
 
     fig.show(renderer=renderer)
 

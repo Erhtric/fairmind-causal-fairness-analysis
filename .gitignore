@@ -10,7 +10,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .cache/
-
+.coverage
+.DS_Store
 # Environment files
 .env
 
@@ -40,3 +41,10 @@ Thumbs.db
 copilot_*
 
 .DS_Store
+
+# Agents
+.claude
+CLAUDE.md
+.serena
+
+.lock

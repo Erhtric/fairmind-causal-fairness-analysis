@@ -225,7 +225,7 @@ def total_variation(
 ) -> float:
     """Compute the total variation.
 
-    TV(x0,x1,y) = P(Y @ {X:x1} == y) - P(Y @ {X:x0} == y)
+    TV(x0,x1,y) = P(Y == y | X=x1) - P(Y == y | X=x0)
 
     Args:
         bn: The Bayesian Network to use for inference.

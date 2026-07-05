@@ -36,6 +36,31 @@ def fit_discrete_bayesian_model(
 
     latents = filter_nodes_by_type(sfm.nodes(data=True), category="latent")
     model = DiscreteBayesianNetwork(sfm, latents=set(latents))
-    model.fit(data, estimator=estimator_class, **estimator_params)
+    model.fit(data, estimator=estimator_class(**estimator_params))
 
     return model
+
+
+# def fit_discrete_bayesian_model_with_mle(
+#     sfm: nx.DiGraph,
+#     data: pd.DataFrame,
+# ) -> DiscreteBayesianNetwork:
+#     """
+#     Fits a Discrete Bayesian Model to the given Standard Fairness Model (SFM) graph using Maximum Likelihood Estimation (MLE).
+
+#     Args:
+#         sfm (nx.DiGraph): A directed graph representing the SFM template.
+#         data (pd.DataFrame): The dataset to fit the model on.
+
+#     Returns:
+#         DiscreteBayesianNetwork: A fitted Discrete Bayesian Network based on the SFM graph using MLE.
+#     """
+#     if not isinstance(sfm, nx.DiGraph):
+#         raise ValueError("The SFM must be a directed graph (nx.DiGraph).")
+#     if not isinstance(data, pd.DataFrame):
+#         raise ValueError("Data must be a pandas DataFrame.")
+
+#     latents = filter_nodes_by_type(sfm.nodes(data=True), category="latent")
+#     model = DiscreteBayesianNetwork(sfm, latents=set(latents))
+#     model.fit(data, estimator=DiscreteMLE())
+#     return model

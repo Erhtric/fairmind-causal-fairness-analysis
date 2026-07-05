@@ -49,39 +49,70 @@ uv sync
 
 ### Quick Start: Causal Effect Estimation
 
+The core workflow is: define a structural fairness model, fit a discrete Bayesian network, then compute the effect metrics you care about.
+
 ```python
-import networkx as nx
 import pandas as pd
-from pgmpy.estimators import MaximumLikelihoodEstimator
+from pgmpy.estimators import DiscreteBayesianEstimator
+
+from src.effects import DE, IE, SE, TE, TV, compute_fairness_report
+from src.graph import build_sfm
 from src.model import fit_discrete_bayesian_model
-from src.effects import compute_fairness_report
 
-# 1. Define the Structural Fairness Model (SFM)
-# Annotate nodes with types: sensitive, mediator, confounder, target
-sfm = nx.DiGraph()
-sfm.add_node("Sex", type="sensitive")
-sfm.add_node("Major", type="mediator")
-sfm.add_node("Admission", type="target")
-sfm.add_edges_from([("Sex", "Major"), ("Sex", "Admission"), ("Major", "Admission")])
+# 1. Prepare a discrete dataset.
+# Replace this with one of the processed datasets in data/ or your own categorical data.
+df = pd.DataFrame(
+  {
+    "X": ["x0", "x0", "x1", "x1", "x0", "x1"],
+    "W": ["w0", "w1", "w0", "w1", "w0", "w1"],
+    "Y": ["y0", "y0", "y1", "y1", "y0", "y1"],
+  }
+).astype("category")
 
-# 2. Fit the model to data
-df = pd.read_csv("data/datasets/berkeley_filtered.csv")
-model = fit_discrete_bayesian_model(
-    sfm=sfm, 
-    data=df, 
-    estimator_instance=(MaximumLikelihoodEstimator, {})
+# 2. Build a structural fairness model.
+sfm = build_sfm(
+  sensitive_attr="X",
+  outcome_attr="Y",
+  confounder_attrs=[],
+  mediator_attrs=["W"],
 )
 
-# 3. Compute fairness report
-report = compute_fairness_report(
-    bn=model,
-    target=("Admission", "Accepted"),
-    private_attr="Sex",
-    x0="Female",
-    x1="Male"
+# 3. Fit a discrete Bayesian network to the data.
+bn = fit_discrete_bayesian_model(
+  sfm=sfm,
+  data=df,
+  estimator_instance=(
+    DiscreteBayesianEstimator,
+    {"prior_type": "dirichlet", "pseudo_counts": 1.0},
+  ),
 )
+
+assert bn.check_model()
+
+# 4. Compute fairness effects for a target outcome state.
+target = ("Y", "y1")
+x0 = "x0"
+x1 = "x1"
+
+results = pd.Series(
+  {
+    "TV": TV(bn, target, "X", x0, x1),
+    "TE": TE(bn, target, "X", x0, x1),
+    "SE(x0)": SE(bn, target, "X", x0),
+    "SE(x1)": SE(bn, target, "X", x1),
+    "NDE": DE(bn, target, "X", x0, x1),
+    "NIE": IE(bn, target, "X", x1, x0),
+  }
+)
+
+print(results.round(6))
+
+# 5. Build a tidy report table if you want a single summary object.
+report = compute_fairness_report(bn, target, "X", x0, x1)
 print(report)
 ```
+
+For a real analysis, replace the toy `DataFrame` with one of the processed datasets under `data/`, then adapt the node names and states to match the variables in your graph. All variables passed to the Bayesian network must be discrete.
 
 ## 📖 References
 
