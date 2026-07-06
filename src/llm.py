@@ -1,4 +1,5 @@
 from __future__ import annotations
+import io
 
 import json
 from collections.abc import Sequence
@@ -37,6 +38,8 @@ class LLMReportResult:
         usage: The usage information returned by the LLM API (if any).
     """
 
+    model: str
+    effort: str
     text: str
     latex: str
     usage: Any = None
@@ -161,6 +164,40 @@ def payload_to_json(payload: dict[str, Any], indent: int = 2) -> str:
     return json.dumps(payload, indent=indent, ensure_ascii=False, default=str)
 
 
+def _validate_prompt_kwargs(prompt_kwargs: dict[str, Any] | None) -> None:
+    """Validate the prompt_kwargs for required keys.
+
+    Keys required are:
+    - x (protected variable)
+    - y (outcome variable)
+    - z (confounders / spurious features)
+    - w (mediator variables)
+    - x0 (value of protected variable for first group (the reference (majority) group))
+    - x1 (value of protected variable for second group (the target (minority) group))
+    - y_value (positive outcome value of interest)
+    - w_values (values of mediator variables)
+    """
+    if not prompt_kwargs:
+        raise ValueError("prompt_kwargs cannot be None")
+
+    required_keys = ["x", "y", "x0", "x1", "y_value"]
+    missing_keys = [key for key in required_keys if key not in prompt_kwargs]
+    if missing_keys:
+        raise ValueError(
+            f"Missing required prompt_kwargs keys: {', '.join(missing_keys)}"
+        )
+
+
+def _format_variable_roles(names: Sequence[Any], values: Sequence[Any] | None) -> str:
+    """Format a list of variable names, with their relevant levels if given."""
+    if not names:
+        return "None"
+    formatted = ", ".join(str(name) for name in names)
+    if values:
+        formatted += f" (relevant levels: {', '.join(str(v) for v in values)})"
+    return formatted
+
+
 ###########################################
 # LLM SUMMARIZATION
 ###########################################
@@ -210,21 +247,18 @@ def summarize_fairmind(
     )
 
     return LLMReportResult(
-        text=resp.output_parsed.text, latex=resp.output_parsed.latex, usage=resp.usage
+        model=model,
+        effort=effort,
+        text=resp.output_parsed.text,
+        latex=resp.output_parsed.latex,
+        usage=resp.usage,
     )
 
 
-def _format_variable_roles(names: Sequence[Any], values: Sequence[Any] | None) -> str:
-    """Format a list of variable names, with their relevant levels if given."""
-    if not names:
-        return "None"
-    formatted = ", ".join(str(name) for name in names)
-    if values:
-        formatted += f" (relevant levels: {', '.join(str(v) for v in values)})"
-    return formatted
+### LLM-ONLY FAIRNESS DECOMPOSITION PROMPTING
 
 
-def summarize_llm_only(
+def prepare_llm_only_prompts(
     x: Any = None,
     y: Any = None,
     x0: Any = None,
@@ -234,6 +268,7 @@ def summarize_llm_only(
     w: Sequence[Any] | None = None,
     w_values: Sequence[Any] | None = None,
     z_values: Sequence[Any] | None = None,
+    prompt_path: str = "only_llm_v2.txt",
 ) -> tuple[str, str]:
     """
     Build the prompts for the LLM-only fairness decomposition. The dataset
@@ -271,7 +306,7 @@ def summarize_llm_only(
     z = list(z or [])
     w = list(w or [])
 
-    system_prompt = load_prompt("only_llm_v2.txt")
+    system_prompt = load_prompt(prompt_path)
 
     user_prompt = f"""
 You are given a dataset file (a tabular dataset, e.g. CSV or plain-text table). Load it with the code interpreter and inspect the columns before computing anything.
@@ -287,7 +322,6 @@ Your task:
 2. Compute the fairness decomposition according to Plecko and Bareinboim theory, both general and X-Z specific effects.
 3. Produce a structured report.
 """
-
     return system_prompt, user_prompt
 
 
@@ -308,7 +342,7 @@ def generate_report_from_file_id(
         file_id: The ID of the uploaded file containing the dataset.
         client: The LLM client to use for generation.
         model: The LLM model to use.
-        prompt_kwargs: Keyword arguments for `summarize_llm_only` describing
+        prompt_kwargs: Keyword arguments for `prepare_llm_only_prompts` describing
             the column roles (x, y, x0, x1, y_value, z, w, ...).
         effort: The reasoning effort level ("low", "medium", or "high").
 
@@ -318,7 +352,7 @@ def generate_report_from_file_id(
     prompt_kwargs = prompt_kwargs or {}
     _validate_prompt_kwargs(prompt_kwargs)
 
-    system_prompt, user_prompt = summarize_llm_only(**prompt_kwargs)
+    system_prompt, user_prompt = prepare_llm_only_prompts(**prompt_kwargs)
 
     resp = client.responses.parse(
         model=model,
@@ -342,12 +376,16 @@ def generate_report_from_file_id(
     )
 
     return LLMReportResult(
-        text=resp.output_parsed.text, latex=resp.output_parsed.latex, usage=resp.usage
+        model=model,
+        effort=effort,
+        text=resp.output_parsed.text,
+        latex=resp.output_parsed.latex,
+        usage=resp.usage,
     )
 
 
 def generate_report_from_dataset(
-    data_path: str | Path,
+    data_path: str | Path | pd.DataFrame,
     client: Any,
     model: str = "gpt-5.4-nano",
     prompt_kwargs: dict[str, Any] | None = None,
@@ -363,31 +401,27 @@ def generate_report_from_dataset(
         data_path: Path to the local dataset file (CSV or similar text table).
         client: The LLM client to use for upload and generation.
         model: The LLM model to use.
-        prompt_kwargs: Keyword arguments for `summarize_llm_only` describing
+        prompt_kwargs: Keyword arguments for `prepare_llm_only_prompts` describing
             the column roles (x, y, x0, x1, y_value, z, w, ...).
+            This should describe the dataset features and their respective labels, to provide
+            some kind of interpretation to the data if not self-explanatory.
         effort: The reasoning effort level ("low", "medium", or "high").
 
     Returns:
         An LLMReportResult containing the generated text, LaTeX, and usage information.
     """
-    with open(data_path, "rb") as f:
-        uploaded = client.files.create(file=f, purpose="assistants")
+    if isinstance(data_path, pd.DataFrame):
+        # Convert DataFrame to bytes so it can be uploaded to a client expecting a binary file-like
+        csv_bytes = data_path.to_csv(index=False).encode("utf-8")
+        with io.BytesIO(csv_bytes) as f:
+            f.seek(0)
+            uploaded = client.files.create(file=f, purpose="assistants")
+    else:
+        with open(data_path, "rb") as f:
+            uploaded = client.files.create(file=f, purpose="assistants")
 
-    _validate_prompt_kwargs(prompt_kwargs)
+    system_prompt, user_prompt = prepare_llm_only_prompts(**prompt_kwargs)
 
     return generate_report_from_file_id(
         uploaded.id, client, model=model, prompt_kwargs=prompt_kwargs, effort=effort
     )
-
-
-def _validate_prompt_kwargs(prompt_kwargs: dict[str, Any] | None) -> None:
-    """Validate the prompt_kwargs for required keys."""
-    if not prompt_kwargs:
-        raise ValueError("prompt_kwargs cannot be None")
-
-    required_keys = ["x", "y", "x0", "x1", "y_value"]
-    missing_keys = [key for key in required_keys if key not in prompt_kwargs]
-    if missing_keys:
-        raise ValueError(
-            f"Missing required prompt_kwargs keys: {', '.join(missing_keys)}"
-        )

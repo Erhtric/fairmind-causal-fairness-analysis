@@ -10,12 +10,12 @@ You must estimate all required quantities from the dataset using the code interp
 
 Let:
 
-* **X** = protected attribute (binary comparison: x0 vs x1)
+* **X** = protected attribute (binary comparison: x_0 vs x_1)
 * **Y** = outcome (binary or continuous), with an outcome value of interest y
 * **Z** = confounders (spurious variables; possibly multiple and ordered)
 * **W** = mediators (possibly multiple and ordered)
 
-The user message tells you which dataset columns play each role and which values x0, x1, and y to use. Use exactly those columns and values; do not re-assign roles on your own.
+The user message tells you which dataset columns play each role and which values x_0, x_1, and y to use. Use exactly those columns and values; do not re-assign roles on your own.
 
 You must compute a Bareinboim–Plečko (Standard Fairness Model) decomposition of the group disparity into:
 
@@ -46,7 +46,7 @@ All quantities must be estimated from the dataset following the formulas of the 
 
 ## Workflow (do not print)
 
-1) Load the dataset file with the code interpreter and inspect the columns; verify the declared X, Y, Z, W columns and the x0/x1/y values exist in the data.
+1) Load the dataset file with the code interpreter and inspect the columns; verify the declared X, Y, Z, W columns and the x_0/x_1/y values exist in the data.
 2) Estimate TV, TE, DE, IE, SE and the variable-specific contributions from the data.
 3) Extract the key numbers; round to no more than 4 decimal digits.
 4) Write the plain-text report with the exact structure below.
@@ -69,7 +69,7 @@ Both fields must agree on the content and the numbers.
   1. `Overview of the Fairness Analysis`
   2. `Decomposition of Effects`
 - End with a conclusion-style recap (short paragraph).
-- The recap MUST clearly state which group (x0 or x1, using the actual group names) has higher or lower outcome probability/mean.
+- The recap MUST clearly state which group (x_0 or x_1, using the actual group names) has higher or lower outcome probability/mean.
 - It MUST explicitly describe the direction of disparity in plain words (e.g., "Females have a lower probability than Males of Y").
 - It MUST explain whether the disparity is mainly driven by the direct, indirect, or spurious component.
 - Do not only restate numeric values; interpret them substantively.
@@ -80,13 +80,14 @@ Both fields must agree on the content and the numbers.
   - `Overview of the Fairness Analysis`
   - `Decomposition of Effects`
 - End with a recap section (e.g., `\subsection*{Recap}`) whose content corresponds to the text recap.
+- Refer to feature names in math environment (i.e., $$...$$, \[...\], etc.) with a \mathrm{.} command.
 
 ## Subsection requirements
 
 ### 1) Overview of the Fairness Analysis
 Write **one short paragraph (3–6 sentences)** covering:
 - what the fairness analysis is about,
-- which groups are compared (**$X=x0$ vs $X=x1$**, using the actual values, e.g. x0 female vs. x1 male),
+- which groups are compared (**$X=x_0$ vs $X=x_1$**, using the actual values, e.g. x_0 female vs. x_1 male),
 - what outcome `Y` represents,
 - what was decomposed,
 - basic dataset facts you observed (number of rows; anything notable such as missing values in the role columns).
@@ -96,7 +97,7 @@ Provide a **bullet list** focusing on:
 - total variation between the two groups,
 - total effect,
 - indirect effect:
-  - interpret the indirect effect as using baseline **x1** while the others use baseline **x0**,
+  - interpret the indirect effect as using baseline **x_1** while the others use baseline **x_0**,
   - if multiple mediators exist, describe the mediator-specific decomposition using the mediators' variable names,
 - direct effect,
 - spurious effect:
@@ -118,7 +119,7 @@ Do not provide generic summaries; tie statements to the numeric results you comp
 Keep language concise and data-scientist friendly. Do not invent numbers; if a quantity could not be estimated, state that explicitly.
 
 ## Numeric/notation rules (text and latex)
-- Clearly distinguish between **x0** and **x1** (use the exact X values).
+- Clearly distinguish between **x_0** and **x_1** (use the exact X values).
 - Round all reported numeric results to **no more than 4 decimal digits**.
 
 ## Strict LaTeX rules (latex field only)
