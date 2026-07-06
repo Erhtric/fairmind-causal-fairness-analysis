@@ -3,14 +3,13 @@ import os
 from pathlib import Path
 from typing import Any
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from graphviz import Digraph
 from openai import OpenAI
-from pgmpy.estimators import BayesianEstimator
+from pgmpy.estimators import DiscreteBayesianEstimator
 
 import sys
 from pathlib import Path
@@ -33,7 +32,7 @@ from src.effects import (
     total_variation,
 )
 from src.graph import build_sfm
-from src.llm import prepare_llm_payload_general, summarize_with_llm_combined
+from src.llm import prepare_llm_payload_general, summarize_fairmind
 from src.model import fit_discrete_bayesian_model
 from src.visualisation.graph import visualize_sfm
 
@@ -43,6 +42,7 @@ load_dotenv(override=True)
 # -------------------------------------------------------------------
 # App helpers
 # -------------------------------------------------------------------
+
 
 def init_client() -> OpenAI | None:
     api_key = os.getenv("OPENAI_API_KEY")
@@ -99,10 +99,9 @@ def fit_bn_cached(
     bn = fit_discrete_bayesian_model(
         sfm=sfm,
         data=df,
-        estimator_instance=(BayesianEstimator, {"prior_type": "BDeu"}),
+        estimator_instance=(DiscreteBayesianEstimator, {"prior_type": "BDeu"}),
     )
     return sfm, bn
-
 
 
 def round_or_none(x: Any, nd: int = 6) -> Any:
@@ -112,7 +111,6 @@ def round_or_none(x: Any, nd: int = 6) -> Any:
         return round(float(x), nd)
     except Exception:
         return x
-
 
 
 def unique_states(df: pd.DataFrame, col: str) -> list[Any]:
@@ -151,32 +149,25 @@ def make_matrix_df(res):
         slices = []
 
         total = np.zeros((len(x0_states), len(x1_states)))
-    
+
         for i in range(arr.shape[2]):
             name = (
                 mediators[i]
                 if mediators is not None and i < len(mediators)
                 else f"Mediator {i}"
             )
-    
+
             slice_matrix = arr[:, :, i]
             total += slice_matrix
-            df = pd.DataFrame(
-                slice_matrix,
-                index=x0_states,
-                columns=x1_states
-            )
+            df = pd.DataFrame(slice_matrix, index=x0_states, columns=x1_states)
             slices.append((name, df))
-        total_df = pd.DataFrame(
-            total,
-            index=x0_states,
-            columns=x1_states
-        )
+        total_df = pd.DataFrame(total, index=x0_states, columns=x1_states)
         slices.append(("Total (sum of mediators)", total_df))
         return slices
 
     else:
         raise ValueError(f"Unsupported matrix shape: {arr.shape}")
+
 
 def build_scalar_results(
     bn,
@@ -231,6 +222,7 @@ def build_scalar_results(
 
     return out
 
+
 def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
     return {
         "total_variation": scalar_results.get("tv"),
@@ -240,9 +232,14 @@ def scalar_results_to_tree_effects(scalar_results: dict) -> dict:
         "spurious_effect_x1": scalar_results.get("sex1"),
         "spurious_effect_x0": scalar_results.get("sex0"),
         "indirect_effect_decomposition": scalar_results.get("ie_decomposition", {}),
-        "spurious_effect_decomposition_x1": scalar_results.get("se_decomposition_x1", {}),
-        "spurious_effect_decomposition_x0": scalar_results.get("se_decomposition_x0", {}),
+        "spurious_effect_decomposition_x1": scalar_results.get(
+            "se_decomposition_x1", {}
+        ),
+        "spurious_effect_decomposition_x0": scalar_results.get(
+            "se_decomposition_x0", {}
+        ),
     }
+
 
 def build_effect_tree(effects: dict) -> Digraph:
     dot = Digraph()
@@ -303,8 +300,12 @@ def compute_all_categorical_results(
 
     te = categorical_total_effect(bn, target, x_col, ordered_states, ordered_states)
     tv = categorical_total_variation(bn, target, x_col, ordered_states, ordered_states)
-    de = categorical_natural_direct_effect(bn, target, x_col, ordered_states, ordered_states)
-    ie = categorical_natural_indirect_effect(bn, target, x_col, ordered_states, ordered_states)
+    de = categorical_natural_direct_effect(
+        bn, target, x_col, ordered_states, ordered_states
+    )
+    ie = categorical_natural_indirect_effect(
+        bn, target, x_col, ordered_states, ordered_states
+    )
     return {
         "te": te,
         "tv": tv,
@@ -322,10 +323,8 @@ def render_decomposition_dict(title: str, data: dict[str, Any] | None) -> None:
     st.dataframe(pd.DataFrame(rows), use_container_width=True)
 
 
-
 def serialize_stepwise_dict(d: dict[str, Any]) -> list[dict[str, Any]]:
     return [{"step": k, "value": float(v)} for k, v in d.items()]
-
 
 
 def compute_interesting_thresholds(curve_df: pd.DataFrame) -> pd.DataFrame:
@@ -337,15 +336,13 @@ def compute_interesting_thresholds(curve_df: pd.DataFrame) -> pd.DataFrame:
         out[f"abs_{col}"] = out[col].abs()
         out[f"delta_{col}"] = out[col].diff().abs().fillna(0.0)
 
-    out["score"] = (
-        out[["abs_tv", "abs_te", "abs_de", "abs_ie"]].sum(axis=1)
-        + out[["delta_tv", "delta_te", "delta_de", "delta_ie"]].sum(axis=1)
-    )
+    out["score"] = out[["abs_tv", "abs_te", "abs_de", "abs_ie"]].sum(axis=1) + out[
+        ["delta_tv", "delta_te", "delta_de", "delta_ie"]
+    ].sum(axis=1)
 
     ranked = out.sort_values("score", ascending=False).head(8).copy()
     keep = ["threshold", "tv", "te", "de", "ie", "score"]
     return ranked[keep].round(6)
-
 
 
 def make_threshold_dataset(
@@ -363,7 +360,6 @@ def make_threshold_dataset(
         out[y_bin_col] = (out[y_col].astype(float) >= float(threshold)).astype(int)
 
     return out, y_bin_col, 1
-
 
 
 def compute_continuous_threshold_curve(
@@ -412,6 +408,7 @@ def compute_continuous_threshold_curve(
     status.empty()
     return pd.DataFrame(rows).sort_values("threshold").reset_index(drop=True)
 
+
 def reset_analysis_state():
     st.session_state.analysis_ran = False
     st.session_state.pop("results", None)
@@ -431,13 +428,13 @@ def build_primary_payload(
     x1: Any,
     y_target: Any,
     scalar_results: dict[str, Any],
-    all_results: dict[str, Any]| None,
+    all_results: dict[str, Any] | None,
     use_ordered_x: bool,
     sorted_mediators: bool,
     sorted_confounders: bool,
     variable_notes: str,
 ) -> dict[str, Any]:
-    
+
     x_states = unique_states(df, x_col)
     y_states = unique_states(df, y_col)
     state_names = {
@@ -484,10 +481,10 @@ def build_primary_payload(
     )
 
 
-
 # -------------------------------------------------------------------
 # Streamlit UI
 # -------------------------------------------------------------------
+
 
 def main() -> None:
     st.markdown(
@@ -503,7 +500,7 @@ def main() -> None:
     )
 
     st.write(
-            """
+        """
     Upload a dataset for **causal fairness analysis**, specify:
 
     - **X**: sensitive attribute (e.g. race, gender)
@@ -518,16 +515,16 @@ def main() -> None:
 
     
     """
-        )
+    )
     st.info(
-    """
+        """
     This application was developed as part of the research presented in the paper  
     *“Automatic Causal Fairness Analysis with LLM-Generated Reporting.”*  
 
     For questions or further information, please contact:  
     **alessia.berarducci@supsi.ch**, **eric.rossetto@supsi.ch**, **alessandro.antonucci@supsi.ch**, **marco.zaffalon@supsi.ch**
     """
-)
+    )
 
     client = init_client()
 
@@ -540,12 +537,11 @@ def main() -> None:
         return
 
     preprocess_mode = st.radio(
-     "What is the status of your dataset?",
-    ("Processed", "Raw (removing NaN and invalid symbols)"),
+        "What is the status of your dataset?",
+        ("Processed", "Raw (removing NaN and invalid symbols)"),
         horizontal=True,
         on_change=reset_analysis_state,
     )
-
 
     try:
         df = load_dataframe(uploaded.getvalue(), Path(uploaded.name).suffix)
@@ -558,7 +554,7 @@ def main() -> None:
         df = clean_dataframe(df)
         st.success(f"Cleaning complete. Removed {before - len(df)} rows.")
 
-# OPTIONAL
+    # OPTIONAL
     st.subheader("Preprocessing: discretize numeric variables")
 
     numeric_columns = df.select_dtypes(include=np.number).columns.tolist()
@@ -629,16 +625,12 @@ def main() -> None:
                             duplicates="drop",
                         ).astype(str)
 
-
                     st.success(f"Created grouped variable: `{new_col_name}`")
 
                 except Exception as exc:
                     st.error(f"Could not discretize `{col}`: {exc}")
     else:
         st.caption("No numeric columns available for discretization.")
-
-
-
 
     st.subheader("Dataset preview")
     st.dataframe(df.head(), use_container_width=True)
@@ -660,7 +652,7 @@ def main() -> None:
         w_cols = st.multiselect(
             "W: mediators (select in topological order)",
             options=remaining_other,
-            help="Select mediators from upstream to downstream in the causal graph."
+            help="Select mediators from upstream to downstream in the causal graph.",
         )
 
         if w_cols:
@@ -669,7 +661,7 @@ def main() -> None:
         z_cols = st.multiselect(
             "Z: confounders (select in topological order)",
             options=[c for c in remaining_other if c not in set(w_cols)],
-            help="Select confounders in topological order."
+            help="Select confounders in topological order.",
         )
 
         if z_cols:
@@ -687,7 +679,7 @@ def main() -> None:
         "Y type",
         ["Categorical / discrete", "Continuous via threshold analysis"],
         horizontal=True,
-        )
+    )
     if y_mode == "Categorical / discrete":
         y_states = unique_states(df, y_col)
         if len(y_states) == 0:
@@ -711,7 +703,9 @@ def main() -> None:
         with c6:
             grid_kind = st.selectbox("Threshold grid", ["Quantiles", "Evenly spaced"])
         with c7:
-            n_thresholds = st.slider("Number of thresholds", min_value=5, max_value=100, value=25)
+            n_thresholds = st.slider(
+                "Number of thresholds", min_value=5, max_value=100, value=25
+            )
 
         if grid_kind == "Quantiles":
             qs = np.linspace(0.01, 0.99, n_thresholds)
@@ -759,13 +753,14 @@ def main() -> None:
     # if len(z_cols) > 1:
     #     sorted_confounders = st.checkbox("Confounders are topologically ordered", value=False)
     sorted_mediators = len(w_cols) > 1
-    sorted_confounders = len(z_cols) > 1   
-    include_decomposition = st.checkbox("Compute mediator/confounder decompositions", value=True)
+    sorted_confounders = len(z_cols) > 1
+    include_decomposition = st.checkbox(
+        "Compute mediator/confounder decompositions", value=True
+    )
     variable_notes = st.text_area(
         "Variable notes (optional)",
         placeholder="Describe the meanings of X, Y, W, Z and the target state of Y.",
     )
-
 
     if "analysis_ran" not in st.session_state:
         st.session_state.analysis_ran = False
@@ -797,9 +792,8 @@ def main() -> None:
         fig = visualize_sfm(sfm)
         st.pyplot(fig, use_container_width=False)
 
-
         st.subheader("5. General Effects")
-        
+
         scalar_results = build_scalar_results(
             bn=bn,
             y_col=y_col,
@@ -810,7 +804,11 @@ def main() -> None:
             include_decomposition=include_decomposition,
         )
         raw_rows = pd.DataFrame(
-            [{"effect": k, "value": round_or_none(v)} for k, v in scalar_results.items() if not isinstance(v, dict)]
+            [
+                {"effect": k, "value": round_or_none(v)}
+                for k, v in scalar_results.items()
+                if not isinstance(v, dict)
+            ]
         )
         st.dataframe(raw_rows, use_container_width=True)
         st.markdown("**Effect decomposition tree**")
@@ -834,21 +832,24 @@ def main() -> None:
                     f"Spurious-effect decomposition at x0 = {x0}",
                     scalar_results.get("se_decomposition_x0"),
                 )
-    
+
         st.subheader("6. All pairwise effects across X states")
-        all_results = compute_all_categorical_results(  bn=bn, 
-                        y_col=y_col, 
-                        y_value=y_value, 
-                        x_col=x_col, 
-                        ordered_states=ordered_x_states if use_ordered_x else x_states )
+        all_results = compute_all_categorical_results(
+            bn=bn,
+            y_col=y_col,
+            y_value=y_value,
+            x_col=x_col,
+            ordered_states=ordered_x_states if use_ordered_x else x_states,
+        )
 
-        tabs = st.tabs([
-            "Total Variation",
-            "Total Effect",
-            "Direct Effect",
-            "Indirect Effect",
-        ])
-
+        tabs = st.tabs(
+            [
+                "Total Variation",
+                "Total Effect",
+                "Direct Effect",
+                "Indirect Effect",
+            ]
+        )
 
         for tab, key, label in zip(
             tabs,
@@ -858,7 +859,7 @@ def main() -> None:
         ):
             with tab:
                 res = all_results[key]
-                st.write(f"**{label} matrix**") 
+                st.write(f"**{label} matrix**")
                 dfs = make_matrix_df(res)
                 for name, df1 in dfs:
                     st.markdown(f"**{name}**")
@@ -867,7 +868,6 @@ def main() -> None:
                 st.caption(
                     f"Max |{label}| at x0={max_x0}, x1={max_x1}: {round_or_none(max_val)}"
                 )
-        
 
         if use_ordered_x:
             st.subheader("Stepwise effects")
@@ -887,16 +887,18 @@ def main() -> None:
                     include_decomposition=False,  # not needed for stepwise table
                 )
 
-                step_rows.append({
-                    "step": f"{x0_step} -> {x1_step}",
-                    "TV": round_or_none(step_res.get("tv")),
-                    "TE": round_or_none(step_res.get("te")),
-                    "DE": round_or_none(step_res.get("de")),
-                    "IE": round_or_none(step_res.get("ie")),
-                })
+                step_rows.append(
+                    {
+                        "step": f"{x0_step} -> {x1_step}",
+                        "TV": round_or_none(step_res.get("tv")),
+                        "TE": round_or_none(step_res.get("te")),
+                        "DE": round_or_none(step_res.get("de")),
+                        "IE": round_or_none(step_res.get("ie")),
+                    }
+                )
             step_df = pd.DataFrame(step_rows)
             st.dataframe(pd.DataFrame(step_df), use_container_width=True)
-        
+
             # reversal_messages = []
             # for effect_name, effect_res in [
             #     ("TV", all_results["tv"]),
@@ -949,8 +951,10 @@ def main() -> None:
             variable_notes=variable_notes,
         )
 
-        payload_json = json.dumps(llm_payload, indent=2, ensure_ascii=False, default=str)
-        #st.code(payload_json, language="json")
+        payload_json = json.dumps(
+            llm_payload, indent=2, ensure_ascii=False, default=str
+        )
+        # st.code(payload_json, language="json")
         st.download_button(
             "Download JSON payload",
             data=payload_json.encode("utf-8"),
@@ -960,13 +964,17 @@ def main() -> None:
 
         st.subheader("8. LLM report")
         if client is None:
-            st.info("OPENAI_API_KEY not found. Set it in your environment to enable report generation.")
+            st.info(
+                "OPENAI_API_KEY not found. Set it in your environment to enable report generation."
+            )
             return
 
         if st.button("Generate LLM report"):
             try:
                 with st.spinner("Generating report..."):
-                    text, latex_doc, token_usage = summarize_with_llm_combined(llm_payload, client)
+                    text, latex_doc, token_usage = summarize_fairmind(
+                        llm_payload, client
+                    )
             except Exception as exc:
                 st.error(f"LLM report generation failed: {exc}")
                 return
@@ -1006,7 +1014,9 @@ def main() -> None:
 
         interesting_df = compute_interesting_thresholds(curve_df)
         st.markdown("**Suggested interesting thresholds**")
-        st.caption("The score is higher when effects are large in magnitude or change sharply from nearby thresholds.")
+        st.caption(
+            "The score is higher when effects are large in magnitude or change sharply from nearby thresholds."
+        )
         st.dataframe(interesting_df, use_container_width=True)
 
         default_thr = float(curve_df.iloc[len(curve_df) // 2]["threshold"])
@@ -1061,13 +1071,15 @@ def main() -> None:
                             include_decomposition=False,
                         )
 
-                        step_rows.append({
-                            "step": f"{x0_step} -> {x1_step}",
-                            "TV": round_or_none(step_res.get("tv")),
-                            "TE": round_or_none(step_res.get("te")),
-                            "DE": round_or_none(step_res.get("de")),
-                            "IE": round_or_none(step_res.get("ie")),
-                        })
+                        step_rows.append(
+                            {
+                                "step": f"{x0_step} -> {x1_step}",
+                                "TV": round_or_none(step_res.get("tv")),
+                                "TE": round_or_none(step_res.get("te")),
+                                "DE": round_or_none(step_res.get("de")),
+                                "IE": round_or_none(step_res.get("ie")),
+                            }
+                        )
 
                     step_df = pd.DataFrame(step_rows)
                     st.dataframe(step_df, use_container_width=True)
@@ -1082,24 +1094,29 @@ def main() -> None:
                     ax.set_xticklabels(ordered_x_states, rotation=20, ha="right")
                     ax.set_ylabel("TE")
                     ax.set_xlabel("Ordered X categories")
-                    ax.set_title(f"TE from {ordered_x_states[0]} across ordered X states")
+                    ax.set_title(
+                        f"TE from {ordered_x_states[0]} across ordered X states"
+                    )
                     ax.grid(True, alpha=0.3)
 
                     st.pyplot(fig)
         except Exception as exc:
             st.error(f"Detailed threshold analysis failed: {exc}")
             return
-        
 
         st.subheader("5. Selected-threshold results")
         st.write(
             f"Detailed results for threshold **{threshold_choice:.6g}** with event **{threshold_direction.replace('threshold', str(round(threshold_choice, 6)))}**."
         )
         fig = visualize_sfm(sfm)
-        st.pyplot(fig,use_container_width=False)
+        st.pyplot(fig, use_container_width=False)
 
         detail_rows = pd.DataFrame(
-            [{"effect": k, "value": round_or_none(v)} for k, v in scalar_results.items() if not isinstance(v, dict)]
+            [
+                {"effect": k, "value": round_or_none(v)}
+                for k, v in scalar_results.items()
+                if not isinstance(v, dict)
+            ]
         )
         st.dataframe(detail_rows, use_container_width=True)
 
@@ -1108,17 +1125,17 @@ def main() -> None:
             with c10:
                 render_decomposition_dict(
                     "Indirect-effect decomposition",
-                    scalar_results.get("ie_decomposition")
+                    scalar_results.get("ie_decomposition"),
                 )
             with c11:
                 render_decomposition_dict(
                     "Spurious-effect decomposition at x1",
-                    scalar_results.get("se_decomposition_x1")
+                    scalar_results.get("se_decomposition_x1"),
                 )
             with c12:
                 render_decomposition_dict(
                     "Spurious-effect decomposition at x0",
-                    scalar_results.get("se_decomposition_x0")
+                    scalar_results.get("se_decomposition_x0"),
                 )
         st.subheader("6. LLM payload for selected threshold")
         llm_payload = {
@@ -1151,8 +1168,10 @@ def main() -> None:
             ],
         }
 
-        payload_json = json.dumps(llm_payload, indent=2, ensure_ascii=False, default=str)
-        #st.code(payload_json, language="json")
+        payload_json = json.dumps(
+            llm_payload, indent=2, ensure_ascii=False, default=str
+        )
+        # st.code(payload_json, language="json")
         st.download_button(
             "Download JSON payload",
             data=payload_json.encode("utf-8"),
@@ -1162,13 +1181,17 @@ def main() -> None:
 
         st.subheader("7. LLM report")
         if client is None:
-            st.info("OPENAI_API_KEY not found. Set it in your environment to enable report generation.")
+            st.info(
+                "OPENAI_API_KEY not found. Set it in your environment to enable report generation."
+            )
             return
 
         if st.button("Generate LLM report"):
             try:
                 with st.spinner("Generating report..."):
-                    text, latex_doc, token_usage = summarize_with_llm_combined(llm_payload, client)
+                    text, latex_doc, token_usage = summarize_fairmind(
+                        llm_payload, client
+                    )
             except Exception as exc:
                 st.error(f"LLM report generation failed: {exc}")
                 return

@@ -30,6 +30,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+DEFAULT_LLM_BASE_URL = "https://api.openai.com/v1"
+DEFAULT_LLM_MODEL = "gpt-5.4-nano"
+FAIRMIND_PROMPT = "fairmind_v2.txt"
+
 from src.effects import (  # noqa
     categorical_natural_direct_effect,
     categorical_natural_indirect_effect,
@@ -92,12 +96,6 @@ class OutcomeConfig:
     y_value: Any = None
     thresholds: tuple[float, ...] = ()
     direction: str = ""
-
-
-DEFAULT_LLM_BASE_URL = "https://api.openai.com/v1"
-DEFAULT_LLM_MODEL = "gpt-5-mini"
-# FAIRMIND_PROMPT = "fairmind.txt"
-FAIRMIND_PROMPT = "fairmind_v2.txt"
 
 
 @dataclass(frozen=True)
@@ -848,19 +846,22 @@ def render_intro() -> None:
 
     st.write(
         """
-    Upload a dataset for **causal fairness analysis**, specify:
+    **USAGE**: Upload a dataset for **causal fairness analysis**. Then specify:
 
     - **X**: sensitive attribute (e.g. race, gender)
     - **Y**: outcome (e.g. income)
     - **W**: mediator(s) if any
     - **Z**: confounder(s) if any
 
-    Given the specified **SFM causal graph**, the app fits a **discrete Bayesian network** to the data and then computes a decomposition of the **total variation** into:
-    *total effect*, *indirect effect*, *direct effect*, and *spurious effect*.
+    Following the **SFM** causal graph specification (see [Plecko D. & Bareinboim E., 2023](https://arxiv.org/abs/2207.11385)) over the
+    specified partition of variables, the app fits a **discrete Bayesian network** (using [`pgmpy`](https://pgmpy.org/)) to the data and then computes a decomposition of the 
+    **total variation** into: *total effect*, *indirect effect*, *direct effect*, and *spurious effect*.
 
-    Finally, the LLM generates a **report** summarizing the main findings.
+    Finally, on user request, the LLM generates a **report** summarising the main findings. In order
+    to do so, the application requires an **API key** to an OpenAI-compatible provider that can be
+    inserted in the left sidebar, along with the **model** to use and the thinking effort.
 
-
+    The report is generated in **text** and **LaTeX** formats, and can be downloaded along with all numerical tables as CSV files.
     """
     )
     st.info(
