@@ -220,8 +220,8 @@ def total_variation(
     bn: DiscreteBayesianNetwork,
     target: tuple[str, str],
     private_attr: str,
-    x0: str,
-    x1: str,
+    x0: Any,
+    x1: Any,
 ) -> float:
     """Compute the total variation.
 
@@ -231,8 +231,8 @@ def total_variation(
         bn: The Bayesian Network to use for inference.
         target: A tuple of (variable, value) for the target variable and its value.
         private_attr: The name of the private variable whose effect we want to measure.
-        x0: A tuple of (variable, value) representing the baseline value of the private variable.
-        x1: A tuple of (variable, value) representing the modified value of the private variable.
+        x0: The baseline value of the private variable.
+        x1: The modified value of the private variable.
 
     Returns:
         The total variation.

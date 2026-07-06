@@ -81,3 +81,4 @@ End with a short closing paragraph (in `latex`: `\subsection*{Recap}`) that must
 - All math expressions inside `$...$`. Inequalities must use `\geq`, `\leq`, `>`, `<`; raw `>=`, `<=`, `==` are forbidden anywhere in the document.
 - Threshold-style state labels (e.g. ">50K", ">=50K") must be written as math, e.g. `$Y > 50K$` or `$Y \geq 50K$` — never as string-wrapped text such as \text{">50K"}.
 - Escape LaTeX special characters when they appear in prose (variable and state names often contain them): `_` as `\_`, `%` as `\%`, `&` as `\&`, `#` as `\#`.
+- Refer to feature names in math environment (i.e., $$...$$, \[...\], etc.) with a \mathrm{.} command.

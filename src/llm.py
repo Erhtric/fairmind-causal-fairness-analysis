@@ -164,27 +164,16 @@ def payload_to_json(payload: dict[str, Any], indent: int = 2) -> str:
     return json.dumps(payload, indent=indent, ensure_ascii=False, default=str)
 
 
-def _validate_prompt_kwargs(prompt_kwargs: dict[str, Any] | None) -> None:
-    """Validate the prompt_kwargs for required keys.
-
-    Keys required are:
-    - x (protected variable)
-    - y (outcome variable)
-    - z (confounders / spurious features)
-    - w (mediator variables)
-    - x0 (value of protected variable for first group (the reference (majority) group))
-    - x1 (value of protected variable for second group (the target (minority) group))
-    - y_value (positive outcome value of interest)
-    - w_values (values of mediator variables)
+def _validate_prompt_kwargs(kwargs: dict[str, Any]) -> None:
     """
-    if not prompt_kwargs:
-        raise ValueError("prompt_kwargs cannot be None")
+    Validate that the prompt_kwargs contain the necessary keys for the LLM-only pipeline.
+    """
+    required_keys = ["exposure", "outcome", "x0", "x1", "yt"]
+    missing_keys = [key for key in required_keys if key not in kwargs]
 
-    required_keys = ["x", "y", "x0", "x1", "y_value"]
-    missing_keys = [key for key in required_keys if key not in prompt_kwargs]
     if missing_keys:
         raise ValueError(
-            f"Missing required prompt_kwargs keys: {', '.join(missing_keys)}"
+            f"Missing required prompt keyword arguments for fairness analysis: {', '.join(missing_keys)}"
         )
 
 
@@ -256,6 +245,90 @@ def summarize_fairmind(
 
 
 ### LLM-ONLY FAIRNESS DECOMPOSITION PROMPTING
+
+
+def prepare_prompts(
+    exposure: str,
+    outcome: str,
+    x0: Any,
+    x1: Any,
+    yt: Any,
+    mediators: Sequence[str] | None = None,
+    confounders: Sequence[str] | None = None,
+    dataset_semantic_schema: dict[str, dict[str, Any]] | None = None,
+    prompt_path: str = "only_llm_v2.txt",
+) -> tuple[str, str]:
+    """
+    Build the prompts for the LLM-only fairness decomposition using a semantic schema.
+
+    Expected format for dataset_semantic_schema:
+    {
+        "CREDIT_HISTORY": {
+            "description": "The applicant's credit score.",
+            "states": {0: "bad", 1: "good"}
+        }
+    }
+    """
+    mediators = list(mediators or [])
+    confounders = list(confounders or [])
+    schema = dataset_semantic_schema or {}
+
+    def _format_feature(feature: str) -> str:
+        info = schema.get(feature, {})
+        desc = info.get("description", "")
+        mapping = info.get("states", {})
+
+        base_str = f"{feature}"
+        if desc:
+            base_str += f": {desc}"
+        if mapping:
+            map_str = ", ".join([f"{k} -> '{v}'" for k, v in mapping.items()])
+            base_str += f" [States: {map_str}]"
+
+        return base_str
+
+    # Safe retrieval of specific state labels
+    def _get_label(feature: str, val: Any) -> str:
+        return schema.get(feature, {}).get("states", {}).get(val, str(val))
+
+    system_prompt = load_prompt(prompt_path)
+
+    z_formatted = (
+        "\n  - ".join([_format_feature(z) for z in confounders])
+        if confounders
+        else "None"
+    )
+    w_formatted = (
+        "\n  - ".join([_format_feature(w) for w in mediators]) if mediators else "None"
+    )
+
+    user_prompt = f"""
+You are given a dataset file (a tabular dataset, e.g. CSV or plain-text table). Load it with the code interpreter and inspect the columns before computing anything.
+
+Column roles and semantic schema:
+
+- X (Exposure / Protected Attribute):
+  - {_format_feature(exposure)}
+  - Baseline (x0): {x0} ({_get_label(exposure, x0)})
+  - Modified (x1): {x1} ({_get_label(exposure, x1)})
+
+- Y (Outcome Attribute):
+  - {_format_feature(outcome)}
+  - Target (yt): {yt} ({_get_label(outcome, yt)})
+
+- Z (Confounders / Spurious Features):
+  - {z_formatted}
+
+- W (Mediators):
+  - {w_formatted}
+
+Your task:
+1. Load and inspect the dataset.
+2. Compute the fairness decomposition according to Plečko and Bareinboim theory, isolating both general and variable-specific causal effects.
+3. Interpret the numerical results using the provided semantic mappings.
+4. Produce a structured report detailing the discriminatory pathways.
+"""
+    return system_prompt, user_prompt
 
 
 def prepare_llm_only_prompts(
@@ -343,7 +416,7 @@ def generate_report_from_file_id(
         client: The LLM client to use for generation.
         model: The LLM model to use.
         prompt_kwargs: Keyword arguments for `prepare_llm_only_prompts` describing
-            the column roles (x, y, x0, x1, y_value, z, w, ...).
+            the column roles and schema (exposure, outcome, x0, x1, yt, mediators, confounders, dataset_semantic_schema).
         effort: The reasoning effort level ("low", "medium", or "high").
 
     Returns:
@@ -352,7 +425,7 @@ def generate_report_from_file_id(
     prompt_kwargs = prompt_kwargs or {}
     _validate_prompt_kwargs(prompt_kwargs)
 
-    system_prompt, user_prompt = prepare_llm_only_prompts(**prompt_kwargs)
+    system_prompt, user_prompt = prepare_prompts(**prompt_kwargs)
 
     resp = client.responses.parse(
         model=model,
@@ -388,8 +461,8 @@ def generate_report_from_dataset(
     data_path: str | Path | pd.DataFrame,
     client: Any,
     model: str = "gpt-5.4-nano",
-    prompt_kwargs: dict[str, Any] | None = None,
     effort: str = "high",
+    prompt_kwargs: dict[str, Any] | None = None,
 ) -> LLMReportResult:
     """
     Upload a local dataset file and generate a fairness decomposition report.
@@ -402,16 +475,22 @@ def generate_report_from_dataset(
         client: The LLM client to use for upload and generation.
         model: The LLM model to use.
         prompt_kwargs: Keyword arguments for `prepare_llm_only_prompts` describing
-            the column roles (x, y, x0, x1, y_value, z, w, ...).
-            This should describe the dataset features and their respective labels, to provide
-            some kind of interpretation to the data if not self-explanatory.
+            the column roles and schema (exposure, outcome, x0, x1, yt, mediators, confounders, dataset_semantic_schema).
+            An example could be:
+            ```
+            {
+                "CREDIT_HISTORY": {
+                    "description": "The applicant's credit score.",
+                    "states": {0: "bad", 1: "good"}
+                }
+            }
+            ```
         effort: The reasoning effort level ("low", "medium", or "high").
 
     Returns:
         An LLMReportResult containing the generated text, LaTeX, and usage information.
     """
     if isinstance(data_path, pd.DataFrame):
-        # Convert DataFrame to bytes so it can be uploaded to a client expecting a binary file-like
         csv_bytes = data_path.to_csv(index=False).encode("utf-8")
         with io.BytesIO(csv_bytes) as f:
             f.seek(0)
@@ -419,8 +498,6 @@ def generate_report_from_dataset(
     else:
         with open(data_path, "rb") as f:
             uploaded = client.files.create(file=f, purpose="assistants")
-
-    system_prompt, user_prompt = prepare_llm_only_prompts(**prompt_kwargs)
 
     return generate_report_from_file_id(
         uploaded.id, client, model=model, prompt_kwargs=prompt_kwargs, effort=effort

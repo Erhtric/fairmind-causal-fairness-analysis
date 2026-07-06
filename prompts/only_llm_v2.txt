@@ -80,7 +80,6 @@ Both fields must agree on the content and the numbers.
   - `Overview of the Fairness Analysis`
   - `Decomposition of Effects`
 - End with a recap section (e.g., `\subsection*{Recap}`) whose content corresponds to the text recap.
-- Refer to feature names in math environment (i.e., $$...$$, \[...\], etc.) with a \mathrm{.} command.
 
 ## Subsection requirements
 
@@ -138,3 +137,5 @@ Keep language concise and data-scientist friendly. Do not invent numbers; if a q
   - Example: render ">=50K" as `$\geq 50K$`.
 - Do NOT use \text{">50K"} or similar string-wrapped thresholds inside math.
 - If the data contains threshold-style labels (e.g., ">50K", ">=50K"), convert them into proper mathematical notation such as `$Y > 50K$` or `$Y \geq 50K$`.
+- Refer to feature names in math environment (i.e., $$...$$, \[...\], etc.) with a \mathrm{.} command.
+
