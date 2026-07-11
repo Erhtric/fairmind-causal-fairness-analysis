@@ -1,0 +1,33 @@
+Bootstrap: docker
+From: python:3.11-slim
+
+%labels
+    Author marco.soldani
+    Purpose "Jupyter + FairMind deps per il benchmark causal fairness"
+
+%post
+    apt-get update && apt-get install -y --no-install-recommends \
+        git build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+    pip install --no-cache-cdir \
+        jupyterlab \
+        pandas \
+        pgmpy \
+        networkx \
+        loguru \
+        openai \
+        matplotlib \
+        tqdm ipywidgets
+
+%help
+    Ambiente per lanciare i notebook di benchmark su Thor.
+
+    Build (sul login node, una tantum):
+        apptainer build jupyter_env.sif jupyter_env.def
+
+    Esecuzione del notebook in modalità automatica:
+        apptainer exec jupyter_env.sif \
+            jupyter nbconvert --to notebook --execute \
+            --output benchmark_output.ipynb \
+            2_1_benchmark_thor.ipynb
