@@ -1,0 +1,690 @@
+================================================================================
+ DESCRIZIONE DETTAGLIATA DEL NOTEBOOK: 2_1_benchmark_thor.ipynb
+================================================================================
+
+Indice:
+  1. Introduzione e obiettivo
+  2. Contesto: il cluster THOR
+  3. Differenza con 2_1_benchmark_gpt.ipynb
+  4. Cella 1-2: Setup iniziale (path discovery, import, client LLM)
+  5. Cella 3: Configurazione del benchmark
+  6. Cella 4: FairMind — computation ground truth
+  7. Cella 5: Prompt engineering per LLM
+  8. Cella 6: Chiamata LLM e parsing della risposta
+  9. Cella 7: Tabella discrepancies (confronto FairMind vs LLM)
+  10. Cella 8: Salvataggio risultati su file JSON
+  11. Conclusioni
+
+
+================================================================================
+ 1. INTRODUZIONE E OBIETTIVO
+================================================================================
+
+Questo notebook implementa un benchmark che confronta due approcci diversi
+per il calcolo di effetti di causal fairness sul dataset Adult Income (UCI):
+
+  - FairMind:  una libreria Python sviluppata all'interno del progetto che
+               costruisce un modello grafico causale (Standard Fairness Model,
+               Plecko & Bareinboim 2024) sotto forma di Bayesian Network,
+               lo fitta sui dati e calcola gli effetti con inferenza causale
+               formale (aggiustamento, do-operator, cross-world factorization).
+
+  - LLM locale: il modello Qwen2.5-7B-Instruct quantizzato (Q4_K_M) eseguito
+                tramite llama.cpp sul cluster HPC THOR. Al LLM vengono fornite
+                le tabelle di probabilità pre-aggregate dal dataset e le formule
+                di identificazione, e gli viene chiesto di calcolare gli stessi
+                5 effetti.
+
+I 5 effetti calcolati sono:
+  TV  = Total Variation        (differenza osservazionale: P(Y|X=x1) - P(Y|X=x0))
+  TE  = Total Effect           (differenza interventistica: P(Y_do(x1)) - P(Y_do(x0)))
+  SE  = Spurious Effect        (TV - TE, ciò che è spiegato da confondimento)
+  DE  = Natural Direct Effect  (effetto diretto X->Y, mediatori fissati a livello baseline)
+  IE  = Natural Indirect Effect(effetto che passa attraverso i mediatori)
+
+
+================================================================================
+ 2. CONTESTO: IL CLUSTER THOR
+================================================================================
+
+THOR è il cluster HPC (High Performance Computing) della SUPSI (Scuola
+universitaria professionale della Svizzera italiana), accessibile via SSH
+all'indirizzo thor.supsi.ch.
+
+Caratteristiche tecniche rilevanti:
+  - Scheduler: Slurm 25 per la gestione dei job
+  - Container runtime: Apptainer 1.4.2 (ex Singularity)
+  - Nodi GPU: gnode01-gnode12 con GPU NVIDIA (V100, A100, A30, L40S, H200, H100,
+    RTX PRO 6000)
+  - Nodi CPU: cnode01-cnode04
+
+Per questo progetto sono state create due immagini Apptainer:
+  1. llama_server.sif — container GPU con llama.cpp compilato con CUDA,
+     contiene il modello Qwen2.5-7B-Instruct-Q4_K_M.gguf (~4.5 GB)
+  2. jupyter_env.sif — container CPU con Python 3.11 e le dipendenze:
+     pandas, pgmpy, networkx, loguru, openai, matplotlib
+
+Il notebook è progettato per essere eseguito all'interno del container
+jupyter_env.sif, comunicando con llama_server.sif (che espone un'API
+compatibile OpenAI su localhost:8080).
+
+La configurazione THOR è nella directory setup_thor/ che contiene:
+  - run_benchmark.sbatch: script Slurm per esecuzione batch automatizzata
+  - notebook_patch.py: patch con fallback per auto-rilevamento host GPU
+  - llama_server.def: definizione Apptainer per container GPU (llama.cpp)
+  - jupyter_env.def: definizione Apptainer per container CPU (Jupyter)
+  - README.md e thor-getting-started.md: guide dettagliate in italiano
+  - guida_claude_thor.md: guida alternativa con vLLM
+
+Il branch Git attuale per questo lavoro è feature/03-thor.
+
+
+================================================================================
+ 3. DIFFERENZA CON 2_1_benchmark_gpt.ipynb
+================================================================================
+
+Nella stessa directory (soldani_task/) esiste un notebook gemello chiamato
+2_1_benchmark_gpt.ipynb con lo stesso scopo ma un backend LLM diverso.
+Ecco le differenze principali:
+
+┌─────────────────────────┬────────────────────────────┬───────────────────────────┐
+│   Aspetto              │  benchmark_gpt.ipynb       │  benchmark_thor.ipynb     │
+├─────────────────────────┼────────────────────────────┼───────────────────────────┤
+│ LLM backend            │ OpenAI (api.openai.com)    │ llama.cpp locale          │
+│ API utilizzata         │ responses.create() (nuova) │ chat.completions.create() │
+│ Modello                │ o3-mini                    │ qwen2.5-7b-instruct       │
+│ Dati nel prompt        │ 300 righe CSV raw          │ Tabelle pre-aggregate     │
+│ Temperature            │ non specificata            │ 0 (deterministico)        │
+│ max_tokens             │ non specificato            │ 4096                      │
+│ Gestione errori        │ parsing semplice           │ Regex + fallback multiplo │
+│ Reasoning tokens       │ tracciati separatamente    │ non disponibili (null)    │
+│ Connessione internet   │ necessaria                 │ non necessaria            │
+│ Destinazione           │ esecuzione locale          │ cluster THOR              │
+└─────────────────────────┴────────────────────────────┴───────────────────────────┘
+
+La scelta di usare tabelle pre-aggregate nella versione THOR è motivata dal
+fatto che Qwen2.5-7B ha una finestra di contesto limitata (8K-32K token):
+inviare 48842 righe CSV raw sarebbe impossibile. Inviare solo le probabilità
+condizionali riduce il prompt a ~7000 token.
+
+
+================================================================================
+ 4. CELLA 1-2: SETUP INIZIALE (PATH DISCOVERY, IMPORT, CLIENT LLM)
+================================================================================
+
+4.1 Path discovery (Cella 1)
+-----------------------------
+Il notebook inizia con un blocco che cerca automaticamente la directory
+radice del progetto (quella che contiene la cartella src/). Partendo dalla
+directory corrente (notebooks/soldani_task/), risale l'albero delle directory
+finché non trova un genitore contenente src/. Aggiunge poi questo path a
+sys.path per permettere gli import assoluti (es. from src.graph import ...).
+
+Questo meccanismo è necessario perché il notebook può essere eseguito sia
+dalla sua directory che dalla root del progetto, e garantisce che gli import
+funzionino in entrambi i casi.
+
+4.2 Import e configurazione LLM (Cella 2)
+------------------------------------------
+Vengono importati:
+  - json, pandas (pd) — per manipolazione dati e serializzazione
+  - openai (OpenAI) — client API compatibile OpenAI
+  - pgmpy.estimators.BayesianEstimator — per la stima delle CPD
+  - src.graph.build_sfm — costruzione del grafo SFM
+  - src.model.fit_discrete_bayesian_model — fitting della Bayesian Network
+  - src.effects.{total_variation, total_effect, spurious_effect,
+    natural_direct_effect, natural_indirect_effect} — le 5 funzioni effetto
+
+Il client OpenAI è configurato per puntare al server llama.cpp in esecuzione
+locale:
+  client = OpenAI(
+      base_url="http://localhost:8080/v1",
+      api_key="not-needed",          # llama.cpp non richiede API key
+  )
+
+La riga commentata #client = OpenAI() sarebbe la configurazione standard per
+usare l'API di OpenAI remota (come nella versione benchmark_gpt).
+
+MODEL_NAME = "qwen2.5-7b-instruct"  # nome del modello registrato su llama.cpp
+
+
+================================================================================
+ 5. CELLA 3: CONFIGURAZIONE DEL BENCHMARK
+================================================================================
+
+La configurazione è racchiusa in un dizionario CONFIG che definisce:
+
+  dataset_name: "adult"
+    Nome identificativo del dataset (usato per il nome del file di output).
+
+  csv_path: "../../data/processed/adult.csv"
+    Path relativo (rispetto alla directory del notebook) al file CSV
+    contenente i dati preprocessati del dataset Adult.
+
+  target_col: "T_income"
+    Variabile target (outcome) binaria: >50K o <=50K.
+
+  target_val: ">50K"
+    Valore della target che rappresenta lo "stato positivo" (ciò che vogliamo
+    analizzare in termini di fairness).
+
+  protected: "S2_gender"
+    Attributo protetto (sensitive). Nel dataset Adult è il sesso.
+
+  x0: "Female"
+    Valore di baseline dell'attributo protetto.
+
+  x1: "Male"
+    Valore di confronto dell'attributo protetto.
+
+  mediators: ["hours-per-week"]
+    Variabili mediatrici: ore lavorative settimanali. Sono variabili che si
+    trovano sul percorso causale tra X e Y (X -> W -> Y).
+
+  confounders: ["education"]
+    Variabili di confondimento: livello di istruzione. Variabili che causano
+    sia X che Y (Z -> X e Z -> Y), creando associazioni spurie.
+
+Questa configurazione definisce il seguente SFM (Standard Fairness Model):
+
+    education (Z)
+      /        \
+     v          v
+  S2_gender -> hours-per-week -> T_income
+  (X)            (W)              (Y)
+       \-------------------------^
+           (effetto diretto X->Y)
+
+Il modello assume che:
+  - education sia un confounder (causa sia il genere che il reddito)
+  - hours-per-week sia un mediatore (il genere influenza le ore lavorate,
+    che a loro volta influenzano il reddito)
+  - Non ci siano confondenti latenti tra X e Y (assunzione di Markovianità)
+
+
+================================================================================
+ 6. CELLA 4: FAIRMIND — COMPUTATION GROUND TRUTH
+================================================================================
+
+Questa cella definisce la funzione run_fairmind() che esegue l'intera
+pipeline di FairMind e calcola i 5 effetti causali che serviranno come
+ground truth per confrontare il LLM.
+
+6.1 Funzione run_fairmind(config)
+----------------------------------
+
+  a. Lettura e selezione colonne:
+     df = pd.read_csv(config["csv_path"])
+     Seleziona solo le colonne rilevanti definite nella config
+     ([protected] + mediators + confounders + [target_col]) e rimuove
+     le righe con valori mancanti (dropna()).
+     Nota: il dataset Adult preprocessato ha già tutte le variabili
+     categoriche, quindi non serve discretizzazione esplicita qui.
+
+  b. Costruzione dello SFM:
+     build_sfm(
+         sensitive_attr="S2_gender",
+         outcome_attr="T_income",
+         confounder_attrs=["education"],
+         mediator_attrs=["hours-per-week"],
+         sorted_mediators=False,    # un solo mediatore
+         sorted_confounders=False,  # un solo confounder
+     )
+     Questa funzione (da src.graph) crea un grafo diretto NetworkX con:
+       - Nodi annotati con type (sensitive, outcome, mediator, confounder)
+       - Archi causali:
+           education -> S2_gender
+           education -> hours-per-week
+           education -> T_income
+           S2_gender -> hours-per-week
+           S2_gender -> T_income
+           hours-per-week -> T_income
+
+  c. Fitting della Bayesian Network:
+     fit_discrete_bayesian_model(
+         sfm=sfm,
+         data=df,
+         estimator_instance=(BayesianEstimator, {"prior_type": "BDeu"})
+     )
+     Questa funzione (da src.model) stima le Conditional Probability
+     Distributions (CPD) per ogni nodo del grafo usando il BayesianEstimator
+     di pgmpy con prior BDeu (Bayesian Dirichlet equivalent uniform).
+     Il risultato è un DiscreteBayesianNetwork di pgmpy con tutte le
+     probabilità condizionali stimate dai dati.
+
+  d. Definizione del target:
+     target = ("T_income", ">50K")
+
+  e. Calcolo dei 5 effetti (con timing):
+     Viene avviato un timer (time.perf_counter()) e poi calcolati:
+
+     1. TV (Total Variation) — total_variation():
+        P(Y=">50K" | X="Male") - P(Y=">50K" | X="Female")
+        Calcolata con VariableElimination: query della BN con evidenza
+        su X=x1 e X=x0, poi differenza delle probabilità marginali.
+        Risultato: 0.194470
+        Significato: osservazionalmente, gli uomini hanno il 19.4% di
+        probabilità in più delle donne di avere reddito >50K.
+
+     2. TE (Total Effect) — total_effect():
+        P(Y_do(X=x1) = ">50K") - P(Y_do(X=x0) = ">50K")
+        Calcolata con CausalInference (do-operator) usando l'aggiustamento
+        sui confounders (education). Rimuove l'effetto del confondimento
+        simulando un esperimento ideale in cui X viene forzato a x1 e x0.
+        Risultato: 0.183161
+        Significato: l'effetto causale totale del genere sul reddito
+        è del 18.3% (aggiustato per education).
+
+     3. SE (Spurious Effect) — spurious_effect():
+        P(Y=">50K" | X="Female") - P(Y_do(X="Female") = ">50K")
+        Differenza tra probabilità condizionale (osservazionale) e
+        interventistica per X="Female". Quantifica quanto dell'associazione
+        è dovuta a confondimento (education) piuttosto che a causalità.
+        Risultato: -0.007296
+        Significato: molto piccolo, indica che education confonde solo
+        leggermente la relazione genere-reddito.
+
+     4. DE (Natural Direct Effect) — natural_direct_effect():
+        P(Y_do(X=x1, W=W_do(X=x0)) = ">50K") - P(Y_do(X=x0) = ">50K")
+        Effetto diretto di X su Y che NON passa attraverso i mediatori.
+        Calcolata come cross-world factorization:
+        sum_{z,w} P(Y|x1,w,z) * P(w|x0,z) * P(z) -
+        sum_z P(Y|x0,z) * P(z)
+        Risultato: 0.137049
+        Significato: il 13.7% dell'effetto è diretto (non mediato dalle ore
+        lavorative).
+
+     5. IE (Natural Indirect Effect) — natural_indirect_effect():
+        P(Y_do(X=x0, W=W_do(X=x1)) = ">50K") - P(Y_do(X=x0) = ">50K")
+        Effetto di X su Y che passa attraverso i mediatori (W).
+        Calcolata come cross-world factorization:
+        sum_{z,w} P(Y|x0,w,z) * P(w|x1,z) * P(z) -
+        sum_z P(Y|x0,z) * P(z)
+        Risultato: -0.046112
+        Significato: se le donne lavorassero le stesse ore degli uomini,
+        il loro reddito aumenterebbe del 4.6% (effetto negativo perché
+        W è bloccato al livello x1=Male). L'effetto indiretto è negativo
+        perché le donne in media lavorano meno ore.
+
+  f. Risultati e tempo:
+     FairMind completa il calcolo in 0.0078 secondi (7.8 millisecondi).
+     Output:
+       TV: 0.194470
+       TE: 0.183161
+       SE: -0.007296
+       DE: 0.137049
+       IE: -0.046112
+
+
+================================================================================
+ 7. CELLA 5: PROMPT ENGINEERING PER LLM
+================================================================================
+
+Questa cella costruisce il prompt testuale che verrà inviato al LLM.
+La strategia adottata è radicalmente diversa da quella usata con GPT/OpenAI:
+invece di inviare righe CSV raw, vengono pre-calcolate e inviate le tabelle
+di probabilità condizionale, riducendo drasticamente il numero di token.
+
+7.1 Discretizzazione delle variabili continue
+----------------------------------------------
+hours-per-week è una variabile continua che viene discretizzata in 5 bin:
+  - <= 20   (part-time molto ridotto)
+  - 21-35   (part-time standard)
+  - 36-45   (full-time standard)
+  - 46-60   (overtime)
+  - >60     (overtime estremo)
+
+Questa discretizzazione è necessaria perché il modello causale FairMind
+lavora con variabili categoriche discrete.
+
+7.2 Creazione della variabile target binaria
+---------------------------------------------
+Viene creata una colonna _y che vale 1 se il reddito è >50K, 0 altrimenti:
+  df["_y"] = (df["T_income"] == ">50K").astype(int)
+
+7.3 Calcolo delle 5 tabelle di probabilità
+-------------------------------------------
+Tutte le tabelle sono calcolate con operazioni groupby di pandas.
+
+TABELLA 1: P(Y=y | X) — Probabilità di reddito >50K dato il genere
+  Calcolata come: df.groupby("S2_gender")["_y"].mean()
+  Risultato:
+    Female: 0.1093  (10.9% delle donne ha reddito >50K)
+    Male:   0.3038  (30.4% degli uomini ha reddito >50K)
+
+TABELLA 2: P(Z) — Distribuzione marginale dell'istruzione
+  Calcolata come: df.groupby("education").size() / len(df)
+  16 categorie di educazione (HS-grad 32.3%, Some-college 22.3%,
+  Bachelors 16.4%, Masters 5.4%, etc.)
+
+TABELLA 3: P(Y=y | X, Z) — Probabilità di reddito >50K per ogni
+           combinazione (genere, istruzione)
+  Calcolata come: df.groupby(["S2_gender", "education"])["_y"].mean()
+  32 righe (16 educazioni × 2 generi)
+  Esempi significativi:
+    Female + Doctorate:  56.6%  di probabilità di reddito >50K
+    Male   + Doctorate:  76.3%
+    Female + HS-grad:     6.5%
+    Male   + HS-grad:    20.3%
+  Mostra chiaramente il divario di genere a parità di istruzione.
+
+TABELLA 4: P(W | X, Z) — Distribuzione delle ore lavorative per
+           (genere, istruzione)
+  Calcolata come: df.groupby(["S2_gender", "education",
+                              "hours-per-week_bin"]).size()
+                   / (somma per gruppo)
+  Per ogni combinazione di genere e istruzione, la distribuzione
+  su 5 categorie di ore lavorative.
+  Esempio: Female + 10th grado → 24.5% part-time (<=20h),
+           23.9% 21-35h, 47.3% 36-45h, 3.3% 46-60h, 1.1% >60h
+
+TABELLA 5: P(Y=y | X, W, Z) — Probabilità di reddito >50K per ogni
+           combinazione (genere, ore, istruzione)
+  Calcolata come: df.groupby(["S2_gender", "hours-per-week_bin",
+                              "education"])["_y"].mean()
+  Raramente usata direttamente dal LLM ma necessaria per le formule
+  di DE e IE che coinvolgono P(Y|x,w,z).
+
+7.4 Costruzione del prompt testuale
+------------------------------------
+Il prompt è strutturato come segue:
+
+  a. Identità: "You are a causal fairness expert. Compute five causal
+     fairness effects using the Standard Fairness Model (SFM) by Plecko
+     and Bareinboim (2024)."
+
+  b. Spiegazione dei dati: vengono fornite le tabelle PRE-AGGREGATE,
+     con nota sulla discretizzazione di hours-per-week.
+
+  c. Ruoli delle variabili:
+       X (protected):    S2_gender, x0=Female, x1=Male
+       Y (target):       T_income, target state=>50K
+       W (mediators):    ['hours-per-week_bin']
+       Z (confounders):  ['education']
+
+  d. Le 5 tabelle in formato CSV compatto (to_csv(index=False))
+
+  e. Le formule di identificazione:
+       TV = P(Y=y|X=x1) - P(Y=y|X=x0)               [da TABLE 1]
+       TE = sum_z [P(Y=y|x1,z) - P(Y=y|x0,z)] * P(z) [da TABLE 3, TABLE 2]
+       SE = TV - TE
+       DE = sum_{z,w} [P(Y=y|x1,w,z) - P(Y=y|x0,w,z)] * P(w|x0,z) * P(z)
+            [da TABLE 5, TABLE 4, TABLE 2]
+       IE = sum_{z,w} P(Y=y|x0,w,z) * [P(w|x1,z) - P(w|x0,z)] * P(z)
+            [da TABLE 5, TABLE 4, TABLE 2]
+
+  f. Istruzioni dettagliate:
+     - Per DE e IE, le somme devono essere calcolate su TUTTE le
+       combinazioni di z (16 livelli) e w (5 bin) = 80 termini
+     - Richiede di mostrare il procedimento step-by-step
+     - Richiede di terminare con "FINAL_JSON:" seguito da un JSON
+       con le 5 chiavi (TV, TE, SE, DE, IE)
+
+7.5 Lunghezza del prompt
+-------------------------
+Il prompt completo è di circa 11227 caratteri, che corrispondono a circa
+6870 token di input (come si vedrà nella cella successiva).
+
+
+================================================================================
+ 8. CELLA 6: CHIAMATA LLM E PARSING DELLA RISPOSTA
+================================================================================
+
+8.1 Funzione call_gpt()
+------------------------
+Nonostante il nome "gpt", questa funzione chiama il modello locale su
+llama.cpp:
+
+  a. Chiamata API:
+     response = client.chat.completions.create(
+         model=MODEL_NAME,          # "qwen2.5-7b-instruct"
+         messages=[{"role": "user", "content": prompt}],
+         temperature=0,             # massima determinismo
+         max_tokens=4096,           # spazio sufficiente per i calcoli
+     )
+
+  b. Raccolta metriche:
+     - input_tokens: 6870 (il prompt con tabelle)
+     - output_tokens: 2037 (la risposta con calcoli e JSON)
+     - total_tokens: 8907
+     - reasoning_tokens: None (non supportato da llama.cpp)
+
+  c. Salvataggio output raw:
+     La risposta completa del modello viene salvata su
+     last_raw_output.txt per debug e ispezione manuale.
+
+  d. Parsing JSON:
+     Poiché il modello potrebbe restituire il JSON in vari formati
+     (con markdown, con testo aggiuntivo, ecc.), viene usata una
+     strategia di parsing robusta:
+       1. Trova TUTTI i blocchi { ... } nella risposta con regex
+       2. Filtra quelli che contengono tutte e 5 le chiavi attese
+          ("TV", "TE", "SE", "DE", "IE")
+       3. Prende l'ULTIMO blocco valido (più probabile sia quello finale)
+       4. Parso con json.loads()
+     Se nessun blocco contiene tutte le chiavi, solleva ValueError.
+
+8.2 Risultati della chiamata LLM
+----------------------------------
+  Tempo: 28.3237 secondi (FairMind: 0.0078s → ~3600x più lento)
+  Token: 6870 input, 2037 output, 8907 totali
+
+  Risultati LLM:
+    TV:  0.194500
+    TE:  0.231167
+    SE: -0.036667
+    DE:  0.083167
+    IE: -0.047000
+
+
+================================================================================
+ 9. CELLA 7: TABELLA DISCREPANCIES (CONFRONTO FAIRMIND VS LLM)
+================================================================================
+
+9.1 Funzione compute_discrepancies()
+--------------------------------------
+Per ogni effetto, calcola:
+  - errore assoluto: |FairMind - LLM|
+  - errore relativo percentuale: |FairMind - LLM| / |FairMind| * 100
+    (con protezione per divisione per zero: se FairMind ≈ 0, restituisce NaN)
+
+9.2 Tabella dei risultati
+--------------------------
+  Effect   FairMind       GPT         AbsErr     RelErr%
+  ───────  ─────────     ────────     ───────    ───────
+  TV        0.194470     0.194500     0.000030     0.02%
+  TE        0.183161     0.231167     0.048005    26.21%
+  SE       -0.007296    -0.036667     0.029371   402.56%
+  DE        0.137049     0.083167     0.053883    39.32%
+  IE       -0.046112    -0.047000     0.000888     1.93%
+
+9.3 Analisi dettagliata errore per errore
+------------------------------------------
+
+TV (Total Variation) — Errore: 0.02%
+  - Praticamente perfetto. La TV richiede solo la differenza di 2 valori
+    letti direttamente da TABLE 1: P(Y|Female)=0.1093, P(Y|Male)=0.3038.
+    Non c'è aggregazione, solo una sottrazione. Il LLM la esegue
+    correttamente (0.1945 vs 0.194470, differenza da arrotondamento).
+
+TE (Total Effect) — Errore: 26.21%
+  - Il modello LLM sbaglia il TE di circa 0.048 (assoluto).
+  - Il TE richiede:
+      sum_z [P(Y|x1,z) - P(Y|x0,z)] * P(z)
+    cioè 16 termini (uno per ogni livello di education), ciascuno
+    con una sottrazione e una moltiplicazione.
+  - Il valore corretto (0.183) richiede di pesare correttamente ogni
+    termine di education per la sua probabilità marginale P(z).
+  - Possibile causa: il LLM tende ad approssimare o dimenticare alcuni
+    termini nella somma, oppure usa P(z|x) invece di P(z).
+  - Infatti, il valore LLM (0.231) è più vicino alla TV (0.194) che
+    al TE corretto, suggerendo che l'aggiustamento per confondimento
+    non sia stato applicato correttamente.
+
+SE (Spurious Effect) — Errore: 402.56%
+  - L'errore relativo è enorme perché SE = TV - TE e sia TV che TE
+    sono valori simili (circa 0.19). La loro differenza è molto piccola
+    (-0.0073), quindi anche un piccolo errore in TE produce un errore
+    relativo enorme su SE.
+  - FairMind: -0.0073 (quasi zero → poco confondimento)
+  - LLM: -0.0367 (confondimento sovrastimato di 5x)
+  - Questo è un caso classico di amplificazione dell'errore: quando
+    una quantità è ottenuta per differenza di due numeri simili,
+    l'errore relativo esplode.
+  - Non è tanto colpa del LLM quanto della natura della metrica.
+
+DE (Natural Direct Effect) — Errore: 39.32%
+  - Il DE è l'effetto più complesso da calcolare per il LLM:
+      sum_{z,w} [P(Y|x1,w,z) - P(Y|x0,w,z)] * P(w|x0,z) * P(z)
+    Richiede 80 termini (16 education × 5 hour-bins), ciascuno dei
+    quali richiede:
+      1. Cercare P(Y|x1,w,z) in TABLE 5
+      2. Cercare P(Y|x0,w,z) in TABLE 5
+      3. Sottrarli
+      4. Moltiplicare per P(w|x0,z) da TABLE 4
+      5. Moltiplicare per P(z) da TABLE 2
+      6. Sommare tutto
+  - Con 80 termini e 5 lookup per termine, il LLM deve gestire ~400
+    operazioni di lookup e calcolo. La probabilità di errore cumulativo
+    è alta.
+  - Il valore LLM (0.083) sottostima l'effetto diretto vero (0.137)
+    di circa il 40%.
+
+IE (Natural Indirect Effect) — Errore: 1.93%
+  - Sorprendentemente buono! L'IE richiede:
+      sum_{z,w} P(Y|x0,w,z) * [P(w|x1,z) - P(w|x0,z)] * P(z)
+    Sempre 80 termini, ma il risultato è vicino allo zero (-0.046)
+    e il LLM lo stima bene (-0.047).
+  - Possibile spiegazione: P(Y|x0,w,z) nella formula funge da fattore
+    stabilizzante (moltiplica la differenza P(w|x1,z)-P(w|x0,z) che
+    tende ad essere piccola), mentre nel DE la differenza
+    P(Y|x1,w,z)-P(Y|x0,w,z) è più grande e variabile.
+
+
+================================================================================
+ 10. CELLA 8: SALVATAGGIO RISULTATI SU FILE JSON
+================================================================================
+
+10.1 Funzione save_results()
+-----------------------------
+Salva tutti i risultati del benchmark in un file JSON strutturato:
+
+  Directory: benchmark_results/ (creata automaticamente se non esiste)
+  Nome file: {dataset}_{timestamp}.json
+  Esempio:   benchmark_results/adult_20260712_161949.json
+
+  Contenuto del JSON:
+  {
+    "dataset":       "adult",
+    "config":        { tutti i parametri tranne csv_path },
+    "fairmind":      { TV, TE, SE, DE, IE }    // ground truth
+    "gpt":           { TV, TE, SE, DE, IE }    // prediction LLM
+    "discrepancies": [                         // tabella errori
+        { "effect": "TV", "fairmind": 0.19447, "gpt": 0.1945,
+          "abs_error": 3e-05, "rel_error_%": 0.02 },
+        ...
+    ],
+    "token_usage": {
+        "input_tokens": 6870, "output_tokens": 2037,
+        "total_tokens": 8907
+    },
+    "timing": {
+        "fairmind_seconds": 0.0078,
+        "gpt_seconds": 28.3237
+    }
+  }
+
+10.2 Struttura dei file nella directory benchmark_results/
+-----------------------------------------------------------
+La directory contiene molteplici file di risultati accumulati nel tempo,
+inclusi benchmark con diverse configurazioni (adult_low, adult_medium,
+adult_high) e anche per il dataset student_mat:
+
+  - adult_20260621_192807.json          (primo benchmark)
+  - adult_20260701_022733.json
+  - adult_20260701_100058.json
+  - adult_20260701_101325.json
+  - adult_20260711_183752.json
+  - adult_20260711_184843.json
+  - adult_20260711_185212.json
+  - adult_20260711_191135.json
+  - adult_20260712_161451.json
+  - adult_20260712_161556.json
+  - adult_20260712_161949.json          (più recente)
+  - adult_low_20260622_115443.json
+  - adult_high_20260622_132756_plot.png
+  - adult_high_20260622_132757.json
+  - adult_medium_20260622_132757.json
+  - student_mat_high_20260622_121108.json
+  - student_mat_medium_20260622_121108.json
+  - benchmark_plot.png
+
+
+================================================================================
+ 11. CONCLUSIONI
+================================================================================
+
+11.1 Performance (velocità)
+-----------------------------
+  FairMind: 0.0078 secondi
+  LLM:      28.3237 secondi
+  Ratio:    ~3631x più lento
+
+FairMind è drammaticamente più veloce perché:
+  - Le CPD sono già stimate e memorizzate nella Bayesian Network
+  - Le query di inferenza (VariableElimination, CausalInference)
+    usano algoritmi ottimizzati su fattori tabellari sparsi
+  - Ogni effetto richiede poche operazioni di algebra di fattori
+  - Non c'è overhead di generazione testo o I/O di rete
+
+Il LLM invece:
+  - Deve processare 6870 token di input (lettura tabelle)
+  - Eseguire il ragionamento matematico passo-passo (generazione 2037 token)
+  - Il modello 7B richiede una GPU potente per l'inferenza
+
+11.2 Accuratezza
+-----------------
+  - TV e IE: il LLM è molto accurato (errore < 2%)
+    → Effetti che richiedono operazioni semplici (differenze o somme
+       con fattori stabilizzanti)
+  - TE e DE: errore significativo (26-39%)
+    → Effetti che richiedono somme su molte combinazioni (80 termini)
+       con moltiplicazioni multiple
+  - SE: errore enorme (402%) ma fuorviante
+    → Il valore vero è near-zero, l'errore relativo amplifica ogni
+       minima imprecisione
+
+11.3 Implicazioni
+-----------------
+  1. FairMind rimane il riferimento per precisione ed efficienza.
+     Il suo approccio (modello grafico causale + inferenza formale)
+     è superiore sia in accuratezza che in velocità.
+
+  2. LLM può essere utile come "causal calculator" per effetti semplici
+     (TV, IE) ma non è affidabile per effetti che richiedono aggregazioni
+     multi-variabile (TE, DE), specialmente con molte categorie.
+
+  3. L'uso di tabelle pre-aggregate è una strategia efficace per
+     permettere a LLM con contesto limitato (come Qwen2.5-7B) di
+     lavorare su dataset grandi, ma non risolve i problemi di
+     accuratezza nelle somme multiple.
+
+  4. Per un'analisi di fairness causale seria, FairMind (o un approccio
+     basato su modelli causali formali) è indispensabile. Un LLM può
+     al massimo fungere da assistente per verifiche rapide o esplorazioni
+     preliminari.
+
+11.4 Lavoro futuro
+------------------
+  - Testare LLM più grandi (70B) per vedere se l'accuratezza migliora
+    sulle aggregazioni multi-variabile
+  - Fornire al LLM tabelle ancora più aggregate (es. pre-calcolare
+    i singoli termini della somma) per ridurre il carico computazionale
+  - Testare sul dataset Student-Mat e altri dataset per generalizzare
+    i risultati
+  - Esplorare tecniche di chain-of-thought più strutturate per guidare
+    il calcolo del LLM passo-passo
+
+================================================================================
+ FINE DEL DOCUMENTO
+================================================================================
