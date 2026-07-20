@@ -10,21 +10,24 @@ From: python:3.11-slim
         git build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-    # pgmpy pinnato alla stessa versione del .venv locale (1.0.0): versioni
-    # piu' recenti hanno cambiato la firma di DiscreteBayesianNetwork.fit()
-    # e rompono la chiamata con estimator_instance=(BayesianEstimator,
-    # {"prior_type": "BDeu"}) usata in tutto il codice (src/model.py).
+    # Versioni pinnate identiche al .venv locale testato: pacchetti non
+    # pinnati scaricano l'ultima release da PyPI, che ha gia' rotto due
+    # volte il codice (pgmpy: firma di .fit() cambiata; pandas: dtype
+    # stringa di default cambiato, pgmpy 1.0.0 non lo riconosce e fallisce
+    # con "Couldn't infer datatype of column"). jupyterlab/ipywidgets
+    # restano senza pin: non sono nel path di calcolo, solo per l'uso
+    # interattivo di Jupyter.
     pip install --no-cache-dir \
         jupyterlab \
-        pandas \
+        pandas==2.3.3 \
         pgmpy==1.0.0 \
-        networkx \
-        loguru \
-        openai \
-        matplotlib \
-        plotly \
-        daft-pgm \
-        tqdm ipywidgets
+        networkx==3.6.1 \
+        loguru==0.7.3 \
+        openai==2.26.0 \
+        matplotlib==3.10.8 \
+        plotly==6.6.0 \
+        daft-pgm==0.1.4 \
+        tqdm==4.67.3 ipywidgets
 
 %help
     Ambiente per lanciare i notebook di benchmark su Thor.
