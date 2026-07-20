@@ -165,6 +165,13 @@ COSE GIA' SISTEMATE (non serve piu' pensarci)
   ("squeue: error: Invalid user: marco.soldani") anche se l'utente e'
   valido, facendo fallire lo script con un falso "nessun server trovato"
   anche quando il server e' attivo. Ora si cerca solo per nome del job.
+- apptainer exec (nell'esecuzione del notebook) aggiunto --no-home: per
+  lo stesso motivo NSS/LDAP, apptainer falliva con "Couldn't determine
+  user account information" prima ancora di entrare nel container. In
+  piu' lo script non controllava l'exit code di questo comando: il job
+  finiva con ExitCode 0:0 ("Benchmark completato") anche se il notebook
+  non era mai stato eseguito e nessun file di output era stato creato.
+  Ora, se apptainer/jupyter falliscono, il job termina con errore vero.
 - llama_server.sbatch nel repo ora rispecchia esattamente lo script
   realmente usato su Thor (partition gpu, modello 14B, container
   llama_server_gpu.sif, --time 14 giorni) — prima il file nel repo

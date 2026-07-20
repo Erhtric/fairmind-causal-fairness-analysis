@@ -42,7 +42,11 @@ export LLAMA_PORT=$PORT
 
 echo "=== Esecuzione notebook multimodal ==="
 cd $NOTEBOOK_DIR
-apptainer exec \
+# --no-home: evita che apptainer provi a risolvere l'utente host per
+# bindare automaticamente la home (fallisce con "Couldn't determine
+# user account information" per lo stesso motivo NSS/LDAP di squeue).
+# La home ci serve comunque gia' bindata esplicitamente sotto.
+apptainer exec --no-home \
     -B $SCRATCH:/scratch \
     -B /home/marco.soldani:/home/marco.soldani \
     --env LLAMA_HOST=$LLAMA_HOST \
@@ -51,6 +55,11 @@ apptainer exec \
     jupyter nbconvert --to notebook --execute \
         --output multimodal_output_${SLURM_JOB_ID}.ipynb \
         3_causal_analysis_pipeline.ipynb
+
+if [ $? -ne 0 ]; then
+    echo "ERRORE: esecuzione del notebook fallita (vedi output sopra)."
+    exit 1
+fi
 
 echo "=== Benchmark completato ==="
 echo "Output: $NOTEBOOK_DIR/multimodal_output_${SLURM_JOB_ID}.ipynb"
