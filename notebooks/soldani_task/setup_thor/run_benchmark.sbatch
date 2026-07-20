@@ -25,7 +25,10 @@ fi
 # vedi slurm/llama_server_gpu.sbatch su scratch). Evita di dover chiedere
 # una seconda GPU, che manderebbe il job in PENDING a tempo indefinito.
 echo "=== Cerco un job llama_server_gpu gia' in esecuzione ==="
-LLAMA_HOST=$(squeue -u "$USER" --name=llama_server_gpu --states=RUNNING -h -o "%N" | head -1)
+# Niente "-u $USER": dentro un job batch la risoluzione dell'utente via
+# NSS/LDAP a volte fallisce ("squeue: error: Invalid user: ...") anche
+# se l'utente e' valido. Il nome del job basta a identificarlo.
+LLAMA_HOST=$(squeue --name=llama_server_gpu --states=RUNNING -h -o "%N" | head -1)
 
 if [ -z "$LLAMA_HOST" ]; then
     echo "ERRORE: nessun job 'llama_server_gpu' in stato RUNNING trovato."

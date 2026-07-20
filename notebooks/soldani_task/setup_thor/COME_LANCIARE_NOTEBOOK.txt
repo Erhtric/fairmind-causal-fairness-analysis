@@ -160,6 +160,11 @@ COSE GIA' SISTEMATE (non serve piu' pensarci)
 - run_benchmark.sbatch / run_multimodal.sbatch non chiedono piu' una
   GPU propria: riusano il server gia' attivo (nome job corretto:
   llama_server_gpu), niente piu' PENDING per contesa GPU.
+- La ricerca del server con squeue non usa piu' "-u $USER": dentro un
+  job batch la risoluzione dell'utente via NSS/LDAP a volte fallisce
+  ("squeue: error: Invalid user: marco.soldani") anche se l'utente e'
+  valido, facendo fallire lo script con un falso "nessun server trovato"
+  anche quando il server e' attivo. Ora si cerca solo per nome del job.
 - llama_server.sbatch nel repo ora rispecchia esattamente lo script
   realmente usato su Thor (partition gpu, modello 14B, container
   llama_server_gpu.sif, --time 14 giorni) — prima il file nel repo
