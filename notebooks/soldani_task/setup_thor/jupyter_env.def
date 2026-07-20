@@ -10,10 +10,14 @@ From: python:3.11-slim
         git build-essential && \
     rm -rf /var/lib/apt/lists/*
 
+    # pgmpy pinnato alla stessa versione del .venv locale (1.0.0): versioni
+    # piu' recenti hanno cambiato la firma di DiscreteBayesianNetwork.fit()
+    # e rompono la chiamata con estimator_instance=(BayesianEstimator,
+    # {"prior_type": "BDeu"}) usata in tutto il codice (src/model.py).
     pip install --no-cache-dir \
         jupyterlab \
         pandas \
-        pgmpy \
+        pgmpy==1.0.0 \
         networkx \
         loguru \
         openai \
