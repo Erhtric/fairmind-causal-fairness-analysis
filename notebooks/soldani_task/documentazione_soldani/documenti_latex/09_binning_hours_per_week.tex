@@ -1,0 +1,24 @@
+\section{L'incongruenza nella discretizzazione di \texttt{hours-per-week}}
+\label{sec:binning}
+
+Il passaggio alle tabelle pre-aggregate descritto in \S\ref{sec:limiti} (commit \texttt{b3ee1f3}, 11 luglio) introduce, insieme al miglioramento di stabilità, un'incongruenza metodologica rimasta poi presente per nove giorni, fino al 20 luglio. La funzione che costruisce il prompt per il LLM discretizza la variabile mediatrice \texttt{hours-per-week} in cinque fasce (\texttt{<=20}, \texttt{21-35}, \texttt{36-45}, \texttt{46-60}, \texttt{>60}) prima di calcolare le tabelle di probabilità; la funzione \texttt{run\_fairmind()}, che calcola il ground truth, continua invece a utilizzare la stessa colonna nella sua forma continua originale. I due metodi confrontati non stavano quindi osservando la stessa rappresentazione della variabile: per gli effetti che non coinvolgono il mediatore (TV, TE, SE) questo è ininfluente, ma per DE e IE --- gli unici due effetti definiti in funzione di $W$ --- il confronto tra FairMind e LLM era, in questo intervallo, condotto su basi non omogenee.
+
+La stessa incongruenza si ripresenta, in forma più marcata, nella pipeline multimodale \texttt{3\_causal\_analysis\_pipeline.ipynb} (introdotta nel commit \texttt{dd1c720}, 20 luglio, \S\ref{sec:thor}): qui la struttura del grafo causale viene appresa (fase di \emph{causal discovery}) su un dataset in cui \texttt{hours-per-week} è già stato discretizzato, ma il successivo fitting del modello bayesiano sul grafo appreso veniva eseguito sui dati grezzi non discretizzati --- un disallineamento più grave di quello nel notebook singolo, perché non solo numerico ma strutturale (il modello viene fittato assumendo implicitamente stati diversi da quelli su cui la struttura è stata appresa).
+
+Il problema è stato identificato e corretto lo stesso giorno (commit \texttt{40e1fbd}, 20 luglio, 18:16), applicando la stessa discretizzazione a cinque fasce anche a monte del calcolo FairMind, in entrambi i notebook. L'effetto della correzione sui valori di ground truth è piccolo ma misurabile, e limitato ai soli effetti che dipendono dal mediatore:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Effetto & FairMind (prima della correzione) & FairMind (dopo la correzione) \\
+\midrule
+TV & 0.194470 & 0.194470 \\
+TE & 0.183161 & 0.183161 \\
+SE & -0.007296 & -0.007296 \\
+DE & 0.137049 & 0.137359 \\
+IE & -0.046112 & -0.045803 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Questa correzione precede immediatamente, nella stessa giornata di lavoro, il confronto finale tra FairMind e LLM descritto nella sezione seguente, che utilizza quindi valori di ground truth metodologicamente consistenti con il prompt fornito al modello.

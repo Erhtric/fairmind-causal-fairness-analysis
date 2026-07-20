@@ -1,0 +1,20 @@
+\section{Evoluzione del progetto attraverso i branch}
+\label{sec:branch}
+
+Il lavoro di tesi è organizzato in tre branch \texttt{feature/}, ciascuno integrato in \texttt{main} tramite Pull Request (le prime due) oppure ancora aperto (la terza):
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Branch & Contenuto & Integrazione \\
+\midrule
+\texttt{feature/01-first-task} & EDA Adult (\S\ref{sec:eda}) & PR \#12, merge \texttt{6e32898} (21/06) \\
+\texttt{feature/02-pipeline-benchmark} & Pipeline FairMind vs GPT (\S\ref{sec:openai}--\ref{sec:effort}) & PR \#13, merge \texttt{88d1554} (30/06) \\
+\texttt{feature/03-thor} & Configurazione Thor, pipeline multimodale, debug infrastruttura & ancora aperto \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Le prime due Pull Request vengono aperte e integrate lo stesso giorno in cui il lavoro viene completato (21 e 30 giugno rispettivamente), a indicare cicli di lavoro brevi e autocontenuti, ciascuno corrispondente a un obiettivo preciso (EDA, poi prima pipeline di confronto). Il terzo branch, \texttt{feature/03-thor}, si comporta diversamente: apre il 10 luglio con il primo tentativo di configurazione del cluster HPC e resta aperto per l'intera durata del lavoro successivo, accumulando --- senza ulteriori merge intermedi --- sia lo sviluppo della pipeline multimodale (\S\ref{sec:limiti}) sia, un mese dopo, l'intera sessione di debug dell'infrastruttura Thor (\S\ref{sec:thor}). Questo riflette la natura più esplorativa e iterativa di questa fase rispetto alle prime due: l'integrazione con un cluster HPC condiviso e l'estensione della pipeline non si prestavano a essere scomposte in task brevi e chiudibili in giornata.
+
+Non è possibile stabilire dal repository se il branch \texttt{feature/03-thor} sia stato pensato fin dall'inizio come un unico contenitore per tutto questo lavoro, oppure se sia semplicemente rimasto aperto per la mancanza di un punto di chiusura naturale nel lavoro di infrastruttura.

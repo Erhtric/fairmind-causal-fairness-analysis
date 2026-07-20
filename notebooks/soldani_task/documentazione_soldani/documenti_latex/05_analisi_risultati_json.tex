@@ -1,0 +1,20 @@
+\section{Analisi dei primi risultati}
+\label{sec:analisi-json}
+
+Il file \texttt{adult\_20260621\_192807.json} (commit \texttt{0bf3213}) permette di ricostruire con precisione l'esito del primo confronto FairMind vs GPT (o3-mini, \emph{effort} alto, 300 righe campionate):
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+Effetto & FairMind & GPT (o3-mini) & Errore relativo \\
+\midrule
+TV & 0.194470 & 0.1812 & 6.82\% \\
+TE & 0.183161 & 0.2110 & 15.20\% \\
+SE & -0.007296 & -0.0298 & 308.44\% \\
+DE & 0.137049 & 0.1410 & 2.88\% \\
+IE & -0.046112 & 0.0700 & 251.80\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Due osservazioni emergono già da questo primo esperimento e si riveleranno ricorrenti in tutta la tesi. Primo, l'errore su SE è enorme in termini relativi (308\%) nonostante l'errore assoluto sia piccolo (0.022): essendo SE una differenza tra due quantità simili (TV e TE), il suo valore vero è prossimo allo zero e qualunque imprecisione viene amplificata nella percentuale --- un pattern che ricompare identico nell'esperimento finale (\S\ref{sec:confronto-finale}). Secondo, il costo computazionale è già considerevole per un campione di sole 300 righe: il campo \texttt{token\_usage} del JSON riporta 3662 token di input ma ben 98\,391 di output, di cui 49\,152 di \emph{reasoning}, per un tempo di risposta di 265 secondi contro gli 0.0155 secondi di FairMind. Questo squilibrio tra costo e accuratezza --- particolarmente su IE, qui errato del 251.8\%, mentre nell'esperimento finale con le tabelle pre-aggregate risulterà tra i più accurati (\S\ref{sec:confronto-finale}) --- anticipa la questione che verrà affrontata esplicitamente nelle fasi successive: se aumentare lo sforzo di ragionamento del modello migliori l'accuratezza (\S\ref{sec:effort}), e se il formato dei dati forniti al modello sia il vero fattore limitante (\S\ref{sec:limiti}).

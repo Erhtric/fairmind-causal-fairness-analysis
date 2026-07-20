@@ -1,0 +1,8 @@
+\section{Primi esperimenti con i modelli OpenAI}
+\label{sec:openai}
+
+Il commit \texttt{0bf3213} (21 giugno 2026, 19:35, \emph{``ADDED: e2e pipeline that given a dataset calculates the effects both manually and by using GPT and compares the result into a JSON file''}) introduce \texttt{2\_benchmark.ipynb}, la prima pipeline end-to-end del progetto: calcola i cinque effetti causali con FairMind e, separatamente, li fa calcolare a un modello OpenAI, confrontando i due risultati in un file JSON. Il client è istanziato come \texttt{OpenAI()} senza chiave esplicita nel codice, delegando la lettura della API key alla variabile d'ambiente standard del SDK (\texttt{OPENAI\_API\_KEY}) --- coerente con l'utilizzo di una chiave fornita dal docente e mai committata nel repository (il file \texttt{.env} è infatti presente in \texttt{.gitignore} fin dalle prime versioni).
+
+Il modello utilizzato è \texttt{o3-mini}, interrogato tramite l'endpoint \texttt{responses.create()} con \texttt{reasoning.effort="high"} hardcoded. Il prompt include un campione di 300 righe del dataset (parametro \texttt{n\_rows=300}, campionate con \texttt{random\_state=42} per riproducibilità) in formato CSV grezzo, insieme alle formule di identificazione dei cinque effetti.
+
+Il primo file di risultati salvato, \texttt{benchmark\_results/adult\_20260621\_192807.json}, documenta il primo confronto quantitativo tra FairMind e un LLM del progetto (analizzato in dettaglio in \S\ref{sec:analisi-json}). Da qui in avanti, ogni run del notebook produrrà un file JSON analogo, costituendo una traccia sperimentale continua che accompagna tutta l'evoluzione successiva della tesi.

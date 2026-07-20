@@ -1,0 +1,54 @@
+\section{20 luglio 2026 --- Debug ambiente Thor e correzione del binning di \texttt{hours-per-week}}
+
+\paragraph{Contesto.}
+Obiettivo: rendere eseguibile end-to-end sul cluster HPC Thor (SUPSI) la pipeline di benchmark che confronta i cinque effetti causali del framework di Ple\v{c}ko e Bareinboim (TV, TE, SE, DE, IE) calcolati da FairMind (ground truth) con quelli prodotti da un LLM (Qwen2.5-7B, servito localmente via \texttt{llama.cpp}) a partire da tabelle di probabilit\`a condizionale pre-aggregate. L'esecuzione automatica dei notebook su Thor (tramite job \texttt{sbatch}) non era mai stata verificata con successo fino a oggi.
+
+\paragraph{Problemi di infrastruttura individuati e risolti.}
+La causa dei fallimenti ripetuti si \`e rivelata una catena di problemi indipendenti, sia nel codice del progetto sia nella configurazione del cluster:
+\begin{itemize}
+  \item \textbf{Nome del job non corrispondente:} gli script di lancio cercavano un job chiamato \texttt{llama\_server}, mentre quello realmente in esecuzione (server LLM persistente, attivo da 9 giorni) si chiama \texttt{llama\_server\_gpu}.
+  \item \textbf{Permessi di partition:} il primo tentativo di sottomissione richiedeva la partition GPU \texttt{gpuISIN}, per cui l'utente non ha i permessi (\texttt{groups\_allowed: GR\_SUPSI\_HPC\_ISIN}), causando un job bloccato indefinitamente in stato \texttt{PENDING}.
+  \item \textbf{Risoluzione utente (NSS/LDAP) rotta sui nodi \texttt{compute}:} all'interno di un job batch lanciato sulla partition \texttt{compute}, comandi come \texttt{squeue -u \$USER}, \texttt{whoami} e \texttt{apptainer exec} fallivano con errori quali \texttt{Invalid user} e \texttt{Couldn't determine user account information}, pur trattandosi di un utente di dominio valido. Diagnosticato con un job di test dedicato: il problema \`e specifico dei nodi della partition \texttt{compute} e non si presenta sulla partition \texttt{gpu}. Soluzione adottata: gli script di esecuzione notebook girano ora su partition \texttt{gpu} senza richiedere risorse GPU (\texttt{--gres} omesso), evitando sia il problema NSS sia un consumo di GPU non necessario.
+  \item \textbf{Falso successo dei job:} gli script non controllavano il codice di uscita del comando \texttt{apptainer exec}; un fallimento silenzioso veniva riportato come job \texttt{COMPLETED} anche quando il notebook non era mai stato eseguito.
+  \item \textbf{File container non validi o incompleti:} un file \texttt{.def} conteneva un typo che ne impediva la build (\texttt{pip install --no-cache-cdir}, opzione inesistente), un altro era stato incollato accidentalmente dentro un blocco heredoc di shell e non era sintatticamente valido; mancavano inoltre alcune dipendenze Python richieste dal notebook della pipeline multimodale (\texttt{plotly}, \texttt{daft-pgm}).
+  \item \textbf{Versioni delle librerie non fissate:} l'immagine container installava \texttt{pgmpy} e \texttt{pandas} senza vincolo di versione, scaricando release pi\`u recenti di quelle testate in locale. Questo ha causato due errori distinti: un cambio nella firma di \texttt{DiscreteBayesianNetwork.fit()} (pgmpy) e un cambio nel tipo di dato di default per le colonne stringa che \texttt{pgmpy} non riusciva pi\`u a inferire correttamente (pandas). Risolto fissando tutte le versioni delle dipendenze a quelle gi\`a validate nell'ambiente di sviluppo locale.
+\end{itemize}
+Al termine della sessione, il job automatico (\texttt{sbatch run\_benchmark.sbatch}) ha completato con successo l'intera pipeline in circa 44 secondi, producendo il notebook eseguito con i risultati.
+
+\paragraph{Correzione della discretizzazione di \texttt{hours-per-week}.}
+\`E stata inoltre individuata un'incoerenza metodologica indipendente dai problemi di infrastruttura: il calcolo del ground truth FairMind (funzione \texttt{run\_fairmind}) utilizzava la variabile mediatrice \texttt{hours-per-week} nella sua forma continua originale, mentre il prompt inviato al LLM la riceveva gi\`a discretizzata in cinque fasce (\texttt{<=20}, \texttt{21-35}, \texttt{36-45}, \texttt{46-60}, \texttt{>60}). I due metodi confrontavano quindi effetti calcolati su rappresentazioni diverse della stessa variabile, rendendo il confronto per gli effetti diretto (DE) e indiretto (IE) --- gli unici che dipendono dal mediatore --- non pienamente valido. Corretto applicando la stessa discretizzazione a monte del calcolo FairMind, sia nel notebook di benchmark singolo sia nella pipeline con causal discovery (dove lo stesso disallineamento era presente anche tra il grafo causale appreso, costruito su dati gi\`a discretizzati, e il fitting del modello bayesiano, eseguito erroneamente sui dati grezzi).
+
+\paragraph{Impatto sui risultati.}
+Come atteso, TV, TE e SE restano invariati (non dipendono dal mediatore); DE e IE cambiano leggermente:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Effetto & FairMind (prima del fix) & FairMind (dopo il fix) \\
+\midrule
+TV & 0.194470 & 0.194470 \\
+TE & 0.183161 & 0.183161 \\
+SE & -0.007296 & -0.007296 \\
+DE & 0.137049 & 0.137359 \\
+IE & -0.046112 & -0.045803 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Di conseguenza, l'errore relativo del LLM rispetto al ground truth corretto (LLM invariato, in quanto la sua discretizzazione era gi\`a corretta) risulta:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Effetto & Errore relativo (report precedente) & Errore relativo (aggiornato) \\
+\midrule
+TV & 0.02\% & 0.02\% \\
+TE & 26.21\% & 26.21\% \\
+SE & 402.56\% & 402.56\% \\
+DE & 39.32\% & 39.45\% \\
+IE & 1.93\% & 2.61\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Le conclusioni qualitative del confronto restano invariate: il LLM approssima molto bene TV e IE, in modo mediocre TE e DE, e in modo inaffidabile SE (il cui valore assoluto ridotto amplifica l'errore relativo). I valori numerici precisi di DE e IE riportati in precedenza vanno per\`o considerati superati e sostituiti con quelli sopra, in quanto calcolati su un confronto metodologicamente non allineato.
