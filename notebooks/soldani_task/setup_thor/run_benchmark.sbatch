@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=fairmind_benchmark
-#SBATCH --partition=gpuISIN
-#SBATCH --gres=gpu:1
+#SBATCH --partition=compute
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=02:00:00
@@ -10,63 +9,40 @@
 
 # === CONFIGURAZIONE ===
 SCRATCH=/mnt/beegfs/scratch/marco.soldani/causal_fairness
-SERVER_SIF=$SCRATCH/llama_server.sif
-JUPYTER_SIF=$SCRATCH/jupyter_env.sif
-MODEL=$SCRATCH/models/Qwen2.5-7B-Instruct-Q4_K_M.gguf
+JUPYTER_SIF=$SCRATCH/containers/jupyter_env.sif
 PORT=8080
 NOTEBOOK_DIR=/home/marco.soldani/causal_fairness/notebooks/soldani_task
-LLAMA_SERVER_PID=0
 
-cleanup() {
-    echo "=== Cleanup: fermo llama-server (PID=$LLAMA_SERVER_PID) ==="
-    if [ $LLAMA_SERVER_PID -ne 0 ]; then
-        kill $LLAMA_SERVER_PID 2>/dev/null || true
-        wait $LLAMA_SERVER_PID 2>/dev/null || true
-    fi
-    echo "=== Cleanup completato ==="
-}
-trap cleanup EXIT
+if [ ! -f "$JUPYTER_SIF" ]; then
+    echo "ERRORE: $JUPYTER_SIF non esiste ancora."
+    echo "Costruiscilo una tantum (il .def e' nel repo git, in home) con:"
+    echo "  apptainer build $JUPYTER_SIF /home/marco.soldani/causal_fairness/notebooks/soldani_task/setup_thor/jupyter_env.def"
+    exit 1
+fi
 
-echo "=== Avvio llama-server in background ==="
-srun apptainer exec --nv \
-    -B $SCRATCH:/scratch \
-    $SERVER_SIF \
-    llama-server \
-        --model /scratch/models/Qwen2.5-7B-Instruct-Q4_K_M.gguf \
-        --host 0.0.0.0 \
-        --port $PORT \
-        --ctx-size 32768 \
-        --n-predict 1024 \
-        --threads 8 \
-        --n-gpu-layers 999 &
-LLAMA_SERVER_PID=$!
+# Questo job NON avvia un llama-server proprio: riusa quello persistente
+# gia' lanciato con `sbatch llama_server.sbatch` (job-name=llama_server_gpu,
+# vedi slurm/llama_server_gpu.sbatch su scratch). Evita di dover chiedere
+# una seconda GPU, che manderebbe il job in PENDING a tempo indefinito.
+echo "=== Cerco un job llama_server_gpu gia' in esecuzione ==="
+LLAMA_HOST=$(squeue -u "$USER" --name=llama_server_gpu --states=RUNNING -h -o "%N" | head -1)
 
-NODE=$(hostname)
-echo "llama-server in avvio su $NODE:$PORT (PID=$LLAMA_SERVER_PID)"
+if [ -z "$LLAMA_HOST" ]; then
+    echo "ERRORE: nessun job 'llama_server_gpu' in stato RUNNING trovato."
+    echo "Avvia prima il server persistente con: sbatch llama_server.sbatch"
+    exit 1
+fi
 
-echo "=== Attendo che llama-server sia pronto ==="
-for i in $(seq 1 60); do
-    if curl -s http://localhost:$PORT/v1/models > /dev/null 2>&1; then
-        echo "llama-server pronto dopo ${i}s"
-        break
-    fi
-    if ! kill -0 $LLAMA_SERVER_PID 2>/dev/null; then
-        echo "ERRORE: llama-server si e' arrestato durante l'avvio"
-        exit 1
-    fi
-    sleep 2
-done
-
-export LLAMA_HOST=$NODE
+echo "llama-server trovato su $LLAMA_HOST:$PORT"
+export LLAMA_HOST
 export LLAMA_PORT=$PORT
-export LLAMA_ENDPOINT="http://${NODE}:${PORT}/v1"
 
 echo "=== Esecuzione notebook benchmark ==="
 cd $NOTEBOOK_DIR
 apptainer exec \
     -B $SCRATCH:/scratch \
     -B /home/marco.soldani:/home/marco.soldani \
-    --env LLAMA_HOST=$NODE \
+    --env LLAMA_HOST=$LLAMA_HOST \
     --env LLAMA_PORT=$PORT \
     $JUPYTER_SIF \
     jupyter nbconvert --to notebook --execute \

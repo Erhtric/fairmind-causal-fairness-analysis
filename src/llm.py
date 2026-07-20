@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any
 import json
+import os
 import re
 import time
 import pandas as pd
@@ -235,7 +236,7 @@ LLM_CONFIGS = [
     {
         "name": "Qwen2.5-7B",
         "model": "qwen2.5-7b-instruct",
-        "base_url": "http://localhost:8080/v1",
+        "base_url": f"http://{os.environ.get('LLAMA_HOST', 'localhost')}:{os.environ.get('LLAMA_PORT', '8080')}/v1",
         "api_key": "not-needed",
     },
 ]

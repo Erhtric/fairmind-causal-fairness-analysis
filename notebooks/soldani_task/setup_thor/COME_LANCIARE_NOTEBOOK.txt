@@ -1,0 +1,206 @@
+=======================================================================
+COME FAR GIRARE UN NOTEBOOK SU THOR — GUIDA RAPIDA
+(aggiornata il 20/07/2026 dopo verifica diretta della struttura reale
+ su Thor — vedi note in fondo su cosa NON corrispondeva a quanto
+ documentato prima)
+=======================================================================
+
+DOVE STA COSA (verificato via ssh, non per assunzione)
+-----------------------------------------------------
+- /home/marco.soldani/causal_fairness/
+    Il repo git clonato (branch feature/03-thor). Codice (src/,
+    src_soldani/), notebook (notebooks/soldani_task/), script sbatch
+    (notebooks/soldani_task/setup_thor/). File piccoli, va in git.
+
+- /mnt/beegfs/scratch/marco.soldani/causal_fairness/
+    File pesanti, NON backuppato, transiente:
+      containers/llama_server_gpu.sif   <- container GPU (llama.cpp+CUDA)
+      containers/jupyter_env.sif        <- NON ANCORA COSTRUITO (vedi sotto)
+      models/Qwen2.5-14B-Instruct-Q4_K_M.gguf
+      slurm/llama_server_gpu.sbatch     <- script usato per il job attivo
+
+IMPORTANTE: lo script slurm/llama_server_gpu.sbatch su scratch e' quello
+REALMENTE usato per lanciare il server che gira da giorni (job 44263).
+E' stato riportato dentro al repo come setup_thor/llama_server.sbatch
+il 20/07/2026 — PRIMA non era tracciato da git da nessuna parte. Se lo
+modifichi di nuovo a mano su Thor, ricordati di copiare le modifiche
+anche nel repo, altrimenti la prossima volta che pulisci scratch lo perdi.
+
+Il modello in uso e' Qwen2.5-14B e il job name e' "llama_server_gpu".
+
+=======================================================================
+PASSO 0 — Solo la primissima volta: costruisci jupyter_env.sif
+=======================================================================
+Questo container non esiste ancora su scratch — serve per eseguire i
+notebook via nbconvert (run_benchmark.sbatch / run_multimodal.sbatch).
+Il .def e' gia' nel repo.
+
+    ssh marco.soldani@thor.supsi.ch
+    mkdir -p /mnt/beegfs/scratch/marco.soldani/causal_fairness/containers
+    apptainer build \
+        /mnt/beegfs/scratch/marco.soldani/causal_fairness/containers/jupyter_env.sif \
+        /home/marco.soldani/causal_fairness/notebooks/soldani_task/setup_thor/jupyter_env.def
+
+Ci vogliono alcuni minuti. Vale la pena farlo dal login node (hnode01)
+visto che jupyter_env.def non compila nulla di pesante (a differenza di
+llama_server.def che compila llama.cpp — quello meglio su un nodo compute
+o accettare i tempi lunghi sul login node).
+
+=======================================================================
+PASSO 1 — Controlla se il server LLM e' gia' attivo
+=======================================================================
+
+    ssh marco.soldani@thor.supsi.ch
+    squeue -u $USER --name=llama_server_gpu
+
+- Se vedi un job in stato R (RUNNING) -> il server e' gia' su, vai al
+  PASSO 3 (non serve rilanciarlo).
+- Se non vedi nulla, o e' in stato PD/CD/F -> vai al PASSO 2.
+
+=======================================================================
+PASSO 2 — Avvia il server LLM (solo se non e' gia' attivo)
+=======================================================================
+
+    cd /home/marco.soldani/causal_fairness/notebooks/soldani_task/setup_thor
+    sbatch llama_server.sbatch
+    squeue -u $USER          # prendi nota del JOBID
+
+Aspetta che passi a stato R, poi verifica che sia pronto (i file di log
+vengono scritti nella directory da cui lanci sbatch):
+
+    cat llama_server_gpu_<JOBID>.out       # riga "Job in esecuzione su: ..."
+    tail -f llama_server_gpu_<JOBID>.err   # aspetta che il server risponda
+
+=======================================================================
+PASSO 3 — Scegli come eseguire il notebook
+=======================================================================
+
+--- OPZIONE A: automatico via sbatch (consigliato per run "pulite") ---
+
+    cd /home/marco.soldani/causal_fairness/notebooks/soldani_task/setup_thor
+    sbatch run_benchmark.sbatch      # per 2_3_benchmark_thor.ipynb
+    # oppure
+    sbatch run_multimodal.sbatch     # per 3_causal_analysis_pipeline.ipynb
+
+    squeue -u $USER      # controlla che vada in R quasi subito (partition
+                          # compute, niente attesa per una GPU: questi job
+                          # non ne chiedono una propria, si agganciano al
+                          # server gia' attivo trovato via squeue)
+
+Se lo script stampa:
+    "ERRORE: nessun job 'llama_server_gpu' in stato RUNNING trovato."
+significa che hai saltato il PASSO 1/2 — torna li'.
+
+Se stampa:
+    "ERRORE: .../containers/jupyter_env.sif non esiste ancora."
+torna al PASSO 0.
+
+Output: benchmark_output_<JOBID>.ipynb (o multimodal_output_<JOBID>.ipynb)
+dentro notebooks/soldani_task/, con tutte le celle gia' eseguite.
+
+--- OPZIONE B: interattivo via Jupyter (consigliato per debug) ---
+
+Terminale 1 (su Thor):
+
+    srun --partition=compute --cpus-per-task=4 --mem=16G --time=04:00:00 --pty bash
+    cd /home/marco.soldani/causal_fairness/notebooks/soldani_task
+    apptainer exec \
+        /mnt/beegfs/scratch/marco.soldani/causal_fairness/containers/jupyter_env.sif \
+        jupyter lab --no-browser --ip=0.0.0.0 --port=8888
+    # annota il nodo assegnato (es. cnode02) e il token stampato
+
+Terminale 2 (sul tuo Mac):
+
+    ssh -L 8888:cnode02:8888 marco.soldani@thor.supsi.ch
+
+Poi apri http://localhost:8888 nel browser e incolla il token.
+
+Nel notebook, PRIMA di eseguire le celle, imposta l'host del server LLM
+(quello annotato al PASSO 1/2, oppure guarda `squeue -u $USER` colonna
+NODELIST del job llama_server_gpu — es. gnode04):
+
+    import os
+    os.environ["LLAMA_HOST"] = "gnode04"
+    os.environ["LLAMA_PORT"] = "8080"
+
+I notebook (2_3_benchmark_thor.ipynb e 3_causal_analysis_pipeline.ipynb)
+leggono automaticamente queste variabili — non serve altro.
+
+=======================================================================
+PASSO 4 — Monitoraggio e pulizia
+=======================================================================
+
+    squeue -u $USER                          # stato di tutti i job
+    scontrol show job <jobid>                # dettagli/motivo di un PENDING
+    sacct -j <jobid> --format=JobID,State,Elapsed,MaxRSS
+    scancel <jobid>                          # cancella un job
+
+Quando hai finito per la giornata:
+    - Il server LLM (llama_server_gpu) puoi lasciarlo acceso se ti serve
+      ancora nei prossimi giorni (occupa 1 GPU sulla partition gpu
+      finche' vivo, fino a 14 giorni per via del --time).
+    - Cancellalo con `scancel <jobid>` solo quando non ti serve piu',
+      cosi' liberi la GPU per altri utenti dell'istituto.
+    - I job Jupyter interattivi (srun --pty) muoiono quando fai `exit`
+      dal terminale.
+
+=======================================================================
+NOTA — file trovati su scratch NON allineati col repo
+=======================================================================
+- notebooks/2_3_benchmark_thor.ipynb dentro scratch/causal_fairness/
+  e' una copia isolata, probabilmente residuo di test manuali. Quella
+  autorevole (usata da run_benchmark.sbatch) e' quella nel repo git:
+  /home/marco.soldani/causal_fairness/notebooks/soldani_task/. Puoi
+  cancellare la copia su scratch se non ti serve piu' per confronto.
+
+=======================================================================
+COSE GIA' SISTEMATE (non serve piu' pensarci)
+=======================================================================
+
+- run_benchmark.sbatch / run_multimodal.sbatch non chiedono piu' una
+  GPU propria: riusano il server gia' attivo (nome job corretto:
+  llama_server_gpu), niente piu' PENDING per contesa GPU.
+- llama_server.sbatch nel repo ora rispecchia esattamente lo script
+  realmente usato su Thor (partition gpu, modello 14B, container
+  llama_server_gpu.sif, --time 14 giorni) — prima il file nel repo
+  descriveva una configurazione mai usata davvero (gpuISIN, modello 7B).
+- llama_server.def era incollato dentro un heredoc bash (`cat > ... <<
+  EOF`) e non era un .def valido per apptainer build — ripulito e
+  riallineato al contenuto reale verificato su scratch (il symlink
+  libcuda.so.1 + i linker flags per lo stub CUDA, non solo LD_LIBRARY_PATH).
+- jupyter_env.def: `pip install --no-cache-cdir` era un typo (flag pip
+  inesistente, build avrebbe fallito subito) -> corretto in --no-cache-dir.
+  Mancavano anche plotly e daft-pgm: servono per src_soldani (report.py,
+  sankey.py) e src.visualisation.graph, importati da
+  3_causal_analysis_pipeline.ipynb -> senza, run_multimodal.sbatch
+  falliva sulla cella degli import. pgmpy invece trascina gia' da solo
+  numpy/scipy/scikit-learn/torch/pyro-ppl come dipendenze transitive:
+  la build di jupyter_env.sif scarica anche quelle (ci mette qualche
+  minuto in piu' della lista pip che si vede nel .def).
+- I notebook leggono LLAMA_HOST/LLAMA_PORT dall'ambiente in automatico
+  (fallback a localhost:8080 se non impostate) — stesso comportamento
+  in locale e su Thor.
+- Il binning di "hours-per-week" (5 fasce: <=20, 21-35, 36-45, 46-60,
+  >60) e' ora identico sia nel calcolo FairMind (ground truth) sia nel
+  prompt per il LLM sia nel grafo scoperto via causal discovery.
+- Rimosso codice morto (client OpenAI e MODEL_NAME inutilizzati) da
+  2_3_benchmark_thor.ipynb.
+
+=======================================================================
+TROUBLESHOOTING RAPIDO
+=======================================================================
+
+Job PENDING da un pezzo
+  -> scontrol show job <jobid> e guarda il campo "Reason". I job
+     automatici (compute, senza GPU) non dovrebbero piu' restare in
+     coda per mancanza di risorse GPU.
+
+"Connection error" nel notebook quando chiama il LLM
+  -> il server llama_server_gpu non e' attivo, o LLAMA_HOST punta al
+     nodo sbagliato. Rifai il PASSO 1 e ricontrolla l'hostname con
+     `squeue -u $USER` (colonna NODELIST).
+
+apptainer build fallisce con errori strani sulla prima/ultima riga
+  -> controlla che il file .def non contenga righe tipo `cat > ... <<
+     EOF` o `EOF` residue da un copia-incolla di terminale (era il bug
+     di llama_server.def, ora corretto).

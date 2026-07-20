@@ -10,7 +10,7 @@ From: python:3.11-slim
         git build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-    pip install --no-cache-cdir \
+    pip install --no-cache-dir \
         jupyterlab \
         pandas \
         pgmpy \
@@ -18,6 +18,8 @@ From: python:3.11-slim
         loguru \
         openai \
         matplotlib \
+        plotly \
+        daft-pgm \
         tqdm ipywidgets
 
 %help
@@ -30,4 +32,4 @@ From: python:3.11-slim
         apptainer exec jupyter_env.sif \
             jupyter nbconvert --to notebook --execute \
             --output benchmark_output.ipynb \
-            2_1_benchmark_thor.ipynb
+            2_3_benchmark_thor.ipynb
