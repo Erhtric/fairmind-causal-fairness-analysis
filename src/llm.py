@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import Any
 import json
+import re
+import time
 import pandas as pd
-from openai import BadRequestError
+from openai import OpenAI, BadRequestError
 
 
 # ONLY LLM, no results
@@ -223,3 +225,136 @@ Here are the fairness decomposition results in JSON:
     token_usage = resp.usage
 
     return text_part, latex_part, token_usage
+
+
+###############################################################################
+# Multi-model benchmark support
+###############################################################################
+
+LLM_CONFIGS = [
+    {
+        "name": "Qwen2.5-7B",
+        "model": "qwen2.5-7b-instruct",
+        "base_url": "http://localhost:8080/v1",
+        "api_key": "not-needed",
+    },
+]
+
+
+def register_llm(name: str, model: str, base_url: str, api_key: str = "not-needed"):
+    """Add an LLM to the benchmark list."""
+    for cfg in LLM_CONFIGS:
+        if cfg["name"] == name:
+            cfg.update(model=model, base_url=base_url, api_key=api_key)
+            return
+    LLM_CONFIGS.append({
+        "name": name,
+        "model": model,
+        "base_url": base_url,
+        "api_key": api_key,
+    })
+
+
+def clear_llm_configs():
+    LLM_CONFIGS.clear()
+
+
+def call_llm(prompt: str, config: dict | None = None) -> tuple[dict, dict, float]:
+    """Send a prompt to an LLM and parse the JSON result.
+
+    Parameters
+    ----------
+    prompt : str
+        The full prompt string.
+    config : dict or None
+        Must have keys: name, model, base_url, api_key.
+        If None, uses the first entry in LLM_CONFIGS.
+
+    Returns
+    -------
+    (effects, usage, elapsed_seconds)
+        effects : dict with keys TV, TE, SE, DE, IE
+        usage  : dict with input_tokens, output_tokens, total_tokens
+        elapsed: float
+    """
+    if config is None:
+        config = LLM_CONFIGS[0]
+
+    client = OpenAI(
+        base_url=config["base_url"],
+        api_key=config["api_key"],
+    )
+
+    start = time.perf_counter()
+    response = client.chat.completions.create(
+        model=config["model"],
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0,
+        max_tokens=4096,
+    )
+    elapsed = time.perf_counter() - start
+
+    usage = {
+        "input_tokens": response.usage.prompt_tokens,
+        "output_tokens": response.usage.completion_tokens,
+        "reasoning_tokens": None,
+        "total_tokens": response.usage.total_tokens,
+    }
+
+    raw = response.choices[0].message.content.strip()
+    candidates = re.findall(r"\{[^{}]*\}", raw, re.DOTALL)
+    required_keys = ["TV", "TE", "SE", "DE", "IE"]
+
+    json_str = None
+    for candidate in reversed(candidates):
+        if all(f'"{k}"' in candidate for k in required_keys):
+            json_str = candidate
+            break
+
+    if json_str is None:
+        raise ValueError(f"No valid JSON with all keys in model output:\n{raw}")
+
+    effects = json.loads(json_str)
+    return effects, usage, elapsed
+
+
+def benchmark_models(
+    prompt: str,
+    configs: list[dict] | None = None,
+) -> dict[str, dict]:
+    """Run the same prompt against multiple LLMs and collect results.
+
+    Parameters
+    ----------
+    prompt : str
+    configs : list of dict or None
+        Each must have: name, model, base_url, api_key.
+        Defaults to LLM_CONFIGS.
+
+    Returns
+    -------
+    {model_name: {"effects": {...}, "usage": {...}, "time": float}}
+    """
+    if configs is None:
+        configs = LLM_CONFIGS
+
+    results = {}
+    for cfg in configs:
+        print(f"  Calling {cfg['name']} ({cfg['model']}) ...", end=" ")
+        try:
+            effects, usage, elapsed = call_llm(prompt, cfg)
+            results[cfg["name"]] = {
+                "effects": effects,
+                "usage": usage,
+                "time": round(elapsed, 4),
+            }
+            print(f"OK  ({elapsed:.2f}s)")
+        except Exception as e:
+            print(f"FAILED: {e}")
+            results[cfg["name"]] = {
+                "effects": None,
+                "usage": None,
+                "time": None,
+                "error": str(e),
+            }
+    return results

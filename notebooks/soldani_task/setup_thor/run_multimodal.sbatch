@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=fairmind_benchmark
+#SBATCH --job-name=fairmind_multimodal
 #SBATCH --partition=gpuISIN
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --time=02:00:00
-#SBATCH --output=benchmark_%j.out
-#SBATCH --error=benchmark_%j.err
+#SBATCH --time=04:00:00
+#SBATCH --output=multimodal_%j.out
+#SBATCH --error=multimodal_%j.err
 
 # === CONFIGURAZIONE ===
 SCRATCH=/mnt/beegfs/scratch/marco.soldani/causal_fairness
@@ -36,7 +36,7 @@ srun apptainer exec --nv \
         --host 0.0.0.0 \
         --port $PORT \
         --ctx-size 32768 \
-        --n-predict 1024 \
+        --n-predict 2048 \
         --threads 8 \
         --n-gpu-layers 999 &
 LLAMA_SERVER_PID=$!
@@ -45,7 +45,7 @@ NODE=$(hostname)
 echo "llama-server in avvio su $NODE:$PORT (PID=$LLAMA_SERVER_PID)"
 
 echo "=== Attendo che llama-server sia pronto ==="
-for i in $(seq 1 60); do
+for i in $(seq 1 120); do
     if curl -s http://localhost:$PORT/v1/models > /dev/null 2>&1; then
         echo "llama-server pronto dopo ${i}s"
         break
@@ -60,8 +60,9 @@ done
 export LLAMA_HOST=$NODE
 export LLAMA_PORT=$PORT
 export LLAMA_ENDPOINT="http://${NODE}:${PORT}/v1"
+echo "LLM endpoint: $LLAMA_ENDPOINT"
 
-echo "=== Esecuzione notebook benchmark ==="
+echo "=== Esecuzione notebook multimodal ==="
 cd $NOTEBOOK_DIR
 apptainer exec \
     -B $SCRATCH:/scratch \
@@ -70,8 +71,8 @@ apptainer exec \
     --env LLAMA_PORT=$PORT \
     $JUPYTER_SIF \
     jupyter nbconvert --to notebook --execute \
-        --output benchmark_output_${SLURM_JOB_ID}.ipynb \
-        2_3_benchmark_thor.ipynb
+        --output multimodal_output_${SLURM_JOB_ID}.ipynb \
+        3_causal_analysis_pipeline.ipynb
 
 echo "=== Benchmark completato ==="
-echo "Output: $NOTEBOOK_DIR/benchmark_output_${SLURM_JOB_ID}.ipynb"
+echo "Output: $NOTEBOOK_DIR/multimodal_output_${SLURM_JOB_ID}.ipynb"

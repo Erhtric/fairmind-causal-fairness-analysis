@@ -23,7 +23,6 @@ results/
 
 # Generated docs / reports
 site/
-*.html
 
 # UV
 *.lock
@@ -32,11 +31,15 @@ site/
 .idea/
 .vscode/
 
+# Coverage reports
+.coverage
+htmlcov/
+.coverage.*
+coverage/
+
 # OS files
 .DS_Store
 Thumbs.db
 
 # Project-specific
 copilot_*
-
-.DS_Store

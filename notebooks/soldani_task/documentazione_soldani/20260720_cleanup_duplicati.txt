@@ -1,0 +1,85 @@
+================================================================================
+ 2026-07-20 — PULIZIA DUPLICATI E CENTRALIZZAZIONE CODICE
+================================================================================
+
+Data: 20 Luglio 2026
+Ora: 10:00 - 11:00
+Autore: Marco Soldani
+
+OBBIETTIVO
+----------
+Eliminare la duplicazione di codice tra src/ (libreria core del progetto)
+e src_soldani/ (modulo tesi).
+
+PROBLEMA RISCONTRATO
+--------------------
+Diverse funzioni erano duplicate in giro per il progetto:
+
+  1. graph_similarity()   in src/graph.py e src_soldani/discovery.py
+  2. learn_sfm()          in src/graph.py (locale uncommitted) — wrapper
+                          semplificato di discover_graph() in src_soldani
+  3. call_llm()           in 2_3_benchmark_thor.ipynb (locale) e
+                          src/llm.py (locale uncommitted) — quasi identiche
+  4. Vari import sparsi nei notebook che puntavano a src.graph
+     invece che a src_soldani per le funzioni di discovery
+
+AZIONI ESEGUITE
+---------------
+
+1. src/graph.py
+   - git restore del file (scartate modifiche locali uncommitted)
+   - Ora contiene solo le funzioni originali:
+       • filter_nodes_by_type(graph_or_nodes, **kwargs)
+       • build_sfm(...)
+
+2. src_soldani/discovery.py
+   - Revertita la modifica precedente (quella che importava
+     graph_similarity da src.graph)
+   - graph_similarity() — definita localmente, senza dipendenze da src
+   - learn_sfm(data, outcome_attr=None, ...) — aggiunta come wrapper
+     thin di discover_graph() per backward compatibility con i notebook
+     (accetta outcome_attr ma lo ignora, come faceva la versione originale
+     in src/graph.py)
+
+3. src_soldani/__init__.py
+   - Aggiunto learn_sfm agli export
+
+4. notebooks/soldani_task/3_causal_analysis_pipeline.ipynb
+   - Modificato import cella 2:
+       PRIMA:
+         from src.graph import build_sfm, learn_sfm, graph_similarity
+       DOPO:
+         from src.graph import build_sfm
+         from src_soldani import discover_graph, learn_sfm, graph_similarity
+
+5. notebooks/soldani_task/2_3_benchmark_thor.ipynb
+   - Sostituita la call_llm() locale (definita nella cella 6) con
+     import da src.llm:
+       PRIMA:  def call_llm(prompt, model) ... (41 righe)
+       DOPO:   from src.llm import call_llm
+   - La versione in src.llm è migliore perché supporta config dict
+     ed è riutilizzabile tra modelli diversi
+
+6. src/llm.py
+   - Mantenute le estensioni uncommitted (LLM_CONFIGS, call_llm,
+     benchmark_models, register_llm, clear_llm_configs) perché
+     usate da 3_causal_analysis_pipeline.ipynb
+
+STATO FINALE
+------------
+
+  src/graph.py           → solo filter_nodes_by_type, build_sfm (ORIGINALE)
+  src/llm.py             → funzioni base + estensioni benchmark
+  src_soldani/discovery  → discover_graph, learn_sfm, graph_similarity,
+                           _ensure_edges
+  src_soldani/__init__   → export: discover_graph, learn_sfm,
+                           graph_similarity, combine_sensitive_attrs,
+                           compute_intersectional_effects,
+                           generate_html_report
+
+TEST
+----
+  46/46 test passati (pytest)
+  Tutti gli import verificati manualmente
+  Nessuna funzione duplicata residua in src.graph
+================================================================================
