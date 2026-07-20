@@ -83,8 +83,8 @@ PASSO 3 — Scegli come eseguire il notebook
     sbatch run_multimodal.sbatch     # per 3_causal_analysis_pipeline.ipynb
 
     squeue -u $USER      # controlla che vada in R quasi subito (partition
-                          # compute, niente attesa per una GPU: questi job
-                          # non ne chiedono una propria, si agganciano al
+                          # gpu ma SENZA --gres=gpu:1: questi job non
+                          # chiedono una GPU propria, si agganciano al
                           # server gia' attivo trovato via squeue)
 
 Se lo script stampa:
@@ -172,6 +172,20 @@ COSE GIA' SISTEMATE (non serve piu' pensarci)
   finiva con ExitCode 0:0 ("Benchmark completato") anche se il notebook
   non era mai stato eseguito e nessun file di output era stato creato.
   Ora, se apptainer/jupyter falliscono, il job termina con errore vero.
+- CAUSA RADICE trovata il 20/07/2026: sui nodi della partition "compute"
+  la risoluzione utente via NSS/LDAP dentro un job batch e' rotta —
+  anche un semplice `whoami` fallisce con "cannot find name for user ID
+  30117812", non e' un problema di apptainer o dei nostri script.
+  Confermato con un job di debug: su "compute" whoami/apptainer falliscono
+  sempre (con o senza --no-home/--fakeroot); sulla partition "gpu" invece
+  funzionano perfettamente. run_benchmark.sbatch e run_multimodal.sbatch
+  ora girano su partition=gpu SENZA --gres=gpu:1 (non consumano una GPU,
+  solo CPU/mem) — questo evita sia il bug NSS sia il problema originale
+  di PENDING per contesa GPU. Se in futuro capita di nuovo un errore
+  "unknown userid" o "Couldn't determine user account information" su
+  QUALSIASI partition, e' probabilmente lo stesso problema di infra
+  del cluster: vale la pena segnalarlo ai sysadmin di Thor piuttosto
+  che continuare a cercare fix lato script.
 - llama_server.sbatch nel repo ora rispecchia esattamente lo script
   realmente usato su Thor (partition gpu, modello 14B, container
   llama_server_gpu.sif, --time 14 giorni) — prima il file nel repo

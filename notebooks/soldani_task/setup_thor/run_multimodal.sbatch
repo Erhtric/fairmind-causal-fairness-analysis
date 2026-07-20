@@ -1,6 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=fairmind_multimodal
-#SBATCH --partition=compute
+# partition=gpu (NIENTE --gres=gpu:1: non ci serve una GPU, solo CPU/mem).
+# Su "compute" la risoluzione utente NSS/LDAP dei nodi e' rotta dentro i
+# job batch (whoami/apptainer falliscono con "unknown userid"), confermato
+# il 20/07/2026. Su "gpu" funziona (stesso partition del server LLM).
+#SBATCH --partition=gpu
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=04:00:00
