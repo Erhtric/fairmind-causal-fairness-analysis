@@ -56,7 +56,7 @@ apptainer exec --no-home \
     --env LLAMA_HOST=$LLAMA_HOST \
     --env LLAMA_PORT=$PORT \
     $JUPYTER_SIF \
-    jupyter nbconvert --to notebook --execute \
+    jupyter nbconvert --to notebook --execute --allow-errors \
         --output benchmark_multi_output_${SLURM_JOB_ID}.ipynb \
         2_4_benchmark_multi_dataset.ipynb
 
@@ -67,4 +67,4 @@ fi
 
 echo "=== Benchmark multi-dataset completato ==="
 echo "Output: $NOTEBOOK_DIR/benchmark_multi_output_${SLURM_JOB_ID}.ipynb"
-echo "Risultati per dataset: $NOTEBOOK_DIR/benchmark_results/"
+echo "Risultati per dataset: $NOTEBOOK_DIR/benchmark_results/multi_dataset/"
