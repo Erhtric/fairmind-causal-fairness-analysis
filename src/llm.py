@@ -260,7 +260,7 @@ def clear_llm_configs():
     LLM_CONFIGS.clear()
 
 
-def call_llm(prompt: str, config: dict | None = None) -> tuple[dict, dict, float]:
+def call_llm(prompt: str, config: dict | None = None, max_tokens: int = 4096) -> tuple[dict, dict, float]:
     """Send a prompt to an LLM and parse the JSON result.
 
     Parameters
@@ -270,6 +270,11 @@ def call_llm(prompt: str, config: dict | None = None) -> tuple[dict, dict, float
     config : dict or None
         Must have keys: name, model, base_url, api_key.
         If None, uses the first entry in LLM_CONFIGS.
+    max_tokens : int
+        Completion token budget. Prompts that ask the model to show its
+        work for many (z,w) combinations (high-cardinality confounders)
+        can exceed the default before reaching the FINAL_JSON block,
+        causing a truncated/unparseable response — raise this if so.
 
     Returns
     -------
@@ -291,7 +296,7 @@ def call_llm(prompt: str, config: dict | None = None) -> tuple[dict, dict, float
         model=config["model"],
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
-        max_tokens=4096,
+        max_tokens=max_tokens,
     )
     elapsed = time.perf_counter() - start
 
@@ -313,7 +318,11 @@ def call_llm(prompt: str, config: dict | None = None) -> tuple[dict, dict, float
             break
 
     if json_str is None:
-        raise ValueError(f"No valid JSON with all keys in model output:\n{raw}")
+        finish_reason = response.choices[0].finish_reason
+        raise ValueError(
+            f"No valid JSON with all keys in model output "
+            f"(finish_reason={finish_reason}, max_tokens={max_tokens}):\n{raw}"
+        )
 
     effects = json.loads(json_str)
     return effects, usage, elapsed
