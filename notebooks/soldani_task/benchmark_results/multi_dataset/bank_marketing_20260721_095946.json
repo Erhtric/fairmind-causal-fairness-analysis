@@ -1,0 +1,79 @@
+{
+  "dataset": "bank_marketing",
+  "config": {
+    "dataset_name": "bank_marketing",
+    "target_col": "T_deposit",
+    "target_val": "yes",
+    "protected": "S2_marital",
+    "x0": "single",
+    "x1": "married",
+    "mediators": [
+      "housing"
+    ],
+    "confounders": [
+      "education"
+    ],
+    "binning": {}
+  },
+  "fairmind": {
+    "TV": -0.048289001593958145,
+    "TE": -0.04005196395455066,
+    "SE": 0.006175877602245472,
+    "DE": -0.03923328991988964,
+    "IE": 0.0008186740346610155
+  },
+  "llm": {
+    "TV": 0.0483,
+    "TE": 0.0351,
+    "SE": 0.0132,
+    "DE": 0.0384,
+    "IE": -0.0012
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": -0.048289,
+      "llm": 0.0483,
+      "abs_error": 0.096589,
+      "rel_error_%": 200.02
+    },
+    {
+      "effect": "TE",
+      "fairmind": -0.040052,
+      "llm": 0.0351,
+      "abs_error": 0.075152,
+      "rel_error_%": 187.64
+    },
+    {
+      "effect": "SE",
+      "fairmind": 0.006176,
+      "llm": 0.0132,
+      "abs_error": 0.007024,
+      "rel_error_%": 113.73
+    },
+    {
+      "effect": "DE",
+      "fairmind": -0.039233,
+      "llm": 0.0384,
+      "abs_error": 0.077633,
+      "rel_error_%": 197.88
+    },
+    {
+      "effect": "IE",
+      "fairmind": 0.000819,
+      "llm": -0.0012,
+      "abs_error": 0.002019,
+      "rel_error_%": 246.58
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1200,
+    "output_tokens": 3519,
+    "reasoning_tokens": null,
+    "total_tokens": 4719
+  },
+  "timing": {
+    "fairmind_seconds": 0.0113,
+    "llm_seconds": 43.9423
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "dataset": "census_income_kdd",
+  "config": {
+    "dataset_name": "census_income_kdd",
+    "target_col": "T_income_level",
+    "target_val": 1,
+    "protected": "S1_sex",
+    "x0": "Female",
+    "x1": "Male",
+    "mediators": [
+      "weeks_worked_in_year"
+    ],
+    "confounders": [
+      "education"
+    ],
+    "binning": {
+      "weeks_worked_in_year": {
+        "bins": [
+          -1,
+          0,
+          13,
+          26,
+          39,
+          52
+        ],
+        "labels": [
+          "0",
+          "1-13",
+          "14-26",
+          "27-39",
+          "40-52"
+        ]
+      }
+    }
+  },
+  "fairmind": {
+    "TV": 0.08966164963218393,
+    "TE": 0.07957251630657142,
+    "SE": -0.0038243136223838556,
+    "DE": 0.06316684636348366,
+    "IE": -0.01640566994308776
+  },
+  "llm": {
+    "TV": 0.0896,
+    "TE": 0.0596,
+    "SE": 0.03,
+    "DE": 0.001,
+    "IE": -0.0002
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.089662,
+      "llm": 0.0896,
+      "abs_error": 6.2e-05,
+      "rel_error_%": 0.07
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.079573,
+      "llm": 0.0596,
+      "abs_error": 0.019973,
+      "rel_error_%": 25.1
+    },
+    {
+      "effect": "SE",
+      "fairmind": -0.003824,
+      "llm": 0.03,
+      "abs_error": 0.033824,
+      "rel_error_%": 884.45
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.063167,
+      "llm": 0.001,
+      "abs_error": 0.062167,
+      "rel_error_%": 98.42
+    },
+    {
+      "effect": "IE",
+      "fairmind": -0.016406,
+      "llm": -0.0002,
+      "abs_error": 0.016206,
+      "rel_error_%": 98.78
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8447,
+    "output_tokens": 1841,
+    "reasoning_tokens": null,
+    "total_tokens": 10288
+  },
+  "timing": {
+    "fairmind_seconds": 0.0116,
+    "llm_seconds": 27.5379
+  }
+}

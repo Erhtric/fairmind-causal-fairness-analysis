@@ -1,0 +1,93 @@
+{
+  "dataset": "diabetes_130",
+  "config": {
+    "dataset_name": "diabetes_130",
+    "target_col": "T_readmitted",
+    "target_val": "YES",
+    "protected": "S1_gender",
+    "x0": "Female",
+    "x1": "Male",
+    "mediators": [
+      "time_in_hospital"
+    ],
+    "confounders": [
+      "age"
+    ],
+    "binning": {
+      "time_in_hospital": {
+        "bins": [
+          0,
+          3,
+          7,
+          14
+        ],
+        "labels": [
+          "1-3",
+          "4-7",
+          "8-14"
+        ]
+      }
+    }
+  },
+  "fairmind": {
+    "TV": -0.018000549373035524,
+    "TE": -0.018002065444848836,
+    "SE": -9.278309829163778e-05,
+    "DE": -0.017259177520266344,
+    "IE": 0.0007428879245824915
+  },
+  "llm": {
+    "TV": -0.018,
+    "TE": -0.01738,
+    "SE": -0.00062,
+    "DE": -0.0016,
+    "IE": 0.0
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": -0.018001,
+      "llm": -0.018,
+      "abs_error": 1e-06,
+      "rel_error_%": 0.0
+    },
+    {
+      "effect": "TE",
+      "fairmind": -0.018002,
+      "llm": -0.01738,
+      "abs_error": 0.000622,
+      "rel_error_%": 3.46
+    },
+    {
+      "effect": "SE",
+      "fairmind": -9.3e-05,
+      "llm": -0.00062,
+      "abs_error": 0.000527,
+      "rel_error_%": 568.23
+    },
+    {
+      "effect": "DE",
+      "fairmind": -0.017259,
+      "llm": -0.0016,
+      "abs_error": 0.015659,
+      "rel_error_%": 90.73
+    },
+    {
+      "effect": "IE",
+      "fairmind": 0.000743,
+      "llm": 0.0,
+      "abs_error": 0.000743,
+      "rel_error_%": 100.0
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 3391,
+    "output_tokens": 5540,
+    "reasoning_tokens": null,
+    "total_tokens": 8931
+  },
+  "timing": {
+    "fairmind_seconds": 0.0114,
+    "llm_seconds": 71.5584
+  }
+}

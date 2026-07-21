@@ -1,0 +1,95 @@
+{
+  "dataset": "law_bar_pass",
+  "config": {
+    "dataset_name": "law_bar_pass",
+    "target_col": "T_bar_passed",
+    "target_val": true,
+    "protected": "S2_race",
+    "x0": "Other",
+    "x1": "White",
+    "mediators": [
+      "ugpa"
+    ],
+    "confounders": [
+      "fam_inc"
+    ],
+    "binning": {
+      "ugpa": {
+        "bins": [
+          0,
+          2.5,
+          3.0,
+          3.5,
+          4.0
+        ],
+        "labels": [
+          "<2.5",
+          "2.5-3.0",
+          "3.0-3.5",
+          "3.5-4.0"
+        ]
+      }
+    }
+  },
+  "fairmind": {
+    "TV": 0.11326012421507403,
+    "TE": 0.09962202261616493,
+    "SE": -0.01318002133261642,
+    "DE": 0.09306624327299995,
+    "IE": -0.00655577934316498
+  },
+  "llm": {
+    "TV": 0.113,
+    "TE": 0.1277,
+    "SE": -0.0147,
+    "DE": 0.0814,
+    "IE": -0.0001
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.11326,
+      "llm": 0.113,
+      "abs_error": 0.00026,
+      "rel_error_%": 0.23
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.099622,
+      "llm": 0.1277,
+      "abs_error": 0.028078,
+      "rel_error_%": 28.18
+    },
+    {
+      "effect": "SE",
+      "fairmind": -0.01318,
+      "llm": -0.0147,
+      "abs_error": 0.00152,
+      "rel_error_%": 11.53
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.093066,
+      "llm": 0.0814,
+      "abs_error": 0.011666,
+      "rel_error_%": 12.54
+    },
+    {
+      "effect": "IE",
+      "fairmind": -0.006556,
+      "llm": -0.0001,
+      "abs_error": 0.006456,
+      "rel_error_%": 98.47
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2469,
+    "output_tokens": 6450,
+    "reasoning_tokens": null,
+    "total_tokens": 8919
+  },
+  "timing": {
+    "fairmind_seconds": 0.0113,
+    "llm_seconds": 82.163
+  }
+}

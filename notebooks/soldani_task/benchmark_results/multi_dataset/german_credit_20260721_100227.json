@@ -1,0 +1,79 @@
+{
+  "dataset": "german_credit",
+  "config": {
+    "dataset_name": "german_credit",
+    "target_col": "T_Creditability",
+    "target_val": 1,
+    "protected": "S2_Sex",
+    "x0": "Female",
+    "x1": "Male",
+    "mediators": [
+      "Length of current employment"
+    ],
+    "confounders": [
+      "Occupation"
+    ],
+    "binning": {}
+  },
+  "fairmind": {
+    "TV": 0.07518267148014446,
+    "TE": 0.07743906646202481,
+    "SE": 0.0012192974162168468,
+    "DE": 0.048294359172545986,
+    "IE": -0.02914470728947882
+  },
+  "llm": {
+    "TV": 0.0748,
+    "TE": 0.0774952,
+    "SE": -0.0026952,
+    "DE": 0.189854,
+    "IE": -0.001814
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.075183,
+      "llm": 0.0748,
+      "abs_error": 0.000383,
+      "rel_error_%": 0.51
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.077439,
+      "llm": 0.077495,
+      "abs_error": 5.6e-05,
+      "rel_error_%": 0.07
+    },
+    {
+      "effect": "SE",
+      "fairmind": 0.001219,
+      "llm": -0.002695,
+      "abs_error": 0.003914,
+      "rel_error_%": 321.05
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.048294,
+      "llm": 0.189854,
+      "abs_error": 0.14156,
+      "rel_error_%": 293.12
+    },
+    {
+      "effect": "IE",
+      "fairmind": -0.029145,
+      "llm": -0.001814,
+      "abs_error": 0.027331,
+      "rel_error_%": 93.78
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1626,
+    "output_tokens": 3862,
+    "reasoning_tokens": null,
+    "total_tokens": 5488
+  },
+  "timing": {
+    "fairmind_seconds": 0.0114,
+    "llm_seconds": 48.7618
+  }
+}

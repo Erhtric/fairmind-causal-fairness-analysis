@@ -1,0 +1,97 @@
+{
+  "dataset": "compas_two_year_recid",
+  "config": {
+    "dataset_name": "compas_two_year_recid",
+    "target_col": "T_two_year_recid",
+    "target_val": 1,
+    "protected": "S1_race",
+    "x0": "Caucasian",
+    "x1": "African-American",
+    "mediators": [
+      "priors_count"
+    ],
+    "confounders": [
+      "age_cat"
+    ],
+    "binning": {
+      "priors_count": {
+        "bins": [
+          -1,
+          0,
+          2,
+          5,
+          10,
+          50
+        ],
+        "labels": [
+          "0",
+          "1-2",
+          "3-5",
+          "6-10",
+          ">10"
+        ]
+      }
+    }
+  },
+  "fairmind": {
+    "TV": 0.1205788617028909,
+    "TE": 0.09342477235452129,
+    "SE": -0.016861549816153287,
+    "DE": 0.022436152398532694,
+    "IE": -0.0709886199559886
+  },
+  "llm": {
+    "TV": 0.1207,
+    "TE": 0.0933,
+    "SE": 0.0274,
+    "DE": 0.0145,
+    "IE": 0.068
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.120579,
+      "llm": 0.1207,
+      "abs_error": 0.000121,
+      "rel_error_%": 0.1
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.093425,
+      "llm": 0.0933,
+      "abs_error": 0.000125,
+      "rel_error_%": 0.13
+    },
+    {
+      "effect": "SE",
+      "fairmind": -0.016862,
+      "llm": 0.0274,
+      "abs_error": 0.044262,
+      "rel_error_%": 262.5
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.022436,
+      "llm": 0.0145,
+      "abs_error": 0.007936,
+      "rel_error_%": 35.37
+    },
+    {
+      "effect": "IE",
+      "fairmind": -0.070989,
+      "llm": 0.068,
+      "abs_error": 0.138989,
+      "rel_error_%": 195.79
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2139,
+    "output_tokens": 3164,
+    "reasoning_tokens": null,
+    "total_tokens": 5303
+  },
+  "timing": {
+    "fairmind_seconds": 0.0111,
+    "llm_seconds": 40.0392
+  }
+}

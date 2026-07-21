@@ -1,0 +1,97 @@
+{
+  "dataset": "oulad_final_result",
+  "config": {
+    "dataset_name": "oulad_final_result",
+    "target_col": "T_final_result",
+    "target_val": "Pass",
+    "protected": "S1_gender",
+    "x0": "F",
+    "x1": "M",
+    "mediators": [
+      "studied_credits"
+    ],
+    "confounders": [
+      "highest_education"
+    ],
+    "binning": {
+      "studied_credits": {
+        "bins": [
+          0,
+          60,
+          120,
+          180,
+          240,
+          700
+        ],
+        "labels": [
+          "<=60",
+          "61-120",
+          "121-180",
+          "181-240",
+          ">240"
+        ]
+      }
+    }
+  },
+  "fairmind": {
+    "TV": -0.02786185281662451,
+    "TE": -0.03667512754301955,
+    "SE": -0.004286380058159345,
+    "DE": -0.032814958712015396,
+    "IE": 0.0038601688310041515
+  },
+  "llm": {
+    "TV": -0.0279,
+    "TE": -0.0364,
+    "SE": 0.0085,
+    "DE": -0.02853,
+    "IE": -0.00397
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": -0.027862,
+      "llm": -0.0279,
+      "abs_error": 3.8e-05,
+      "rel_error_%": 0.14
+    },
+    {
+      "effect": "TE",
+      "fairmind": -0.036675,
+      "llm": -0.0364,
+      "abs_error": 0.000275,
+      "rel_error_%": 0.75
+    },
+    {
+      "effect": "SE",
+      "fairmind": -0.004286,
+      "llm": 0.0085,
+      "abs_error": 0.012786,
+      "rel_error_%": 298.3
+    },
+    {
+      "effect": "DE",
+      "fairmind": -0.032815,
+      "llm": -0.02853,
+      "abs_error": 0.004285,
+      "rel_error_%": 13.06
+    },
+    {
+      "effect": "IE",
+      "fairmind": 0.00386,
+      "llm": -0.00397,
+      "abs_error": 0.00783,
+      "rel_error_%": 202.85
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2786,
+    "output_tokens": 4509,
+    "reasoning_tokens": null,
+    "total_tokens": 7295
+  },
+  "timing": {
+    "fairmind_seconds": 0.0113,
+    "llm_seconds": 57.6955
+  }
+}
