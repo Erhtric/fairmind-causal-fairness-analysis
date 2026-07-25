@@ -74,7 +74,7 @@ La configurazione THOR è nella directory setup_thor/ che contiene:
   - llama_server.def: definizione Apptainer per container GPU (llama.cpp)
   - jupyter_env.def: definizione Apptainer per container CPU (Jupyter)
   - README.md e thor-getting-started.md: guide dettagliate in italiano
-  - guida_claude_thor.md: guida alternativa con vLLM
+  - guida_vllm_thor.md: guida alternativa con vLLM
 
 Il branch Git attuale per questo lavoro è feature/03-thor.
 

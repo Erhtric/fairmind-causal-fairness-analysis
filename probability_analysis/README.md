@@ -22,4 +22,4 @@ Ogni esecuzione salva la conversazione completa (prompt, risposte, token usati) 
 
 ## Nota
 
-Questo notebook non è stato ancora eseguito da me: non ho accesso diretto a un endpoint LLM (né al server Thor via SSH, né a una chiave OpenAI) da questo ambiente. Va lanciato manualmente con uno dei due metodi sopra.
+Il notebook va lanciato manualmente con uno dei due metodi sopra: richiede un endpoint LLM raggiungibile (server Thor via SSH, oppure una chiave OpenAI in locale).
