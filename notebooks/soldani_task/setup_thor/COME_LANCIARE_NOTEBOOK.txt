@@ -8,8 +8,8 @@ COME FAR GIRARE UN NOTEBOOK SU THOR — GUIDA RAPIDA
 DOVE STA COSA (verificato via ssh, non per assunzione)
 -----------------------------------------------------
 - /home/marco.soldani/causal_fairness/
-    Il repo git clonato (branch feature/03-thor). Codice (src/,
-    src_soldani/), notebook (notebooks/soldani_task/), script sbatch
+    Il repo git clonato (branch feature/03-thor). Codice (src/),
+    notebook (notebooks/soldani_task/), script sbatch
     (notebooks/soldani_task/setup_thor/). File piccoli, va in git.
 
 - /mnt/beegfs/scratch/marco.soldani/causal_fairness/
@@ -32,7 +32,7 @@ Il modello in uso e' Qwen2.5-14B e il job name e' "llama_server_gpu".
 PASSO 0 — Solo la primissima volta: costruisci jupyter_env.sif
 =======================================================================
 Questo container non esiste ancora su scratch — serve per eseguire i
-notebook via nbconvert (run_benchmark.sbatch / run_multimodal.sbatch).
+notebook via nbconvert (run_benchmark.sbatch).
 Il .def e' gia' nel repo.
 
     ssh marco.soldani@thor.supsi.ch
@@ -79,8 +79,6 @@ PASSO 3 — Scegli come eseguire il notebook
 
     cd /home/marco.soldani/causal_fairness/notebooks/soldani_task/setup_thor
     sbatch run_benchmark.sbatch      # per 2_3_benchmark_thor.ipynb
-    # oppure
-    sbatch run_multimodal.sbatch     # per 3_causal_analysis_pipeline.ipynb
 
     squeue -u $USER      # controlla che vada in R quasi subito (partition
                           # gpu ma SENZA --gres=gpu:1: questi job non
@@ -95,7 +93,7 @@ Se stampa:
     "ERRORE: .../containers/jupyter_env.sif non esiste ancora."
 torna al PASSO 0.
 
-Output: benchmark_output_<JOBID>.ipynb (o multimodal_output_<JOBID>.ipynb)
+Output: benchmark_output_<JOBID>.ipynb
 dentro notebooks/soldani_task/, con tutte le celle gia' eseguite.
 
 --- OPZIONE B: interattivo via Jupyter (consigliato per debug) ---
@@ -123,8 +121,8 @@ NODELIST del job llama_server_gpu — es. gnode04):
     os.environ["LLAMA_HOST"] = "gnode04"
     os.environ["LLAMA_PORT"] = "8080"
 
-I notebook (2_3_benchmark_thor.ipynb e 3_causal_analysis_pipeline.ipynb)
-leggono automaticamente queste variabili — non serve altro.
+Il notebook (2_3_benchmark_thor.ipynb) legge automaticamente queste
+variabili — non serve altro.
 
 =======================================================================
 PASSO 4 — Monitoraggio e pulizia
@@ -154,12 +152,12 @@ NOTA — file trovati su scratch NON allineati col repo
   cancellare la copia su scratch se non ti serve piu' per confronto.
 
 =======================================================================
-COSE GIA' SISTEMATE (non serve piu' pensarci)
+COSE GIA' SISTEMATE
 =======================================================================
 
-- run_benchmark.sbatch / run_multimodal.sbatch non chiedono piu' una
-  GPU propria: riusano il server gia' attivo (nome job corretto:
-  llama_server_gpu), niente piu' PENDING per contesa GPU.
+- run_benchmark.sbatch non chiede piu' una GPU propria: riusa il server
+  gia' attivo (nome job corretto: llama_server_gpu), niente piu' PENDING
+  per contesa GPU.
 - La ricerca del server con squeue non usa piu' "-u $USER": dentro un
   job batch la risoluzione dell'utente via NSS/LDAP a volte fallisce
   ("squeue: error: Invalid user: marco.soldani") anche se l'utente e'
@@ -178,8 +176,8 @@ COSE GIA' SISTEMATE (non serve piu' pensarci)
   30117812", non e' un problema di apptainer o dei nostri script.
   Confermato con un job di debug: su "compute" whoami/apptainer falliscono
   sempre (con o senza --no-home/--fakeroot); sulla partition "gpu" invece
-  funzionano perfettamente. run_benchmark.sbatch e run_multimodal.sbatch
-  ora girano su partition=gpu SENZA --gres=gpu:1 (non consumano una GPU,
+  funzionano perfettamente. run_benchmark.sbatch ora gira su partition=gpu
+  SENZA --gres=gpu:1 (non consuma una GPU,
   solo CPU/mem) — questo evita sia il bug NSS sia il problema originale
   di PENDING per contesa GPU. Se in futuro capita di nuovo un errore
   "unknown userid" o "Couldn't determine user account information" su
@@ -196,10 +194,10 @@ COSE GIA' SISTEMATE (non serve piu' pensarci)
   libcuda.so.1 + i linker flags per lo stub CUDA, non solo LD_LIBRARY_PATH).
 - jupyter_env.def: `pip install --no-cache-cdir` era un typo (flag pip
   inesistente, build avrebbe fallito subito) -> corretto in --no-cache-dir.
-  Mancavano anche plotly e daft-pgm: servono per src_soldani (report.py,
-  sankey.py) e src.visualisation.graph, importati da
-  3_causal_analysis_pipeline.ipynb -> senza, run_multimodal.sbatch
-  falliva sulla cella degli import. pgmpy invece trascina gia' da solo
+  Mancavano anche plotly e daft-pgm: servono a src.visualisation.graph e
+  src.visualisation.sankey, importati indirettamente da alcuni notebook
+  -> senza, la build falliva sulla cella degli import. pgmpy invece
+  trascina gia' da solo
   numpy/scipy/scikit-learn/torch/pyro-ppl come dipendenze transitive:
   la build di jupyter_env.sif scarica anche quelle (ci mette qualche
   minuto in piu' della lista pip che si vede nel .def).

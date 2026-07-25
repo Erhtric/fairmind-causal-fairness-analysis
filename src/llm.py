@@ -229,7 +229,7 @@ Here are the fairness decomposition results in JSON:
 
 
 ###############################################################################
-# Multi-model benchmark support
+# LLM client configuration (Thor / llama.cpp benchmark)
 ###############################################################################
 
 LLM_CONFIGS = [
@@ -240,24 +240,6 @@ LLM_CONFIGS = [
         "api_key": "not-needed",
     },
 ]
-
-
-def register_llm(name: str, model: str, base_url: str, api_key: str = "not-needed"):
-    """Add an LLM to the benchmark list."""
-    for cfg in LLM_CONFIGS:
-        if cfg["name"] == name:
-            cfg.update(model=model, base_url=base_url, api_key=api_key)
-            return
-    LLM_CONFIGS.append({
-        "name": name,
-        "model": model,
-        "base_url": base_url,
-        "api_key": api_key,
-    })
-
-
-def clear_llm_configs():
-    LLM_CONFIGS.clear()
 
 
 def call_llm(prompt: str, config: dict | None = None, max_tokens: int = 4096) -> tuple[dict, dict, float]:
@@ -326,45 +308,3 @@ def call_llm(prompt: str, config: dict | None = None, max_tokens: int = 4096) ->
 
     effects = json.loads(json_str)
     return effects, usage, elapsed
-
-
-def benchmark_models(
-    prompt: str,
-    configs: list[dict] | None = None,
-) -> dict[str, dict]:
-    """Run the same prompt against multiple LLMs and collect results.
-
-    Parameters
-    ----------
-    prompt : str
-    configs : list of dict or None
-        Each must have: name, model, base_url, api_key.
-        Defaults to LLM_CONFIGS.
-
-    Returns
-    -------
-    {model_name: {"effects": {...}, "usage": {...}, "time": float}}
-    """
-    if configs is None:
-        configs = LLM_CONFIGS
-
-    results = {}
-    for cfg in configs:
-        print(f"  Calling {cfg['name']} ({cfg['model']}) ...", end=" ")
-        try:
-            effects, usage, elapsed = call_llm(prompt, cfg)
-            results[cfg["name"]] = {
-                "effects": effects,
-                "usage": usage,
-                "time": round(elapsed, 4),
-            }
-            print(f"OK  ({elapsed:.2f}s)")
-        except Exception as e:
-            print(f"FAILED: {e}")
-            results[cfg["name"]] = {
-                "effects": None,
-                "usage": None,
-                "time": None,
-                "error": str(e),
-            }
-    return results
