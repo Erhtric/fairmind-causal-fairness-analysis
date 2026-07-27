@@ -291,7 +291,9 @@ def call_llm(prompt: str, config: dict | None = None, max_tokens: int = 4096) ->
 
     raw = response.choices[0].message.content.strip()
     candidates = re.findall(r"\{[^{}]*\}", raw, re.DOTALL)
-    required_keys = ["TV", "TE", "SE", "DE", "IE"]
+    # SE non e' richiesta al modello (e' derivata come TV-TE lato chiamante,
+    # v. 2_3_benchmark_thor.ipynb): non e' tra le chiavi obbligatorie.
+    required_keys = ["TV", "TE", "DE", "IE"]
 
     json_str = None
     for candidate in reversed(candidates):
