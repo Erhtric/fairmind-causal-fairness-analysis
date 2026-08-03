@@ -1,0 +1,106 @@
+% Richiede \usepackage{booktabs} e \usepackage{amsmath} nel preambolo di
+% main.tex (stesse dipendenze delle altre sezioni di questo documento).
+% Includila con \input{...} dove preferisci, dopo la sezione sul benchmark
+% multi-dataset (\S\ref{sec:multi-dataset-benchmark}).
+
+\section{Revisione dopo il feedback del docente: refactor del branch e correzioni}
+\label{sec:refactor-docente}
+
+\subsection*{Contesto: chiusura di \texttt{feature/03-thor} e apertura di un branch di refactor}
+
+Arrivato a questo punto, il branch \texttt{feature/03-thor} era rimasto aperto per tutto il lavoro descritto in \S\ref{sec:branch}--\S\ref{sec:multi-dataset-benchmark}. Lo integro in \texttt{dev-soldani} con un fast-forward (i due branch condividevano la stessa storia, nessun commit divergente su \texttt{dev-soldani}) e apro un branch dedicato, \texttt{refactor/supervisor-feedback}, per lavorare sulle osservazioni che il relatore mi aveva fatto sul benchmark FairMind vs LLM.
+
+Come prima cosa, decido di restringere lo scope: tolgo dal repository la pipeline di benchmark multi-modello (\texttt{3\_causal\_analysis\_pipeline.ipynb}, il modulo \texttt{src\_soldani/} con causal discovery e analisi intersezionale, lo script \texttt{run\_multimodal.sbatch} e i relativi output) e mi concentro solo su \texttt{2\_3\_benchmark\_thor.ipynb}, un modello (Qwen2.5-7B) e un dataset (Adult Income). Il notebook multi-dataset (\texttt{2\_4}, \S\ref{sec:multi-dataset-benchmark}) lo lascio nel repository ma per ora non lo tocco --- voglio prima approfondire le osservazioni del docente su un caso singolo e controllato, e poi eventualmente generalizzare. Il codice rimosso si può sempre recuperare dalla cronologia Git di \texttt{feature/03-thor}.
+
+\subsection*{Le osservazioni del docente}
+
+Il relatore ha guardato i risultati del benchmark su Adult e mi ha fatto quattro osservazioni:
+
+\begin{enumerate}
+  \item la SE richiesta al LLM nel prompt è ridondante: basta sottrarla da TV e TE, che il modello già calcola, senza chiederla come calcolo a parte;
+  \item nel calcolo della probabilità del target, bisogna isolare solo le osservazioni che soddisfano il filtro di interesse (es.\ se interessa chi guadagna sotto una soglia, al numeratore vanno solo quelle);
+  \item \texttt{education}, che nel mio modello Adult usavo come confondente, probabilmente non è un confondente valido --- e questo spiegherebbe l'errore relativo sulla SE, che nell'ultima run arrivava a circa il 400\%;
+  \item le probabilità date al LLM nel prompt andrebbero calcolate dai metodi già scritti (via \texttt{pgmpy}) sulla Bayesian Network stimata, non ricalcolate a mano dal dataset grezzo.
+\end{enumerate}
+
+Prima di toccare il codice, vado a verificare ogni punto sia nel sorgente esistente sia contro il paper di FairMind (Berarducci, Rossetto, Antonucci, Zaffalon, \emph{Automatic Causal Fairness Analysis with LLM-Generated Reporting}, ECML PKDD 2026), che riporta le formule di identificazione e un esempio numerico proprio su Adult con lo stesso confondente e mediatore che uso in \S\ref{sec:fairmind-llm-methodology}.
+
+\subsection*{Punto 1 e punto 3: il bug sulla Spurious Effect}
+
+Nel paper la SE è definita come identità algebrica a due argomenti (Eq.~3): $\mathrm{SE}_{x_0,x_1}(y) := \mathrm{TV}_{x_0,x_1}(y) - \mathrm{TE}_{x_0,x_1}(y)$, che è la stessa formula già nel prompt dato al LLM. Il problema era nel ground truth: il mio codice chiamava \texttt{spurious\_effect(bn, target, protected, x0)}, che è una funzione a un solo argomento --- calcola $P(y \mid x) - P(y \mid \mathrm{do}(x))$ per un singolo valore di $x$, che è una quantità diversa da $\mathrm{SE}(x_0,x_1)$.
+
+Per capire meglio, ho confrontato con l'Example~1 del paper (stesso identico setup: Adult, \texttt{gender} protetto, \texttt{income} target, \texttt{education} confondente, \texttt{hours-per-week} mediatore). Il paper dà $\mathrm{TV}=0.1924$, $\mathrm{TE}=0.1809$, $\mathrm{SE}=0.0115$ (e infatti $0.1924-0.1809=0.0115$, torna). Con i miei dati, \texttt{education} ancora a 16 livelli, ottengo $\mathrm{TV}-\mathrm{TE} = 0.19447 - 0.18316 = 0.01131$, praticamente uguale. Il ground truth che stavo confrontando con il LLM invece dava $\mathrm{SE}=-0.007296$, cioè segno e ordine di grandezza sbagliati.
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+ & \texttt{spurious\_effect(x0)} (bacata) & $\mathrm{TV}-\mathrm{TE}$ (Eq.~3, corretta) \\
+\midrule
+SE (Adult, 16 livelli \texttt{education}) & $-0.007296$ & $+0.011309$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Ho corretto sostituendo il ground truth con $\mathrm{SE} = \mathrm{TV}-\mathrm{TE}$ (commit \texttt{55d8525}). Di conseguenza ho anche tolto la SE dal prompt e dal JSON richiesto al LLM --- ora viene derivata a valle dai valori di TV e TE che il modello già produce. Questo risolve anche il punto~1, senza dover fare altro.
+
+In pratica, il bug spiega l'errore relativo enorme (fino al 400\%) che il docente aveva segnalato al punto~3: stavo confrontando contro un ground truth già sbagliato di suo, a prescindere dalla bontà della scelta di \texttt{education} come confondente. Detto questo, la questione se \texttt{education} sia davvero un confondente resta aperta. Ha 16 livelli nel dataset originale e trattarla come causa comune di genere e reddito è quantomeno discutibile: in letteratura sulla fairness causale la si tratta più spesso come mediatore, visto che il genere può influenzare le scelte o l'accesso all'istruzione. Un algoritmo di causal discovery automatico difficilmente la metterebbe come genitore dell'attributo protetto. Anche il paper, nella sezione sui lavori futuri (\S6), parla di integrare algoritmi di structural learning proprio per distinguere automaticamente mediatori e confondenti --- quindi è un limite noto, non una mia scoperta.
+
+\subsection*{Punto 2: probabilità della variabile target}
+
+Sono andato a controllare se il codice isola correttamente solo lo stato di interesse di $Y$ nel calcolo di $P(Y=y\mid\ldots)$. Lato FairMind le query \texttt{pgmpy} restituiscono la distribuzione su tutti gli stati di $Y$, ma il codice poi seleziona l'indice dello stato target prima di usarla. Lato prompt, la colonna binaria usata per le tabelle è definita come indicatore dello stato target, mediata sul totale del gruppo. Entrambi i percorsi mi sembrano corretti: non ho trovato un punto dove questo principio viene violato. Nessuna modifica necessaria.
+
+\subsection*{Punto 4: le tabelle del prompt vengono ora dalla Bayesian Network}
+
+Fino a quel momento le cinque tabelle di probabilità condizionale nel prompt per il LLM (\S\ref{sec:fairmind-llm-methodology}) le calcolavo con frequenze empiriche grezze (\texttt{pandas.groupby} sul dataset), mentre il ground truth veniva da una Bayesian Network con smoothing BDeu. Per le celle sparse della tabella congiunta (su Adult si arriva a $16 \times 5 = 80$ combinazioni tra livelli di \texttt{education} e fasce di \texttt{hours-per-week}) le due fonti potevano dare numeri leggermente diversi per la stessa cella, anche applicando la stessa formula. In pratica, anche un LLM perfetto nel calcolo avrebbe potuto discostarsi dal ground truth solo perché partiva da probabilità diverse.
+
+Ho modificato \texttt{run\_fairmind()} per farle restituire anche la Bayesian Network fittata. La funzione \texttt{build\_llm\_prompt()} ora non ricalcola nulla da pandas, ma interroga direttamente la rete tramite \texttt{VariableElimination} di \texttt{pgmpy} (commit \texttt{5a6c11d}). In questo modo LLM e FairMind partono dagli stessi numeri per ogni cella, e l'errore che misuro è solo quello dovuto alla capacità di calcolo del modello.
+
+Lavorando su questo mi sono anche accorto che lo smoothing usato da FairMind (prior BDeu) non è lo stesso dichiarato nel paper (Laplace, $\alpha=1$). Non è un errore di per sé, è una scelta di stima diversa, ma è da tenere a mente se si vogliono confrontare i numeri con quelli pubblicati.
+
+\subsection*{Il binning di \texttt{education} e le iterazioni sul formato del prompt}
+
+Con \texttt{education} a 16 livelli le combinazioni $(z,w)$ da elaborare per DE e IE sono 80, e Qwen2.5-7B non ce la fa a completare il calcolo: con il prompt originale (che chiede di mostrare il lavoro passo-passo per ogni combinazione) la risposta viene troncata prima di arrivare al JSON finale, anche alzando il limite di token da 4096 a 8192 e poi a 16384. Ho provato a compattare il formato di output (raggruppamento per $z$, una riga per fascia, niente LaTeX nella risposta), ma il risultato è peggiorato: il modello ha smesso di calcolare sul serio e ha restituito valori inventati (TE identico a TV, DE e IE con lo stesso valore assoluto e segno opposto). Togliergli lo spazio per ragionare passo-passo fa più danno che bene, almeno a questa taglia di modello.
+
+Alla fine la soluzione è stata ridurre la complessità combinatoria a monte: ho raggruppato i 16 livelli di \texttt{education} in 5 fasce (\texttt{<HS}, \texttt{HS-grad}, \texttt{Some-college}, \texttt{Bachelors}, \texttt{Grad}), con un criterio analogo a quello usato per \texttt{hours-per-week} (\S\ref{sec:binning}) e in linea con le categorizzazioni standard nella letteratura su Adult. Le combinazioni $(z,w)$ scendono da 80 a 25, e il prompt originale (formato libero, senza vincoli sulla risposta) torna a funzionare. Il binning cambia un po' il ground truth, soprattutto per gli effetti che passano dal confondente:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Effetto & \texttt{education} a 16 livelli & \texttt{education} a 5 fasce \\
+\midrule
+TV & 0.194470 & 0.194470 \\
+TE & 0.183161 & 0.185507 \\
+SE & 0.011309 & 0.008963 \\
+DE & 0.137359 & 0.138961 \\
+IE & $-0.045803$ & $-0.046546$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Risultato finale e una scoperta sul determinismo del server}
+
+Messe insieme tutte le correzioni (SE derivata da TV$-$TE, tabelle dalla Bayesian Network, \texttt{education} a 5 fasce, prompt nel formato originale), il notebook \texttt{2\_3\_benchmark\_thor.ipynb} completa l'esecuzione end-to-end su Thor senza troncamenti né risposte degeneri:
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+Effetto & FairMind & LLM & Errore relativo \\
+\midrule
+TV & 0.194470 & 0.1945 & 0.02\% \\
+TE & 0.185507 & 0.1824 & 1.67\% \\
+SE & 0.008963 & 0.0121 & 34.99\% \\
+DE & 0.138961 & 0.1444 & 3.91\% \\
+IE & $-0.046546$ & 0.0144 & 130.94\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Come già visto in \S\ref{sec:multi-dataset-benchmark}, TV e TE sono gli effetti su cui il modello se la cava meglio. La SE eredita parte dell'errore di TE, e siccome il suo valore vero è vicino allo zero, anche differenze assolute piccole fanno esplodere l'errore relativo. Il caso più interessante però è IE: non solo l'errore relativo è alto, ma il segno è invertito rispetto al ground truth (vero: $-0.047$; LLM: $+0.0144$). È una conclusione qualitativamente diversa, non solo una questione di magnitudine. Il punto è che la formula di IE somma 25 termini con segno misto che si cancellano parzialmente --- il valore finale, piccolo in valore assoluto, è il risultato di questa cancellazione. Basta che il modello sbagli il peso di un paio di fasce con probabilità marginale alta perché il bilancio tra parte positiva e negativa si ribalti. TV e TE non hanno questa struttura di cancellazione e reggono meglio gli errori aritmetici sparsi.
+
+Una cosa che ho scoperto ripetendo lo stesso identico prompt (stesso \texttt{CONFIG}, stesso codice, \texttt{temperature=0}) su tre job Slurm separati: l'output è identico byte per byte. Stessi 8279 token, stessi numeri fino all'ultima cifra. Quindi \texttt{llama.cpp} con \texttt{temperature=0} è deterministico per un prompt fissato --- rieseguirlo non aggiunge informazione statistica. Per capire se il pattern su IE (segno invertito, valore vicino allo zero) è un bias sistematico del modello o un artefatto di questo specifico prompt, servirebbe variazione reale: temperatura non nulla con repliche multiple, oppure confondenti e mediatori diversi sullo stesso dataset.
+
+\subsection*{Prossimi passi}
+
+A questo punto le quattro osservazioni del docente sono tutte chiuse: il bug sulla SE è corretto (punti 1 e 3), il punto~2 non richiedeva modifiche, le tabelle del prompt ora vengono dalla Bayesian Network (punto~4). Ho un benchmark end-to-end funzionante e riproducibile su Adult con un solo modello.
+
+Come cose da fare restano: raccogliere più campioni indipendenti (con temperatura non nulla) per capire quanto l'errore su DE e IE sia sistematico; valutare se reintegrare un meccanismo di causal discovery per la scelta dei ruoli delle variabili, come già discusso al punto~3; e, quando ci sarà tempo, portare queste correzioni anche al notebook multi-dataset (\texttt{2\_4}), che per ora ho lasciato fuori.
