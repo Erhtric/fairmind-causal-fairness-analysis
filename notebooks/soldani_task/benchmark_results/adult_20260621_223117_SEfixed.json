@@ -17,13 +17,13 @@
   "fairmind": {
     "TV": 0.19447044911742462,
     "TE": 0.18316139825079017,
-    "SE": -0.007296039571025467,
+    "SE": 0.011309050866634446,
     "DE": 0.13704949010365383,
     "IE": -0.04611190814713634
   },
   "gpt": {
-    "TV": 0.26666666666666666,
-    "TE": 0.26666666666666666,
+    "TV": 0.0,
+    "TE": 0.0,
     "SE": 0.0,
     "DE": 0.0,
     "IE": 0.0
@@ -32,22 +32,22 @@
     {
       "effect": "TV",
       "fairmind": 0.19447,
-      "gpt": 0.266667,
-      "abs_error": 0.072196,
-      "rel_error_%": 37.12
+      "gpt": 0.0,
+      "abs_error": 0.19447,
+      "rel_error_%": 100.0
     },
     {
       "effect": "TE",
       "fairmind": 0.183161,
-      "gpt": 0.266667,
-      "abs_error": 0.083505,
-      "rel_error_%": 45.59
+      "gpt": 0.0,
+      "abs_error": 0.183161,
+      "rel_error_%": 100.0
     },
     {
       "effect": "SE",
-      "fairmind": -0.007296,
+      "fairmind": 0.011309,
       "gpt": 0.0,
-      "abs_error": 0.007296,
+      "abs_error": 0.011309,
       "rel_error_%": 100.0
     },
     {
@@ -66,13 +66,13 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 4464,
-    "output_tokens": 80,
+    "input_tokens": 27745,
+    "output_tokens": 48,
     "reasoning_tokens": null,
-    "total_tokens": 4544
+    "total_tokens": 27793
   },
   "timing": {
-    "fairmind_seconds": 0.0079,
-    "gpt_seconds": 63.8129
+    "fairmind_seconds": 0.0054,
+    "gpt_seconds": 670.329
   }
 }
