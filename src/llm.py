@@ -304,14 +304,19 @@ def call_llm(
     )
     elapsed = time.perf_counter() - start
 
+    raw = response.choices[0].message.content.strip()
+
     usage = {
         "input_tokens": response.usage.prompt_tokens,
         "output_tokens": response.usage.completion_tokens,
         "reasoning_tokens": None,
         "total_tokens": response.usage.total_tokens,
+        # The step-by-step working the prompt asks for, kept so that a wrong
+        # DE or IE can be traced to the term where the model diverges. Carried
+        # inside usage rather than as a fourth return value, which would break
+        # existing call sites (2_4 unpacks exactly three).
+        "raw_response": raw,
     }
-
-    raw = response.choices[0].message.content.strip()
     candidates = re.findall(r"\{[^{}]*\}", raw, re.DOTALL)
     # SE non e' richiesta al modello (e' derivata come TV-TE lato chiamante,
     # v. 2_3_benchmark_thor.ipynb): non e' tra le chiavi obbligatorie.
