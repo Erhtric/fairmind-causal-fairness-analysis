@@ -234,8 +234,12 @@ Here are the fairness decomposition results in JSON:
 
 LLM_CONFIGS = [
     {
-        "name": "Qwen2.5-7B",
-        "model": "qwen2.5-7b-instruct",
+        # The served model is Qwen2.5-14B-Instruct-Q4_K_M (verified 2026-08-10
+        # against /v1/models: n_params = 14 770 033 664). "model" is documental
+        # only: llama.cpp serves the single loaded model regardless of the name
+        # sent in the request.
+        "name": "Qwen2.5-14B",
+        "model": "qwen2.5-14b-instruct",
         "base_url": f"http://{os.environ.get('LLAMA_HOST', 'localhost')}:{os.environ.get('LLAMA_PORT', '8080')}/v1",
         "api_key": "not-needed",
     },
