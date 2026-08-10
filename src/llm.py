@@ -250,6 +250,7 @@ def call_llm(
     prompt: str,
     config: dict | None = None,
     max_tokens: int = 4096,
+    cache_prompt: bool = False,
 ) -> tuple[dict, dict, float]:
     """Send a prompt to an LLM and parse the JSON result.
 
@@ -265,6 +266,15 @@ def call_llm(
         work for many (z,w) combinations (high-cardinality confounders)
         can exceed the default before reaching the FINAL_JSON block,
         causing a truncated/unparseable response — raise this if so.
+    cache_prompt : bool
+        llama.cpp extension, off by default here for reproducibility. The server
+        keeps one KV cache per slot (4 slots on the Thor instance) and, when this
+        is on, routes a request to the slot sharing the longest common prefix and
+        reuses that cache instead of recomputing the prompt. Identical requests
+        then follow different numeric paths depending on what a slot happens to
+        hold: on 2026-08-10 the same prompt produced 8248 and 2786 output tokens
+        in different runs at temperature 0, and the shorter answers skipped terms.
+        Set it to True only to reproduce that behaviour deliberately.
 
     Returns
     -------
@@ -287,6 +297,9 @@ def call_llm(
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
         max_tokens=max_tokens,
+        # Not an OpenAI field: passed through to llama.cpp untouched. A server
+        # that does not know it ignores it, so this stays safe elsewhere.
+        extra_body={"cache_prompt": cache_prompt},
     )
     elapsed = time.perf_counter() - start
 
