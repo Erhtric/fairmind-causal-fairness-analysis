@@ -1,0 +1,71 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\title{Report di Causal Fairness Analysis}
+\author{Generato da FairMind + LLM}
+\date{<<REPORT_DATE>>}
+
+\begin{document}
+\maketitle
+
+\section{Configurazione dell'analisi}
+
+\begin{tabular}{ll}
+\toprule
+Dataset & <<DATASET>> \\
+Attributo protetto ($X$) & <<PROTECTED_ATTR>> \\
+Confronto & <<X0>> $\to$ <<X1>> \\
+Outcome ($Y$) & <<OUTCOME_ATTR>> \\
+Mediatore ($W$) & <<MEDIATOR>> \\
+Confondente ($Z$) & <<CONFOUNDER>> \\
+\bottomrule
+\end{tabular}
+
+\section{Effetti causali (FairMind, valori esatti)}
+
+I cinque effetti seguenti sono calcolati da FairMind tramite inferenza esatta
+sulla rete bayesiana stimata. Questi valori sono definitivi e non vanno
+ricalcolati o alterati.
+
+\begin{tabular}{lr}
+\toprule
+Effetto & Valore \\
+\midrule
+Total Variation (TV) & <<TV>> \\
+Total Effect (TE) & <<TE>> \\
+Spurious Effect (SE) & <<SE>> \\
+Direct Effect (DE) & <<DE>> \\
+Indirect Effect (IE, forma inversa) & <<IE>> \\
+\bottomrule
+\end{tabular}
+
+\section{Interpretazione qualitativa}
+
+\subsection{Effetto totale e componente spuria (TV, TE, SE)}
+
+<<QUALITATIVE_TOTAL>>
+
+\subsection{Effetto diretto (DE)}
+
+<<QUALITATIVE_DE>>
+
+\subsection{Effetto indiretto (IE)}
+
+<<QUALITATIVE_IE>>
+
+\section{Recap Questions}
+
+\begin{enumerate}
+\item Esiste una discriminazione diretta nei confronti del gruppo protetto? \textbf{Risposta:} <<ANSWER_Q1>>
+\item L'effetto indiretto attraverso il mediatore mitiga l'effetto totale? \textbf{Risposta:} <<ANSWER_Q2>>
+\item L'effetto totale osservato supera la soglia di rilevanza pratica? \textbf{Risposta:} <<ANSWER_Q3>>
+\item La componente spuria (SE) contribuisce in modo sostanziale alla differenza osservata? \textbf{Risposta:} <<ANSWER_Q4>>
+\item L'effetto diretto è la componente dominante rispetto all'effetto indiretto? \textbf{Risposta:} <<ANSWER_Q5>>
+\end{enumerate}
+
+\end{document}
