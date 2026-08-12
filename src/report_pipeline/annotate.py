@@ -19,15 +19,15 @@ from .validator import ScoreReport
 
 # Cattura la riga "\textbf{Risposta:} XX" lasciando fuori l'eventuale coda,
 # cosi' da poterla sostituire per intero mantenendo il testo della domanda.
-_ANSWER_LINE = re.compile(r"\\textbf\{Risposta:\}\s*([^\s\\}]+)")
+_ANSWER_LINE = re.compile(r"\\textbf\{(?:Answer|Risposta):\}\s*([^\s\\}]+)")
 
 _MISSING = "--"
 
 
 def _verdict(correct: bool, llm_answer: str | None) -> str:
     if llm_answer is None:
-        return "non interpretabile"
-    return "corretto" if correct else "errato"
+        return "unreadable"
+    return "correct" if correct else "wrong"
 
 
 def annotate_recap_answers(latex_text: str, score: ScoreReport) -> str:
@@ -51,7 +51,7 @@ def annotate_recap_answers(latex_text: str, score: ScoreReport) -> str:
         llm = r.llm_answer if r.llm_answer is not None else _MISSING
         return (
             f"\\textbf{{LLM:}} {llm} \\quad "
-            f"\\textbf{{Attesa:}} {r.ground_truth} \\quad "
+            f"\\textbf{{Expected:}} {r.ground_truth} \\quad "
             f"({_verdict(r.correct, r.llm_answer)})"
         )
 
@@ -68,13 +68,12 @@ def _append_summary(latex_text: str, score: ScoreReport) -> str:
     """
     summary = (
         "\n\\vspace{1em}\n"
-        "\\noindent\\textbf{Consistenza delle risposte:} "
+        "\\noindent\\textbf{Answer consistency:} "
         f"{score.n_correct}/{score.n_total} "
         f"({score.score * 100:.1f}\\%). "
-        "Le risposte attese sono calcolate in modo deterministico dai soli "
-        "valori numerici di FairMind, secondo regole a soglia, e sono state "
-        "aggiunte al documento dopo la generazione: il modello non le ha mai "
-        "viste.\n"
+        "The expected answers are derived deterministically from the FairMind "
+        "values alone, through threshold rules, and were added to the document "
+        "after it was generated: the model never saw them.\n"
     )
     marker = "\\end{document}"
     if marker in latex_text:

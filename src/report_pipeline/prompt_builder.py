@@ -119,15 +119,16 @@ The eight placeholders and what belongs in each:
    channel amplifies or offsets (mitigates) the direct effect, based on \
    whether IE and DE have the same or opposite sign.
 4. <<ANSWER_Q1>> through <<ANSWER_Q5>> — the boolean answer to each Recap \
-   Question, using EXACTLY the token SI or NO (uppercase, no accents, no \
+   Question, using EXACTLY the token YES or NO (uppercase, no \
    punctuation, nothing else). Base each answer strictly on the numeric \
    values given (DE, IE, TV, SE) and on the qualitative text you just wrote \
    for that section — do not introduce new claims in the recap that \
    contradict what you wrote above.
 
 Rules:
-- Write the qualitative blocks in plain, precise language grounded only in \
-  the numbers provided. Do not invent context about the dataset that is not \
+- Write the qualitative blocks in ENGLISH, in plain and precise language \
+  grounded only in the numbers provided. The whole document is in English: \
+  do not switch language. Do not invent context about the dataset that is not \
   given to you.
 - Never leave a placeholder token (<<...>>) in your output — every one of \
   the eight must be replaced.

@@ -111,7 +111,7 @@ N_QUESTIONS = len(GROUND_TRUTH_RULES)
 # Parsing delle risposte SI/NO dal LaTeX generato dall'LLM.
 ###############################################################################
 
-_ANSWER_PATTERN = re.compile(r"\\textbf\{Risposta:\}\s*([^\s\\}]+)")
+_ANSWER_PATTERN = re.compile(r"\\textbf\{(?:Answer|Risposta):\}\s*([^\s\\}]+)")
 
 # Normalizza varianti plausibili che un LLM potrebbe produrre nonostante le
 # istruzioni (accenti, VERO/FALSO, inglese, punteggiatura residua) verso
@@ -120,13 +120,20 @@ _TRUE_TOKENS = {"SI", "SÌ", "VERO", "TRUE", "YES", "Y"}
 _FALSE_TOKENS = {"NO", "FALSO", "FALSE", "N"}
 
 
+# Il report e' in inglese, quindi la forma canonica e' YES/NO. I token
+# italiani restano accettati: i report prodotti prima del passaggio
+# all'inglese continuano cosi' a essere valutabili senza rigenerarli.
+ANSWER_TRUE = "YES"
+ANSWER_FALSE = "NO"
+
+
 def _normalize_answer(raw: str) -> str | None:
     cleaned = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
     cleaned = re.sub(r"[^A-Za-z]", "", cleaned).upper()
     if cleaned in {t.encode("ascii", "ignore").decode("ascii").upper() for t in _TRUE_TOKENS}:
-        return "SI"
+        return ANSWER_TRUE
     if cleaned in {t.encode("ascii", "ignore").decode("ascii").upper() for t in _FALSE_TOKENS}:
-        return "NO"
+        return ANSWER_FALSE
     return None
 
 
@@ -194,7 +201,7 @@ def score_report(latex_text: str, effects: dict[str, float]) -> ScoreReport:
     solo perche' non e' stato possibile leggerlo.
     """
     llm_answers = parse_recap_answers(latex_text)
-    ground_truths = ["SI" if rule(effects) else "NO" for rule in GROUND_TRUTH_RULES]
+    ground_truths = [ANSWER_TRUE if rule(effects) else ANSWER_FALSE for rule in GROUND_TRUTH_RULES]
 
     report = ScoreReport(n_total=N_QUESTIONS)
     for i, (llm_ans, gt) in enumerate(zip(llm_answers, ground_truths), start=1):
