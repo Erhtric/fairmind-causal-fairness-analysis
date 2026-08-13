@@ -1,6 +1,6 @@
 from __future__ import annotations
-import io
 
+import io
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -19,8 +19,8 @@ PROMPTS_DIR = REPO_ROOT / "prompts"
 
 
 class EvaluationQuestion(BaseModel):
-    question: str = Field(description="The evaluation question text.")
-    answer: bool = Field(description="YES (True) or NO (False) answer.")
+    question: str = Field(description="The evaluation question key (e.g., Q1_EVAL) or question text.")
+    answer: str | bool = Field(description="The selected answer option string or boolean answer.")
 
 
 class FairnessReport(BaseModel):
@@ -55,6 +55,30 @@ class LLMReportResult:
 
     def __iter__(self):
         return iter((self.text, self.latex, self.evaluation, self.usage))
+CANONICAL_ACTUAL_QUESTIONS = [
+    "1. Which group has a higher probability/mean of positive outcome Y?",
+    "2. What is the directional effect of intervening on X (x0 -> x1) on outcome Y?",
+    "3. Which causal component is the primary driver of the group disparity (largest absolute magnitude)?",
+    "4. What is the net qualitative impact transmitted through the mediator variables W?",
+    "5. What is the qualitative impact of non-causal confounding through Z?",
+]
+
+
+def normalize_evaluation_questions(
+    evaluation: list[EvaluationQuestion],
+) -> list[EvaluationQuestion]:
+    """Normalizes the question field of each EvaluationQuestion to canonical actual question stems."""
+    if not evaluation:
+        return []
+
+    normalized: list[EvaluationQuestion] = []
+    for idx, eq in enumerate(evaluation):
+        if idx >= len(CANONICAL_ACTUAL_QUESTIONS):
+            break
+        q_text = CANONICAL_ACTUAL_QUESTIONS[idx]
+        normalized.append(EvaluationQuestion(question=q_text, answer=eq.answer))
+
+    return normalized
 
 
 ##########################################
@@ -245,12 +269,24 @@ def summarize_fairmind(
         ],
     )
 
+    from src.visualisation.latex import ensure_template_rendered_latex
+
+    dataset_name = (
+        results.get("dataset", "Fairness Query")
+        if isinstance(results, dict)
+        else "Fairness Query"
+    )
+    rendered_latex = ensure_template_rendered_latex(
+        resp.output_parsed.latex, dataset_name=dataset_name
+    )
+
+    norm_eval = normalize_evaluation_questions(resp.output_parsed.evaluation)
     return LLMReportResult(
         model=model,
         effort=effort,
         text=resp.output_parsed.text,
-        latex=resp.output_parsed.latex,
-        evaluation=resp.output_parsed.evaluation,
+        latex=rendered_latex,
+        evaluation=norm_eval,
         usage=resp.usage,
     )
 
@@ -459,12 +495,24 @@ def generate_report_from_file_id(
         ],
     )
 
+    from src.visualisation.latex import ensure_template_rendered_latex
+
+    dataset_name = (
+        prompt_kwargs.get("exposure", "Fairness Query")
+        if prompt_kwargs
+        else "Fairness Query"
+    )
+    rendered_latex = ensure_template_rendered_latex(
+        resp.output_parsed.latex, dataset_name=dataset_name
+    )
+
+    norm_eval = normalize_evaluation_questions(resp.output_parsed.evaluation)
     return LLMReportResult(
         model=model,
         effort=effort,
         text=resp.output_parsed.text,
-        latex=resp.output_parsed.latex,
-        evaluation=resp.output_parsed.evaluation,
+        latex=rendered_latex,
+        evaluation=norm_eval,
         usage=resp.usage,
     )
 

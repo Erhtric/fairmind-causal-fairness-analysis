@@ -59,14 +59,35 @@ For each bullet, tie the statement to the actual numeric value and briefly inter
 If `results.matrices` is present, add at most one sentence per effect noting the largest pairwise disparity across X states; do not reproduce the matrices.
 
 ### 3. Logical Soundness Evaluation
-Evaluate and answer the following 5 predefined YES/NO questions regarding causal decomposition identities:
-1. Is the reported Total Effect (TE) exactly equal to the Natural Direct Effect (NDE) minus the Natural Indirect Effect (NIE)?
-2. Do the mediator-specific indirect effects sum up exactly to the total indirect effect (IE)?
-3. Do the confounder-specific spurious effects sum up exactly to the total spurious effect (SE)?
-4. Are the reported effects mathematically consistent with the basic inequality: Total Variation (TV) = Total Effect (TE) + Spurious Effect (SE)?
-5. Does the plain-text conclusion correctly identify the component (Direct, Indirect, or Spurious) that contributes the most to the Total Variation?
+Answer the following 5 closed logical evaluation questions by selecting the exact option that holds true:
 
-Populate the structured `evaluation` output field with these 5 questions and their boolean answers (`true` for YES, `false` for NO).
+1. Which group has a higher probability/mean of positive outcome Y?
+   - (1) Group x1 has a higher probability/mean of outcome Y than Group x0
+   - (2) Group x0 has a higher probability/mean of outcome Y than Group x1
+   - (3) Both groups have equal outcome probability/mean (no disparity)
+
+2. What is the directional effect of intervening on X (x0 -> x1) on outcome Y?
+   - (1) Intervening on X (x0 -> x1) increases outcome probability Y
+   - (2) Intervening on X (x0 -> x1) decreases outcome probability Y
+   - (3) Intervening on X (x0 -> x1) has zero total effect on Y
+
+3. Which causal component is the primary driver of the group disparity (largest absolute magnitude)?
+   - (1) Natural Direct Effect (NDE) via path X -> Y
+   - (2) Natural Indirect Effect (NIE) via mediators W
+   - (3) Spurious Effect (SE) via confounders Z
+   - (4) Components have equal magnitude or are unestimable
+
+4. What is the net qualitative impact transmitted through the mediator variables W?
+   - (1) Mediators transmit a positive indirect effect favoring Group x1
+   - (2) Mediators transmit a negative indirect effect disadvantaging Group x1
+   - (3) Mediators transmit no net indirect effect (NIE = 0)
+
+5. What is the qualitative impact of non-causal confounding through Z?
+   - (1) Spurious confounding inflates outcome for Group x1
+   - (2) Spurious confounding suppresses outcome for Group x1
+   - (3) Spurious confounding is zero (SE = 0)
+
+Populate the structured `evaluation` output field with these 5 questions and their selected options.
 
 ### 4. Stepwise Effects Across Ordered Levels of X (conditional)
 Include this section only if `stepwise_results` is present and non-empty. If included:
