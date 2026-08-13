@@ -68,6 +68,7 @@ Both fields must agree on the content and the numbers.
 - Then include these subsections as headings using the **exact names** below:
   1. `Overview of the Fairness Analysis`
   2. `Decomposition of Effects`
+  3. `Logical Soundness Evaluation`
 - End with a conclusion-style recap (short paragraph).
 - The recap MUST clearly state which group (x_0 or x_1, using the actual group names) has higher or lower outcome probability/mean.
 - It MUST explicitly describe the direction of disparity in plain words (e.g., "Females have a lower probability than Males of Y").
@@ -79,6 +80,7 @@ Both fields must agree on the content and the numbers.
 - Use `\subsection*{...}` for subsection headings, with titles exactly:
   - `Overview of the Fairness Analysis`
   - `Decomposition of Effects`
+  - `Logical Soundness Evaluation`
 - End with a recap section (e.g., `\subsection*{Recap}`) whose content corresponds to the text recap.
 
 ## Subsection requirements
@@ -114,6 +116,14 @@ For each bullet, briefly interpret the effect in terms of fairness and potential
   - If declared but not estimable from the data (e.g., insufficient sample size in some strata): say so explicitly and name the affected strata.
 
 Do not provide generic summaries; tie statements to the numeric results you computed and to named variables.
+
+### 3) Logical Soundness Evaluation
+Evaluate and answer the following 5 predefined YES/NO questions regarding causal decomposition identities:
+1. Is the reported Total Effect (TE) exactly equal to the Natural Direct Effect (NDE) minus the Natural Indirect Effect (NIE)?
+2. Do the mediator-specific indirect effects sum up exactly to the total indirect effect (IE)?
+3. Do the confounder-specific spurious effects sum up exactly to the total spurious effect (SE)?
+4. Are the reported effects mathematically consistent with the basic inequality: Total Variation (TV) = Total Effect (TE) + Spurious Effect (SE)?
+5. Does the plain-text conclusion correctly identify the component (Direct, Indirect, or Spurious) that contributes the most to the Total Variation?
 
 Keep language concise and data-scientist friendly. Do not invent numbers; if a quantity could not be estimated, state that explicitly.
 

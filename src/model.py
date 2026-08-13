@@ -8,6 +8,9 @@ from pgmpy.models import DiscreteBayesianNetwork
 from .graph import filter_nodes_by_type
 
 
+from pgmpy.parameter_estimator import DiscreteBayesianEstimator, DiscreteMLE
+
+
 def fit_discrete_bayesian_model(
     sfm: nx.DiGraph,
     data: pd.DataFrame,
@@ -36,7 +39,23 @@ def fit_discrete_bayesian_model(
 
     latents = filter_nodes_by_type(sfm.nodes(data=True), category="latent")
     model = DiscreteBayesianNetwork(sfm, latents=set(latents))
-    model.fit(data, estimator=estimator_class(**estimator_params))
+
+    if hasattr(estimator_class, "__name__") and estimator_class.__name__ in (
+        "MaximumLikelihoodEstimator",
+        "DiscreteMLE",
+    ):
+        estimator = DiscreteMLE(**estimator_params)
+    elif hasattr(estimator_class, "__name__") and estimator_class.__name__ in (
+        "DiscreteBayesianEstimator",
+        "BayesianEstimator",
+    ):
+        estimator = DiscreteBayesianEstimator(**estimator_params)
+    elif isinstance(estimator_class, type):
+        estimator = estimator_class(**estimator_params)
+    else:
+        estimator = estimator_class
+
+    model.fit(data, estimator=estimator)
 
     return model
 

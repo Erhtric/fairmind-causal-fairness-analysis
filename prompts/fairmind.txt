@@ -19,7 +19,8 @@ Use only information present in the JSON. Do **not** invent numbers or fields. I
 - Then include these subsections as headings using the **exact names** below:
   1. `Overview of the Fairness Analysis`
   2. `Decomposition of Effects`
-  3. `Stepwise Effects Across Ordered Levels of X` (conditional; see below)
+  3. `Logical Soundness Evaluation`
+  4. `Stepwise Effects Across Ordered Levels of X` (conditional; see below)
 - End with a conclusion-style recap (short paragraph).
 - The recap MUST clearly state which group (x0 or x1, using actual group names from JSON) has higher or lower outcome probability/mean.
 - It MUST explicitly describe the direction of disparity in plain words (e.g., "Females have a lower probability than Males of Y").
@@ -32,6 +33,7 @@ Use only information present in the JSON. Do **not** invent numbers or fields. I
 - Use `\subsection*{...}` for subsection headings, with titles exactly:
   - `Overview of the Fairness Analysis`
   - `Decomposition of Effects`
+  - `Logical Soundness Evaluation`
   - `Stepwise Effects Across Ordered Levels of X` (only if included in TEXT)
 - End with a recap section (e.g., `\subsection*{Recap}`) whose content corresponds to the TEXT recap.
 
@@ -70,7 +72,15 @@ For each bullet, briefly interpret the effect in terms of fairness and potential
 
 Do not provide generic summaries; tie statements to actual numeric results and named variables when present.
 
-### 3) Stepwise Effects Across Ordered Levels of X (CONDITIONAL)
+### 3) Logical Soundness Evaluation
+Evaluate and answer the following 5 predefined YES/NO questions regarding causal decomposition identities:
+1. Is the reported Total Effect (TE) exactly equal to the Natural Direct Effect (NDE) minus the Natural Indirect Effect (NIE)?
+2. Do the mediator-specific indirect effects sum up exactly to the total indirect effect (IE)?
+3. Do the confounder-specific spurious effects sum up exactly to the total spurious effect (SE)?
+4. Are the reported effects mathematically consistent with the basic inequality: Total Variation (TV) = Total Effect (TE) + Spurious Effect (SE)?
+5. Does the plain-text conclusion correctly identify the component (Direct, Indirect, or Spurious) that contributes the most to the Total Variation?
+
+### 4) Stepwise Effects Across Ordered Levels of X (CONDITIONAL)
 Include this subsection **only if**:
 - `stepwise.enabled` is true **and**
 - `effects_by_step` exists and is non-empty.

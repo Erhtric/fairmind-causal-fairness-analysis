@@ -58,7 +58,17 @@ A bullet list covering, in order:
 For each bullet, tie the statement to the actual numeric value and briefly interpret it in terms of fairness and potential discrimination. Do not provide generic summaries.
 If `results.matrices` is present, add at most one sentence per effect noting the largest pairwise disparity across X states; do not reproduce the matrices.
 
-### 3. Stepwise Effects Across Ordered Levels of X (conditional)
+### 3. Logical Soundness Evaluation
+Evaluate and answer the following 5 predefined YES/NO questions regarding causal decomposition identities:
+1. Is the reported Total Effect (TE) exactly equal to the Natural Direct Effect (NDE) minus the Natural Indirect Effect (NIE)?
+2. Do the mediator-specific indirect effects sum up exactly to the total indirect effect (IE)?
+3. Do the confounder-specific spurious effects sum up exactly to the total spurious effect (SE)?
+4. Are the reported effects mathematically consistent with the basic inequality: Total Variation (TV) = Total Effect (TE) + Spurious Effect (SE)?
+5. Does the plain-text conclusion correctly identify the component (Direct, Indirect, or Spurious) that contributes the most to the Total Variation?
+
+Populate the structured `evaluation` output field with these 5 questions and their boolean answers (`true` for YES, `false` for NO).
+
+### 4. Stepwise Effects Across Ordered Levels of X (conditional)
 Include this section only if `stepwise_results` is present and non-empty. If included:
 - state the X order used (lowest → highest, from the step labels),
 - summarize how each effect changes across adjacent steps, highlighting sign reversals or unusually large steps,
@@ -81,4 +91,6 @@ End with a short closing paragraph (in `latex`: `\subsection*{Recap}`) that must
 - All math expressions inside `$...$`. Inequalities must use `\geq`, `\leq`, `>`, `<`; raw `>=`, `<=`, `==` are forbidden anywhere in the document.
 - Threshold-style state labels (e.g. ">50K", ">=50K") must be written as math, e.g. `$Y > 50K$` or `$Y \geq 50K$` — never as string-wrapped text such as \text{">50K"}.
 - Escape LaTeX special characters when they appear in prose (variable and state names often contain them): `_` as `\_`, `%` as `\%`, `&` as `\&`, `#` as `\#`.
-- Refer to feature names in math environment (i.e., $$...$$, \[...\], etc.) with a \mathrm{.} command.
+- Refer to feature names in math environment (i.e., $$...$$, \[...\], etc.) with a \mathrm{.} command within the respective math environment.
+- General states such as x0, x1, ..., xn shall be written in math environment as $x_0, x_1, ..., x_n$.
+- Underscores out of math environments shall be preceded by a slash, e.g., CREDIT\_LIMIT.

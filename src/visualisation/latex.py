@@ -26,6 +26,11 @@ def compile_report_to_pdf(report: LLMReportResult, output_path: str | Path) -> N
         pdfl = PDFLaTeX.from_texfile(temp_tex_path)
         pdf, _, _ = pdfl.create_pdf(keep_pdf_file=True, keep_log_file=False)
 
+        # If it exists, remove the existing PDF file before writing the new one
+        if os.path.exists(output_path):
+            print(f"Removing existing PDF report at: {output_path}")
+            os.remove(output_path)
+
         with open(output_path, "wb") as f:
             print(f"Saving PDF report to: {output_path}")
             f.write(pdf)

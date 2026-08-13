@@ -15,6 +15,8 @@ from .graph import filter_nodes_by_type
 ######### Effect computation via ID Expr on SFM ############
 ############################################################
 
+# TODO: @Erhtric x-, z-, w- specific effects are still to be implemented
+
 
 def utility_weighted_effect(
     effect_func: Callable[
