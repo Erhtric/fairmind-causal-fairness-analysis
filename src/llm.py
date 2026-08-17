@@ -55,30 +55,7 @@ class LLMReportResult:
 
     def __iter__(self):
         return iter((self.text, self.latex, self.evaluation, self.usage))
-CANONICAL_ACTUAL_QUESTIONS = [
-    "1. Which group has a higher probability/mean of positive outcome Y?",
-    "2. What is the directional effect of intervening on X (x0 -> x1) on outcome Y?",
-    "3. Which causal component is the primary driver of the group disparity (largest absolute magnitude)?",
-    "4. What is the net qualitative impact transmitted through the mediator variables W?",
-    "5. What is the qualitative impact of non-causal confounding through Z?",
-]
 
-
-def normalize_evaluation_questions(
-    evaluation: list[EvaluationQuestion],
-) -> list[EvaluationQuestion]:
-    """Normalizes the question field of each EvaluationQuestion to canonical actual question stems."""
-    if not evaluation:
-        return []
-
-    normalized: list[EvaluationQuestion] = []
-    for idx, eq in enumerate(evaluation):
-        if idx >= len(CANONICAL_ACTUAL_QUESTIONS):
-            break
-        q_text = CANONICAL_ACTUAL_QUESTIONS[idx]
-        normalized.append(EvaluationQuestion(question=q_text, answer=eq.answer))
-
-    return normalized
 
 
 ##########################################
@@ -280,13 +257,12 @@ def summarize_fairmind(
         resp.output_parsed.latex, dataset_name=dataset_name
     )
 
-    norm_eval = normalize_evaluation_questions(resp.output_parsed.evaluation)
     return LLMReportResult(
         model=model,
         effort=effort,
         text=resp.output_parsed.text,
         latex=rendered_latex,
-        evaluation=norm_eval,
+        evaluation=resp.output_parsed.evaluation,
         usage=resp.usage,
     )
 
@@ -506,13 +482,12 @@ def generate_report_from_file_id(
         resp.output_parsed.latex, dataset_name=dataset_name
     )
 
-    norm_eval = normalize_evaluation_questions(resp.output_parsed.evaluation)
     return LLMReportResult(
         model=model,
         effort=effort,
         text=resp.output_parsed.text,
         latex=rendered_latex,
-        evaluation=norm_eval,
+        evaluation=resp.output_parsed.evaluation,
         usage=resp.usage,
     )
 

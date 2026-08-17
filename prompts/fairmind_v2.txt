@@ -59,7 +59,7 @@ For each bullet, tie the statement to the actual numeric value and briefly inter
 If `results.matrices` is present, add at most one sentence per effect noting the largest pairwise disparity across X states; do not reproduce the matrices.
 
 ### 3. Logical Soundness Evaluation
-Answer the following 5 closed logical evaluation questions by selecting the exact option that holds true:
+Answer the following 8 closed logical evaluation questions by selecting the exact option that holds true:
 
 1. Which group has a higher probability/mean of positive outcome Y?
    - (1) Group x1 has a higher probability/mean of outcome Y than Group x0
@@ -71,23 +71,38 @@ Answer the following 5 closed logical evaluation questions by selecting the exac
    - (2) Intervening on X (x0 -> x1) decreases outcome probability Y
    - (3) Intervening on X (x0 -> x1) has zero total effect on Y
 
-3. Which causal component is the primary driver of the group disparity (largest absolute magnitude)?
+3. Holding all mediators fixed, how does the direct pathway (X -> Y) affect Group x1?
+   - (1) The direct path favors Group x1 (NDE > 0)
+   - (2) The direct path disadvantages Group x1 (NDE < 0)
+   - (3) Direct effect is zero (NDE = 0)
+
+4. What is the net qualitative impact transmitted through the mediator variables W?
+   - (1) Mediators transmit a positive indirect effect favoring Group x1 (NIE > 0)
+   - (2) Mediators transmit a negative indirect effect disadvantaging Group x1 (NIE < 0)
+   - (3) Mediators transmit no net indirect effect or no mediators present (NIE = 0)
+
+5. What is the qualitative impact of non-causal confounding through Z?
+   - (1) Spurious confounding inflates outcome for Group x1 (SE > 0)
+   - (2) Spurious confounding suppresses outcome for Group x1 (SE < 0)
+   - (3) Spurious confounding is zero or no confounders present (SE = 0)
+
+6. Which causal component is the primary driver of the group disparity (largest absolute magnitude)?
    - (1) Natural Direct Effect (NDE) via path X -> Y
    - (2) Natural Indirect Effect (NIE) via mediators W
    - (3) Spurious Effect (SE) via confounders Z
    - (4) Components have equal magnitude or are unestimable
 
-4. What is the net qualitative impact transmitted through the mediator variables W?
-   - (1) Mediators transmit a positive indirect effect favoring Group x1
-   - (2) Mediators transmit a negative indirect effect disadvantaging Group x1
-   - (3) Mediators transmit no net indirect effect (NIE = 0)
+7. How do the direct (NDE) and indirect (NIE) pathways interact in producing the total causal effect?
+   - (1) Reinforcing / Synergistic (both pathways operate in the same direction)
+   - (2) Compensating / Masking (pathways operate in opposite directions, one offsetting the other)
+   - (3) Single-pathway or Neutral (one or both pathways have zero effect)
 
-5. What is the qualitative impact of non-causal confounding through Z?
-   - (1) Spurious confounding inflates outcome for Group x1
-   - (2) Spurious confounding suppresses outcome for Group x1
-   - (3) Spurious confounding is zero (SE = 0)
+8. When multiple mediators are present, which individual mediator variable is the primary contributor (largest absolute contribution) to the indirect effect?
+   - (1) [State the variable name of the dominant individual mediator]
+   - (2) Multiple mediators have equal magnitude or are indeterminate
+   - (3) Not applicable (single mediator or no mediators declared)
 
-Populate the structured `evaluation` output field with these 5 questions and their selected options.
+Populate the structured `evaluation` output field with these 8 questions and their selected options.
 
 ### 4. Stepwise Effects Across Ordered Levels of X (conditional)
 Include this section only if `stepwise_results` is present and non-empty. If included:
