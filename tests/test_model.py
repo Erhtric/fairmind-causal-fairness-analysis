@@ -3,6 +3,7 @@
 import networkx as nx
 import pandas as pd
 import pgmpy.estimators
+import pgmpy.parameter_estimator
 import pytest
 from pgmpy.models import DiscreteBayesianNetwork
 
@@ -52,12 +53,12 @@ class TestFitDiscreteBayesianModel:
         assert set(model.nodes()) == {"X", "Y", "Z", "W"}
 
     def test_bayesian_estimator_with_bdeu(self, simple_sfm, sample_data):
-        """Test model fitting with BayesianEstimator using BDeu prior."""
+        """Test model fitting with DiscreteBayesianEstimator using BDeu prior."""
         model = fit_discrete_bayesian_model(
             sfm=simple_sfm,
             data=sample_data,
             estimator_instance=(
-                pgmpy.estimators.BayesianEstimator,
+                pgmpy.parameter_estimator.DiscreteBayesianEstimator,
                 {"prior_type": "BDeu", "equivalent_sample_size": 5},
             ),
         )
@@ -66,12 +67,12 @@ class TestFitDiscreteBayesianModel:
         assert set(model.nodes()) == {"X", "Y", "Z", "W"}
 
     def test_bayesian_estimator_with_k2(self, simple_sfm, sample_data):
-        """Test model fitting with BayesianEstimator using K2 prior."""
+        """Test model fitting with DiscreteBayesianEstimator using K2 prior."""
         model = fit_discrete_bayesian_model(
             sfm=simple_sfm,
             data=sample_data,
             estimator_instance=(
-                pgmpy.estimators.BayesianEstimator,
+                pgmpy.parameter_estimator.DiscreteBayesianEstimator,
                 {"prior_type": "K2"},
             ),
         )
@@ -80,12 +81,12 @@ class TestFitDiscreteBayesianModel:
         assert set(model.nodes()) == {"X", "Y", "Z", "W"}
 
     def test_bayesian_estimator_with_dirichlet(self, simple_sfm, sample_data):
-        """Test model fitting with BayesianEstimator using Dirichlet prior."""
+        """Test model fitting with DiscreteBayesianEstimator using Dirichlet prior."""
         model = fit_discrete_bayesian_model(
             sfm=simple_sfm,
             data=sample_data,
             estimator_instance=(
-                pgmpy.estimators.BayesianEstimator,
+                pgmpy.parameter_estimator.DiscreteBayesianEstimator,
                 {"prior_type": "dirichlet", "pseudo_counts": 1.0},
             ),
         )
@@ -153,7 +154,7 @@ class TestFitDiscreteBayesianModel:
             sfm=simple_sfm,
             data=sample_data,
             estimator_instance=(
-                pgmpy.estimators.BayesianEstimator,
+                pgmpy.parameter_estimator.DiscreteBayesianEstimator,
                 {"prior_type": "dirichlet", "pseudo_counts": 0.5},
             ),
         )
@@ -162,7 +163,7 @@ class TestFitDiscreteBayesianModel:
             sfm=simple_sfm,
             data=sample_data,
             estimator_instance=(
-                pgmpy.estimators.BayesianEstimator,
+                pgmpy.parameter_estimator.DiscreteBayesianEstimator,
                 {"prior_type": "dirichlet", "pseudo_counts": 2.0},
             ),
         )
@@ -245,7 +246,7 @@ class TestFitDiscreteBayesianModel:
             sfm=simple_sfm,
             data=large_data,
             estimator_instance=(
-                pgmpy.estimators.BayesianEstimator,
+                pgmpy.parameter_estimator.DiscreteBayesianEstimator,
                 {"prior_type": "BDeu", "equivalent_sample_size": 10},
             ),
         )

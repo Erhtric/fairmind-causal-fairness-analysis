@@ -24,10 +24,9 @@ class EvaluationQuestion(BaseModel):
 
 
 class FairnessReport(BaseModel):
-    """Both text and latex agree on the content"""
+    """Structured report output containing the LaTeX report and logical evaluation answers."""
 
-    text: str = Field(description="Plain text report.")
-    latex: str = Field(description="Standalone LaTeX document.")
+    latex: str = Field(description="The complete, standalone LaTeX document.")
     evaluation: list[EvaluationQuestion] = Field(
         description="Logical soundness evaluation questions and answers."
     )
@@ -170,9 +169,11 @@ def prepare_llm_payload_general(
     return payload
 
 
-def payload_to_json(payload: dict[str, Any], indent: int = 2) -> str:
-    """Convert the payload dictionary to a JSON-formatted string with indentation."""
-    return json.dumps(payload, indent=indent, ensure_ascii=False, default=str)
+def payload_to_json(payload: dict[str, Any], indent: int | None = None) -> str:
+    """Convert the payload dictionary to a compact JSON string (or indented if specified)."""
+    if indent is not None:
+        return json.dumps(payload, indent=indent, ensure_ascii=False, default=str)
+    return json.dumps(payload, separators=(",", ":"), ensure_ascii=False, default=str)
 
 
 def _validate_prompt_kwargs(kwargs: dict[str, Any]) -> None:
@@ -246,7 +247,10 @@ def summarize_fairmind(
         ],
     )
 
-    from src.visualisation.latex import ensure_template_rendered_latex
+    from src.visualisation.latex import (
+        ensure_template_rendered_latex,
+        latex_to_plain_text,
+    )
 
     dataset_name = (
         results.get("dataset", "Fairness Query")
@@ -256,11 +260,12 @@ def summarize_fairmind(
     rendered_latex = ensure_template_rendered_latex(
         resp.output_parsed.latex, dataset_name=dataset_name
     )
+    plain_text = latex_to_plain_text(rendered_latex)
 
     return LLMReportResult(
         model=model,
         effort=effort,
-        text=resp.output_parsed.text,
+        text=plain_text,
         latex=rendered_latex,
         evaluation=resp.output_parsed.evaluation,
         usage=resp.usage,
@@ -471,7 +476,10 @@ def generate_report_from_file_id(
         ],
     )
 
-    from src.visualisation.latex import ensure_template_rendered_latex
+    from src.visualisation.latex import (
+        ensure_template_rendered_latex,
+        latex_to_plain_text,
+    )
 
     dataset_name = (
         prompt_kwargs.get("exposure", "Fairness Query")
@@ -481,11 +489,12 @@ def generate_report_from_file_id(
     rendered_latex = ensure_template_rendered_latex(
         resp.output_parsed.latex, dataset_name=dataset_name
     )
+    plain_text = latex_to_plain_text(rendered_latex)
 
     return LLMReportResult(
         model=model,
         effort=effort,
-        text=resp.output_parsed.text,
+        text=plain_text,
         latex=rendered_latex,
         evaluation=resp.output_parsed.evaluation,
         usage=resp.usage,

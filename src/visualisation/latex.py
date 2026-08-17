@@ -1,8 +1,9 @@
 import os
-from pathlib import Path
 import re
 import shutil
 import tempfile
+from pathlib import Path
+
 from loguru import logger
 from pdflatex import PDFLaTeX
 
@@ -88,10 +89,23 @@ def parse_latex_sections(latex_text: str) -> tuple[str, str, str, str]:
     return overview, decomposition, logical_eval, recap
 
 
+def normalize_latex_causal_notation(latex_text: str) -> str:
+    """Cleans up common non-standard causal notations (e.g., converts Y_{do(X=x_1)} -> Y_{x_1})."""
+    if not latex_text:
+        return ""
+    # Convert Y_{do(X=x_1)} -> Y_{x_1}
+    normalized = re.sub(
+        r"Y_\{do\([A-Za-z0-9\_]*\s*=\s*([^\}]+)\)\}", r"Y_{\1}", latex_text
+    )
+    normalized = re.sub(r"Y_\{do\((.*?)\)\}", r"Y_{\1}", normalized)
+    return normalized
+
+
 def ensure_template_rendered_latex(
     latex_text: str, dataset_name: str = "Fairness Query"
 ) -> str:
     """Parses raw LLM LaTeX output and renders it via fill_sections_latex_template."""
+    latex_text = normalize_latex_causal_notation(latex_text)
     overview, decomposition, logical_eval, recap = parse_latex_sections(latex_text)
     if overview or decomposition or recap:
         return fill_sections_latex_template(
@@ -177,3 +191,63 @@ def compile_report_to_pdf(
         logger.info(f"PDF report generated successfully at: {output_path}")
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def latex_to_plain_text(latex_text: str) -> str:
+    """Converts a LaTeX report document into clean plain text / Markdown for display."""
+    if not latex_text:
+        return ""
+
+    text = str(latex_text)
+
+    # Strip comments
+    text = re.sub(r"(?<!\\)%.*$", "", text, flags=re.MULTILINE)
+
+    # Strip preamble and document tags
+    text = re.sub(r"\\documentclass.*?\\begin\{document\}", "", text, flags=re.DOTALL)
+    text = re.sub(r"\\end\{document\}", "", text)
+    text = re.sub(r"\\maketitle", "", text)
+    text = re.sub(r"\\date\{.*?\}", "", text)
+    text = re.sub(r"\\author\{.*?\}", "", text)
+    text = re.sub(r"\\title\{.*?\}", "", text)
+
+    # Convert headings
+    text = re.sub(r"\\subsection\*?\{(?:\d+\.\s*)?(.*?)\}", r"\n\n### \1\n", text)
+    text = re.sub(r"\\section\*?\{(.*?)\}", r"\n\n## \1\n", text)
+
+    # Convert lists
+    text = re.sub(r"\\begin\{itemize\}", "", text)
+    text = re.sub(r"\\end\{itemize\}", "", text)
+    text = re.sub(r"\\begin\{enumerate\}(?:\[.*?\])?", "", text)
+    text = re.sub(r"\\end\{enumerate\}", "", text)
+    text = re.sub(r"\\item\s+", r"\n- ", text)
+
+    # Convert text styles
+    text = re.sub(r"\\textbf\{(.*?)\}", r"**\1**", text)
+    text = re.sub(r"\\textit\{(.*?)\}", r"*\1*", text)
+    text = re.sub(r"\\texttt\{(.*?)\}", r"`\1`", text)
+    text = re.sub(r"\\mathrm\{(.*?)\}", r"\1", text)
+    text = re.sub(r"\\text\{(.*?)\}", r"\1", text)
+
+    # Math operators & symbols
+    text = re.sub(r"\\geq", r">=", text)
+    text = re.sub(r"\\leq", r"<=", text)
+    text = re.sub(r"\\neq", r"!=", text)
+    text = re.sub(r"\\times", r"*", text)
+    text = re.sub(r"\\approx", r"≈", text)
+    text = re.sub(r"\\mid", r"|", text)
+
+    # Unescape special characters
+    text = text.replace(r"\_", "_")
+    text = text.replace(r"\%", "%")
+    text = text.replace(r"\&", "&")
+    text = text.replace(r"\#", "#")
+    text = text.replace(r"\$", "$")
+
+    # Clean double backslashes
+    text = re.sub(r"\\\\\s*", "\n", text)
+
+    # Clean up empty lines
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    return text.strip()

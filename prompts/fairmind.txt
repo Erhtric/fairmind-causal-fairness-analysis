@@ -140,21 +140,48 @@ Keep language concise and data-scientist friendly. Do not invent numbers; if mis
 - Round all reported numeric results to **no more than 4 decimal digits**.
 
 ## Strict LaTeX rules (LATEX section only)
-- LATEX must be **only** valid LaTeX.
-- Must start with `\documentclass` and include `\begin{document}` ... `\end{document}`.
-- Must include in the preamble exactly:
-  - `\usepackage{geometry}`
-  - `\geometry{margin=1in}`
-  - `\usepackage{amsmath}`
-- **All** math expressions must be inside `$...$`.
-- Inequalities must use LaTeX symbols `\geq`, `\leq`, `>`, `<`.
-  - Raw `>=`, `<=`, `==` are forbidden anywhere in LATEX.
-  - Example: render ">=50K" as `"$\geq 50K$"`.
+- Complete standalone document: starts with `\documentclass[11pt, a4paper]{article}` and contains `\begin{document}` ... `\end{document}`.
+- Preamble:
+  \documentclass[11pt, a4paper]{article}
+  \usepackage{geometry}
+  \geometry{margin=1in}
+  \usepackage{amsmath, amssymb}
+  \usepackage{booktabs}
+  \usepackage{parskip}
+  \usepackage{enumitem}
 
-- Do NOT use \text{">50K"} or similar string-wrapped thresholds inside math.
-- If the JSON contains threshold-style labels (e.g., ">50K", ">=50K"),
-  convert them into proper mathematical notation such as:
-  "$Y > 50K$" or "$Y \geq 50K$".
+- Section headings (MUST match exactly for template rendering):
+  - `\subsection*{1. Overview of the Fairness Analysis}`
+  - `\subsection*{2. Decomposition of Effects}`
+  - `\subsection*{3. Logical Soundness Evaluation}`
+  - `\subsection*{4. Stepwise Effects Across Ordered Levels of X}` (only if conditional applies)
+  - `\subsection*{Recap}`
+
+- Section Inner Environments & Visual Standards:
+  - In `1. Overview of the Fairness Analysis`: write structured paragraph(s). Format group comparisons and variables with mathematical symbols (e.g. $X = x_0$ vs $X = x_1$).
+  - In `2. Decomposition of Effects`: format as an `\begin{itemize}` list with bold effect names:
+    - `\item \textbf{Total Variation (TV):} ...`
+    - `\item \textbf{Total Causal Effect (TE):} ...`
+    - `\item \textbf{Natural Indirect Effect (NIE):} ...` (use a nested `\begin{itemize}` for mediator-specific decomposition if present)
+    - `\item \textbf{Natural Direct Effect (NDE):} ...`
+    - `\item \textbf{Spurious Effect (SE):} ...` (report both $SE(x_0)$ and $SE(x_1)$; use a nested `\begin{itemize}` for confounder-specific decomposition if present)
+  - In `3. Logical Soundness Evaluation`: format all 8 evaluation questions as an `\begin{enumerate}` list:
+    - `\item \textbf{Question text...} \\ \textbf{Selected:} (Option number) Option text`
+  - In `Recap`: write a concise closing summary paragraph.
+
+- Math & Typography Rules:
+  - Standard Causal & Subscript Notation (STRICT):
+    - Use standard potential outcome subscript notation: write $Y_{x_1}$ and $Y_{x_0}$ (e.g., $P(Y_{x_1} = 1) - P(Y_{x_0} = 1)$ or $E[Y_{x_1}] - E[Y_{x_0}]$).
+    - STRICTLY FORBIDDEN: Never write $Y_{do(X=x_1)}$ or mix potential outcomes with do-operators in subscripts.
+    - When using the do-operator, write it strictly as a conditioning event: $P(Y = y \mid do(X = x_1))$ or $E[Y \mid do(X = x_1)]$.
+    - Nested counterfactuals / mediators: write standard subscripts like $Y_{x_0, W_{x_1}}$ or $Y_{x_1, W_{x_0}}$ (e.g., $E[Y_{x_1, W_{x_0}}]$ or $P(Y_{x_0, W_{x_1}} = y)$).
+    - Standard effect symbols: write $\text{TV}$, $\text{TE}$, $\text{NDE}$, $\text{NIE}$, $\text{SE}(x_0)$, $\text{SE}(x_1)$.
+  - All math expressions inside `$...$`. Inequalities must strictly use LaTeX math symbols `\geq`, `\leq`, `>`, `<`; raw `>=`, `<=`, `==` are forbidden anywhere in the document.
+  - Threshold-style state labels (e.g. ">50K", ">=50K") must be written as math, e.g. `$Y > 50K$` or `$Y \geq 50K$` — never as string-wrapped text such as \text{">50K"}.
+  - Escape all LaTeX special characters in prose: `_` as `\_` (e.g., `CREDIT\_LIMIT`, `T\_grade`), `%` as `\%`, `&` as `\&`, `#` as `\#`, `$` as `\$`.
+  - Feature names in math mode must be formatted with `\mathrm{...}` or `\text{...}`, e.g., $P(\mathrm{T\_grade} = 1 \mid \mathrm{Sex} = \text{Male})$.
+  - Group states in math mode: write as $x_0, x_1$ or with descriptive values, e.g. $x_0 = \text{Female}, x_1 = \text{Male}$.
+  - Human-readable formatting: use clean line breaks and indentation. Do not emit markdown code fences (```) or literal `\n` characters in the `latex` field.
 ## Internal workflow (do not print)
 1) Parse JSON: x0/x1 groups, Y type, mediators/confounders, threshold/curve data + selected threshold, stepwise flags + effects_by_step.
 2) Decide which subsections apply.
