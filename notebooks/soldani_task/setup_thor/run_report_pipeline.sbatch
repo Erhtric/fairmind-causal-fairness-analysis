@@ -11,6 +11,18 @@
 #SBATCH --output=report_pipeline_%j.out
 #SBATCH --error=report_pipeline_%j.err
 
+# set -u: un nome di variabile sbagliato diventa un errore invece di espandersi
+#   a stringa vuota (senza, un tipo in ${SLURM_JOB_ID} produrrebbe un file di
+#   output chiamato "..._.ipynb" senza che nessuno se ne accorga).
+# set -o pipefail: lo stato di una pipeline diventa quello del primo comando
+#   fallito, non quello dell'ultimo.
+#
+# NIENTE set -e, deliberatamente: questi script controllano gli exit code a
+# mano per stampare messaggi che dicono a quale passo tornare. Con -e il job
+# terminerebbe prima di stamparli, perdendo l'unica diagnostica utile.
+set -uo pipefail
+
+
 # Esegue 2_6_report_pipeline.ipynb: FairMind calcola i cinque effetti, l'LLM
 # riceve i numeri gia' pronti + il template LaTeX rigido e scrive solo la
 # parte qualitativa, poi lo scorer valuta le Recap Questions.
@@ -75,8 +87,9 @@ apptainer exec --no-home \
     jupyter nbconvert --to notebook --execute \
         --output report_pipeline_output_${SLURM_JOB_ID}.ipynb \
         2_6_report_pipeline.ipynb
+status=$?
 
-if [ $? -ne 0 ]; then
+if [ $status -ne 0 ]; then
     echo "ERRORE: esecuzione del notebook fallita (vedi output sopra)."
     exit 1
 fi
