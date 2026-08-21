@@ -15,6 +15,16 @@ TEMPLATE_PATH = Path(__file__).parent / "template.tex"
 
 # Segnaposto che lo script pre-riempie con i dati esatti di FairMind, PRIMA
 # di mandare il template all'LLM. Il modello non li vede mai come vuoti.
+#
+# ATTENZIONE: i nomi qui sotto devono comparire nel template ESATTAMENTE come
+# sono scritti, underscore compreso e NON escapato. Il token viene sostituito
+# prima che LaTeX lo veda, quindi non va trattato come testo LaTeX; e' il
+# valore che ci finisce dentro a essere escapato, da escape_latex().
+# Scrivere ``<<PROTECTED\_ATTR>>`` nel template rende la replace() un no-op
+# silenzioso: il valore viene calcolato e buttato, e il segnaposto arriva al
+# modello, che lo riempie inventando. E' successo con la traduzione in
+# inglese (commit e13e428). Il contratto e' verificato da
+# tests/test_report_pipeline_prompt.py.
 _METADATA_KEYS = [
     "REPORT_DATE", "DATASET", "PROTECTED_ATTR", "X0", "X1",
     "OUTCOME_ATTR", "MEDIATOR", "CONFOUNDER",
@@ -115,9 +125,11 @@ The eight placeholders and what belongs in each:
    in plain language whether this looks like direct discrimination against \
    the protected group, and how large it is relative to TE.
 3. <<QUALITATIVE_IE>> — 3-5 sentences interpreting IE: the portion of the \
-   effect that passes through the mediator W. Explain whether the mediator \
-   channel amplifies or offsets (mitigates) the direct effect, based on \
-   whether IE and DE have the same or opposite sign.
+   effect that passes through the mediator W, shown here so that TE = DE + IE \
+   (a positive IE adds to the direct effect; a negative one subtracts from \
+   it). Explain whether the mediator channel amplifies the direct effect \
+   (IE has the SAME sign as DE, so |TE| > |DE|) or offsets it, i.e. \
+   mitigates it (IE has the OPPOSITE sign to DE, so |TE| < |DE|).
 4. <<ANSWER_Q1>> through <<ANSWER_Q5>> — the boolean answer to each Recap \
    Question, using EXACTLY the token YES or NO (uppercase, no \
    punctuation, nothing else). Base each answer strictly on the numeric \

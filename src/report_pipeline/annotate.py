@@ -15,11 +15,15 @@ from __future__ import annotations
 
 import re
 
-from .validator import ScoreReport
+from .validator import ANSWER_LINE_PATTERN, ScoreReport
 
-# Cattura la riga "\textbf{Risposta:} XX" lasciando fuori l'eventuale coda,
-# cosi' da poterla sostituire per intero mantenendo il testo della domanda.
-_ANSWER_LINE = re.compile(r"\\textbf\{(?:Answer|Risposta):\}\s*([^\s\\}]+)")
+# La regex NON viene ridefinita qui: e' la stessa che il validator usa per
+# leggere le risposte. L'accoppiamento con score.results avviene per
+# posizione, quindi i due moduli devono trovare le stesse occorrenze, nello
+# stesso ordine. Con due copie divergenti un documento in cui solo alcune
+# risposte sono formattate diversamente farebbe slittare l'accoppiamento, e
+# ogni domanda mostrerebbe la risposta attesa di un'altra.
+_ANSWER_LINE = ANSWER_LINE_PATTERN
 
 _MISSING = "--"
 

@@ -21,7 +21,14 @@ from ..llm import LLM_CONFIGS
 # istruzioni contrarie: lo togliamo qui invece di penalizzare il report.
 _FENCE_PATTERN = re.compile(r"^\s*```(?:latex|tex)?\s*\n(.*?)\n?\s*```\s*$", re.DOTALL)
 
-_PLACEHOLDER_PATTERN = re.compile(r"<<([A-Z0-9_]+)>>")
+# Deliberatamente permissivo. La versione precedente, ``<<([A-Z0-9_]+)>>``,
+# accettava solo token ben formati, e quindi non vedeva proprio i casi che
+# questo controllo esiste per trovare: quando la traduzione del template ha
+# escapato l'underscore dentro il token (``<<PROTECTED\_ATTR>>``), il
+# segnaposto non e' stato riempito da nessuno ed e' finito nel report, mentre
+# di qui usciva una lista vuota. Un token malformato e' un segnaposto non
+# riempito a tutti gli effetti, e va segnalato come tale.
+_PLACEHOLDER_PATTERN = re.compile(r"<<([^>\n]+)>>")
 
 
 def strip_markdown_fences(text: str) -> str:
@@ -58,11 +65,19 @@ def call_llm_report(
     config: dict | None = None,
     max_tokens: int = 4096,
     cache_prompt: bool = False,
+    require_complete: bool = True,
 ) -> tuple[str, dict, float]:
     """Invia i due prompt e restituisce ``(latex, usage, elapsed_seconds)``.
 
     Il LaTeX e' gia' ripulito da fence markdown e da eventuale testo fuori
     dal documento; NON viene validato qui (se ne occupa il validator).
+
+    Con ``require_complete`` (default) una risposta troncata solleva un errore
+    invece di essere restituita: il troncamento per esaurimento di
+    ``max_tokens`` e' una modalita' di fallimento gia' osservata su questo
+    modello, e un report troncato produrrebbe comunque un punteggio, cioe' un
+    numero che sembra un risultato e non lo e'. Il controllo si disattiva
+    esplicitamente quando si vuole ispezionare l'output parziale.
     """
     if config is None:
         config = LLM_CONFIGS[0]
@@ -86,12 +101,21 @@ def call_llm_report(
     )
     elapsed = time.perf_counter() - start
 
+    finish_reason = response.choices[0].finish_reason
     usage = {
         "input_tokens": response.usage.prompt_tokens,
         "output_tokens": response.usage.completion_tokens,
         "total_tokens": response.usage.total_tokens,
-        "finish_reason": response.choices[0].finish_reason,
+        "finish_reason": finish_reason,
     }
+
+    if require_complete and finish_reason != "stop":
+        raise ValueError(
+            f"The model did not finish its answer "
+            f"(finish_reason={finish_reason!r}, max_tokens={max_tokens}). "
+            "The report is incomplete and must not be scored: raise max_tokens, "
+            "or pass require_complete=False to inspect the partial output."
+        )
 
     latex = extract_latex_document(response.choices[0].message.content)
     return latex, usage, elapsed

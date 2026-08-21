@@ -18,12 +18,11 @@ Uso:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import argparse
 import json
 import re
 import unicodedata
-
+from dataclasses import dataclass, field
 
 ###############################################################################
 # Soglie quantitative per la ground truth — modificare qui.
@@ -37,8 +36,7 @@ THRESH_SE_REL = 0.10    # |SE| / |TV| oltre questa soglia => componente spuria s
 # Il paper definisce due effetti indiretti distinti, che NON sono l'uno
 # l'opposto dell'altro (v. 2_3_benchmark_thor.ipynb). Le Recap Questions Q2 e
 # Q5 parlano della decomposizione TE = DE - IE, quindi richiedono la forma
-# INVERSA. Con la forma diretta la risposta a Q2 si ribalta, silenziosamente:
-# su Adult IE_reverse = -0.046333 (mitiga TE) e IE = +0.016869 (non mitiga).
+# INVERSA. Con la forma diretta la risposta a Q2 si ribalta, silenziosamente.
 # La chiave e' esplicita, e la sua assenza e' un errore, non un default.
 IE_DECOMPOSITION_KEY = "IE_reverse"
 
@@ -70,11 +68,31 @@ def gt_q1_direct_discrimination(effects: dict[str, float]) -> bool:
 
 
 def gt_q2_ie_mitigates_te(effects: dict[str, float]) -> bool:
-    """Q2: l'effetto indiretto mitiga il totale? Serve segno opposto a TE, e non trascurabile."""
-    ie, te = decomposition_ie(effects), effects["TE"]
+    """Q2: l'effetto indiretto mitiga il totale, o lo amplifica?
+
+    Confermato dal relatore (Antonucci, 20/08/2026) via email: posto
+    IE_prof := -IE_{x1,x0}, vale TE = DE + IE_prof (Prop. 2 in forma
+    additiva). Se DE e IE_prof CONCORDANO in segno, l'effetto mediato
+    AMPLIFICA il totale (|TE| > |DE|); se DISCORDANO, lo ATTENUA
+    (|TE| < |DE|).
+
+    decomposition_ie() restituisce IE_{x1,x0}, cioe' IE_prof cambiato di
+    segno. "DE concorde con IE_prof" equivale percio' a "DE discorde con
+    decomposition_ie()", e viceversa: la mitigazione (segni DISCORDI in
+    IE_prof) corrisponde a decomposition_ie() CONCORDE con DE, cioe' un
+    prodotto POSITIVO.
+
+    Verificato con un calcolo numerico diretto sui valori di Adult, non
+    solo algebricamente, perche' una prima stesura di questa docstring
+    aveva il verso scambiato: decomposition_ie = -0.046333, DE = +0.138404,
+    prodotto negativo, quindi la funzione restituisce False (non mitiga,
+    cioe' amplifica) -- coerente con la lettura del relatore. Regression
+    test in tests/test_report_pipeline_validator.py.
+    """
+    ie, de = decomposition_ie(effects), effects["DE"]
     if abs(ie) < EPS_IE:
         return False
-    return (ie * te) < 0
+    return (ie * de) > 0
 
 
 def gt_q3_tv_practically_relevant(effects: dict[str, float]) -> bool:
@@ -111,11 +129,31 @@ N_QUESTIONS = len(GROUND_TRUTH_RULES)
 # Parsing delle risposte SI/NO dal LaTeX generato dall'LLM.
 ###############################################################################
 
-_ANSWER_PATTERN = re.compile(r"\\textbf\{(?:Answer|Risposta):\}\s*([^\s\\}]+)")
+# Cattura tutto cio' che segue l'etichetta fino a fine riga, e lascia a
+# _normalize_answer il compito di isolare la risposta.
+#
+# La versione precedente, ``\s*([^\s\\}]+)``, si fermava al primo backslash:
+# un modello che scrive ``\textbf{Answer:} \textbf{YES}`` non produceva alcun
+# match, l'occorrenza spariva, la lista veniva riempita di None e il punteggio
+# risultava 0/5. Un rendering diverso della stessa risposta corretta non deve
+# poter essere scambiato per un collasso del modello.
+#
+# Pubblico di proposito: annotate.py deve riscrivere ESATTAMENTE le stesse
+# occorrenze che questo modulo legge, perche' le accoppia per posizione con i
+# risultati dello scoring. Due copie della stessa regex si disallineano alla
+# prima modifica, e il documento annotato mostrerebbe su una domanda la
+# risposta attesa di un'altra.
+ANSWER_LINE_PATTERN = re.compile(r"\\textbf\{(?:Answer|Risposta):\}([^\n]*)")
+
+# Sequenze di controllo LaTeX (``\textbf``, ``\emph``, ...): vanno rimosse
+# prima di cercare la risposta, altrimenti il nome del comando verrebbe letto
+# come se fosse la risposta stessa.
+_LATEX_COMMAND = re.compile(r"\\[a-zA-Z]+")
+_WORD = re.compile(r"[A-Za-z]+")
 
 # Normalizza varianti plausibili che un LLM potrebbe produrre nonostante le
 # istruzioni (accenti, VERO/FALSO, inglese, punteggiatura residua) verso
-# esattamente "SI" o "NO".
+# esattamente "YES" o "NO".
 _TRUE_TOKENS = {"SI", "SÌ", "VERO", "TRUE", "YES", "Y"}
 _FALSE_TOKENS = {"NO", "FALSO", "FALSE", "N"}
 
@@ -127,12 +165,31 @@ ANSWER_TRUE = "YES"
 ANSWER_FALSE = "NO"
 
 
+def _to_ascii(text: str) -> str:
+    """Riduce ad ASCII, cosi' che "SÌ" e "SI" siano lo stesso token."""
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+
+
+_TRUE_NORMALIZED = {_to_ascii(t).upper() for t in _TRUE_TOKENS}
+_FALSE_NORMALIZED = {_to_ascii(t).upper() for t in _FALSE_TOKENS}
+
+
 def _normalize_answer(raw: str) -> str | None:
-    cleaned = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
-    cleaned = re.sub(r"[^A-Za-z]", "", cleaned).upper()
-    if cleaned in {t.encode("ascii", "ignore").decode("ascii").upper() for t in _TRUE_TOKENS}:
+    """Isola la risposta dal testo che segue l'etichetta.
+
+    Prende la **prima** parola rimasta dopo aver tolto i comandi LaTeX: la
+    risposta viene per prima, e un eventuale commento che la segue
+    (``YES (the direct effect is large)``) non deve impedirne la lettura.
+    Restituisce None se quella parola non e' un token riconosciuto, che e' il
+    caso in cui la risposta non e' interpretabile.
+    """
+    words = _WORD.findall(_LATEX_COMMAND.sub(" ", _to_ascii(raw)))
+    if not words:
+        return None
+    first = words[0].upper()
+    if first in _TRUE_NORMALIZED:
         return ANSWER_TRUE
-    if cleaned in {t.encode("ascii", "ignore").decode("ascii").upper() for t in _FALSE_TOKENS}:
+    if first in _FALSE_NORMALIZED:
         return ANSWER_FALSE
     return None
 
@@ -144,7 +201,7 @@ def parse_recap_answers(latex_text: str) -> list[str | None]:
     interpretabile o se una risposta manca del tutto (placeholder non
     riempito, o LLM che ha aggiunto/rimosso una domanda).
     """
-    matches = _ANSWER_PATTERN.findall(latex_text)
+    matches = ANSWER_LINE_PATTERN.findall(latex_text)
     answers = [_normalize_answer(m) for m in matches]
     # Padding/troncamento a N_QUESTIONS: un LLM che sbaglia la struttura del
     # documento (aggiunge o toglie una domanda) non deve far crashare lo
@@ -204,7 +261,10 @@ def score_report(latex_text: str, effects: dict[str, float]) -> ScoreReport:
     ground_truths = [ANSWER_TRUE if rule(effects) else ANSWER_FALSE for rule in GROUND_TRUTH_RULES]
 
     report = ScoreReport(n_total=N_QUESTIONS)
-    for i, (llm_ans, gt) in enumerate(zip(llm_answers, ground_truths), start=1):
+    # strict=True: le due liste devono avere entrambe N_QUESTIONS elementi.
+    # Uno zip non stretto troncherebbe in silenzio sulla piu' corta, e il
+    # punteggio verrebbe calcolato su meno domande di quante ne esistono.
+    for i, (llm_ans, gt) in enumerate(zip(llm_answers, ground_truths, strict=True), start=1):
         correct = llm_ans == gt
         report.results.append(QuestionResult(i, llm_ans, gt, correct))
         if llm_ans is None:
