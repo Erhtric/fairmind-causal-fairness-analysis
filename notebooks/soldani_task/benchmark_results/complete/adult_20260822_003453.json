@@ -1,0 +1,280 @@
+{
+  "dataset": "adult",
+  "timestamp": "20260822_003453",
+  "dry_run": false,
+  "config": {
+    "dataset_name": "adult",
+    "target_col": "T_income",
+    "target_val": ">50K",
+    "protected": "S2_gender",
+    "x0": "Female",
+    "x1": "Male",
+    "mediators": [
+      "hours-per-week"
+    ],
+    "confounders": [
+      "education"
+    ],
+    "binning": {
+      "hours-per-week": {
+        "bins": [
+          0,
+          20,
+          35,
+          45,
+          60,
+          100
+        ],
+        "labels": [
+          "<=20",
+          "21-35",
+          "36-45",
+          "46-60",
+          ">60"
+        ]
+      },
+      "education": {
+        "mapping": {
+          "Preschool": "<HS",
+          "1st-4th": "<HS",
+          "5th-6th": "<HS",
+          "7th-8th": "<HS",
+          "9th": "<HS",
+          "10th": "<HS",
+          "11th": "<HS",
+          "12th": "<HS",
+          "HS-grad": "HS-grad",
+          "Some-college": "Some-college",
+          "Assoc-acdm": "Some-college",
+          "Assoc-voc": "Some-college",
+          "Bachelors": "Bachelors",
+          "Masters": "Grad",
+          "Prof-school": "Grad",
+          "Doctorate": "Grad"
+        }
+      }
+    }
+  },
+  "n_rows": 48842,
+  "fairmind_effects": {
+    "TV": 0.19371366845052762,
+    "TE": 0.18473619151063345,
+    "SE": 0.008977476939894175,
+    "DE": 0.13840366096700932,
+    "IE": 0.016868845599224108,
+    "IE_reverse": -0.04633253054362413
+  },
+  "llm_effects": {
+    "TV": 0.1937,
+    "TE": 0.184852,
+    "SE": 0.008848000000000023,
+    "DE": 0.184,
+    "IE": 0.018
+  },
+  "llm_derived": {
+    "IE_additive_shown_in_report": 0.0008519999999999917,
+    "IE_reverse_used_by_rules": -0.0008519999999999917
+  },
+  "ie_form_used_for_scoring": "IE_reverse",
+  "decomposition_check": {
+    "DE_minus_IE_reverse": 0.184736,
+    "TE": 0.184736
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.193714,
+      "llm": 0.1937,
+      "abs_error": 1.4e-05,
+      "rel_error_%": 0.01
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.184736,
+      "llm": 0.184852,
+      "abs_error": 0.000116,
+      "rel_error_%": 0.06
+    },
+    {
+      "effect": "SE",
+      "fairmind": 0.008977,
+      "llm": 0.008848,
+      "abs_error": 0.000129,
+      "rel_error_%": 1.44
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.138404,
+      "llm": 0.184,
+      "abs_error": 0.045596,
+      "rel_error_%": 32.94
+    },
+    {
+      "effect": "IE",
+      "fairmind": 0.016869,
+      "llm": 0.018,
+      "abs_error": 0.001131,
+      "rel_error_%": 6.71
+    }
+  ],
+  "scoring": {
+    "A_vs_fairmind": {
+      "score": 1.0,
+      "score_pct": "100.0%",
+      "n_correct": 5,
+      "n_total": 5,
+      "n_unparseable": 0,
+      "questions": [
+        {
+          "index": 1,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        },
+        {
+          "index": 2,
+          "llm_answer": "NO",
+          "ground_truth": "NO",
+          "correct": true
+        },
+        {
+          "index": 3,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        },
+        {
+          "index": 4,
+          "llm_answer": "NO",
+          "ground_truth": "NO",
+          "correct": true
+        },
+        {
+          "index": 5,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        }
+      ]
+    },
+    "B_vs_fairmind": {
+      "score": 1.0,
+      "score_pct": "100.0%",
+      "n_correct": 5,
+      "n_total": 5,
+      "n_unparseable": 0,
+      "questions": [
+        {
+          "index": 1,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        },
+        {
+          "index": 2,
+          "llm_answer": "NO",
+          "ground_truth": "NO",
+          "correct": true
+        },
+        {
+          "index": 3,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        },
+        {
+          "index": 4,
+          "llm_answer": "NO",
+          "ground_truth": "NO",
+          "correct": true
+        },
+        {
+          "index": 5,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        }
+      ]
+    },
+    "B_vs_llm_own": {
+      "score": 1.0,
+      "score_pct": "100.0%",
+      "n_correct": 5,
+      "n_total": 5,
+      "n_unparseable": 0,
+      "questions": [
+        {
+          "index": 1,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        },
+        {
+          "index": 2,
+          "llm_answer": "NO",
+          "ground_truth": "NO",
+          "correct": true
+        },
+        {
+          "index": 3,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        },
+        {
+          "index": 4,
+          "llm_answer": "NO",
+          "ground_truth": "NO",
+          "correct": true
+        },
+        {
+          "index": 5,
+          "llm_answer": "YES",
+          "ground_truth": "YES",
+          "correct": true
+        }
+      ]
+    }
+  },
+  "unfilled_placeholders": {
+    "A": [],
+    "B": []
+  },
+  "thresholds": {
+    "THRESH_DE": 0.05,
+    "EPS_IE": 0.005,
+    "THRESH_TV": 0.05,
+    "THRESH_SE_REL": 0.1
+  },
+  "token_usage": {
+    "A_report": {
+      "input_tokens": 1422,
+      "output_tokens": 878,
+      "total_tokens": 2300,
+      "finish_reason": "stop"
+    },
+    "B_computation": {
+      "input_tokens": 2928,
+      "output_tokens": 9701,
+      "reasoning_tokens": null,
+      "total_tokens": 12629,
+      "raw_response": "Let's compute the four causal fairness effects using the provided tables and the identification formulae.\n\n### TV (Total Effect)\n\\[ TV = P(Y=y | X=x1) - P(Y=y | X=x0) \\]\nFrom TABLE 1:\n\\[ TV = 0.304 - 0.1103 = 0.1937 \\]\n\n### TE (Direct Effect)\n\\[ TE = \\sum_z [P(Y=y|x1,z) - P(Y=y|x0,z)] \\cdot P(z) \\]\nFrom TABLE 2 and TABLE 3:\n- For education <HS:\n  \\[ P(Y=y|x1,<HS) - P(Y=y|x0,<HS) = 0.0772 - 0.017 = 0.0602 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ TE_{<HS} = 0.0602 \\cdot 0.1312 = 0.0079024 \\]\n- For education HS-grad:\n  \\[ P(Y=y|x1,HS-grad) - P(Y=y|x0,HS-grad) = 0.2036 - 0.0656 = 0.138 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ TE_{HS-grad} = 0.138 \\cdot 0.3232 = 0.0446576 \\]\n- For education Some-college:\n  \\[ P(Y=y|x1,Some-college) - P(Y=y|x0,Some-college) = 0.2809 - 0.0859 = 0.195 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ TE_{Some-college} = 0.195 \\cdot 0.2977 = 0.0580815 \\]\n- For education Bachelors:\n  \\[ P(Y=y|x1,Bachelors) - P(Y=y|x0,Bachelors) = 0.5033 - 0.2114 = 0.2919 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ TE_{Bachelors} = 0.2919 \\cdot 0.1643 = 0.04794537 \\]\n- For education Grad:\n  \\[ P(Y=y|x1,Grad) - P(Y=y|x0,Grad) = 0.6973 - 0.3837 = 0.3136 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ TE_{Grad} = 0.3136 \\cdot 0.0836 = 0.02626496 \\]\n\nSumming these up:\n\\[ TE = 0.0079024 + 0.0446576 + 0.0580815 + 0.04794537 + 0.02626496 = 0.184852 \\]\n\n### DE (Discrimination Effect)\n\\[ DE = \\sum_{z,w} [P(Y=y|x1,w,z) - P(Y=y|x0,w,z)] \\cdot P(w|x0,z) \\cdot P(z) \\]\nFrom TABLE 2, TABLE 4, and TABLE 5:\n- For education <HS, hours-per-week <=20:\n  \\[ P(Y=y|x1,<=20,<HS) - P(Y=y|x0,<=20,<HS) = 0.0142 - 0.0019 = 0.0123 \\]\n  \\[ P(<=20|x0,<HS) = 0.2693 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ DE_{<HS,<=20} = 0.0123 \\cdot 0.2693 \\cdot 0.1312 = 0.0004347 \\]\n- For education <HS, hours-per-week 21-35:\n  \\[ P(Y=y|x1,21-35,<HS) - P(Y=y|x0,21-35,<HS) = 0.0335 - 0.0158 = 0.0177 \\]\n  \\[ P(21-35|x0,<HS) = 0.2212 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ DE_{<HS,21-35} = 0.0177 \\cdot 0.2212 \\cdot 0.1312 = 0.000508 \\]\n- For education <HS, hours-per-week 36-45:\n  \\[ P(Y=y|x1,36-45,<HS) - P(Y=y|x0,36-45,<HS) = 0.075 - 0.0201 = 0.0549 \\]\n  \\[ P(36-45|x0,<HS) = 0.4478 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ DE_{<HS,36-45} = 0.0549 \\cdot 0.4478 \\cdot 0.1312 = 0.00326 \\]\n- For education <HS, hours-per-week 46-60:\n  \\[ P(Y=y|x1,46-60,<HS) - P(Y=y|x0,46-60,<HS) = 0.1581 - 0.0526 = 0.1055 \\]\n  \\[ P(46-60|x0,<HS) = 0.0471 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ DE_{<HS,46-60} = 0.1055 \\cdot 0.0471 \\cdot 0.1312 = 0.00066 \\]\n- For education <HS, hours-per-week >60:\n  \\[ P(Y=y|x1,>60,<HS) - P(Y=y|x0,>60,<HS) = 0.2012 - 0.1 = 0.1012 \\]\n  \\[ P(>60|x0,<HS) = 0.0145 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ DE_{<HS,>60} = 0.1012 \\cdot 0.0145 \\cdot 0.1312 = 0.00019 \\]\n- For education HS-grad, hours-per-week <=20:\n  \\[ P(Y=y|x1,<=20,HS-grad) - P(Y=y|x0,<=20,HS-grad) = 0.0342 - 0.0019 = 0.0323 \\]\n  \\[ P(<=20|x0,HS-grad) = 0.1158 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ DE_{HS-grad,<=20} = 0.0323 \\cdot 0.1158 \\cdot 0.3232 = 0.00116 \\]\n- For education HS-grad, hours-per-week 21-35:\n  \\[ P(Y=y|x1,21-35,HS-grad) - P(Y=y|x0,21-35,HS-grad) = 0.065 - 0.0158 = 0.0492 \\]\n  \\[ P(21-35|x0,HS-grad) = 0.1984 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ DE_{HS-grad,21-35} = 0.0492 \\cdot 0.1984 \\cdot 0.3232 = 0.00316 \\]\n- For education HS-grad, hours-per-week 36-45:\n  \\[ P(Y=y|x1,36-45,HS-grad) - P(Y=y|x0,36-45,HS-grad) = 0.1964 - 0.0201 = 0.1763 \\]\n  \\[ P(36-45|x0,HS-grad) = 0.6027 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ DE_{HS-grad,36-45} = 0.1763 \\cdot 0.6027 \\cdot 0.3232 = 0.0346 \\]\n- For education HS-grad, hours-per-week 46-60:\n  \\[ P(Y=y|x1,46-60,HS-grad) - P(Y=y|x0,46-60,HS-grad) = 0.3055 - 0.1003 = 0.2052 \\]\n  \\[ P(46-60|x0,HS-grad) = 0.0702 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ DE_{HS-grad,46-60} = 0.2052 \\cdot 0.0702 \\cdot 0.3232 = 0.0046 \\]\n- For education HS-grad, hours-per-week >60:\n  \\[ P(Y=y|x1,>60,HS-grad) - P(Y=y|x0,>60,HS-grad) = 0.2717 - 0.0896 = 0.1821 \\]\n  \\[ P(>60|x0,HS-grad) = 0.0129 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ DE_{HS-grad,>60} = 0.1821 \\cdot 0.0129 \\cdot 0.3232 = 0.00076 \\]\n- For education Some-college, hours-per-week <=20:\n  \\[ P(Y=y|x1,<=20,Some-college) - P(Y=y|x0,<=20,Some-college) = 0.0698 - 0.0019 = 0.0679 \\]\n  \\[ P(<=20|x0,Some-college) = 0.1667 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ DE_{Some-college,<=20} = 0.0679 \\cdot 0.1667 \\cdot 0.2977 = 0.0033 \\]\n- For education Some-college, hours-per-week 21-35:\n  \\[ P(Y=y|x1,21-35,Some-college) - P(Y=y|x0,21-35,Some-college) = 0.086 - 0.0158 = 0.0702 \\]\n  \\[ P(21-35|x0,Some-college) = 0.1944 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ DE_{Some-college,21-35} = 0.0702 \\cdot 0.1944 \\cdot 0.2977 = 0.0041 \\]\n- For education Some-college, hours-per-week 36-45:\n  \\[ P(Y=y|x1,36-45,Some-college) - P(Y=y|x0,36-45,Some-college) = 0.2881 - 0.0201 = 0.268 \\]\n  \\[ P(36-45|x0,Some-college) = 0.5458 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ DE_{Some-college,36-45} = 0.268 \\cdot 0.5458 \\cdot 0.2977 = 0.043 \\]\n- For education Some-college, hours-per-week 46-60:\n  \\[ P(Y=y|x1,46-60,Some-college) - P(Y=y|x0,46-60,Some-college) = 0.4043 - 0.1682 = 0.2361 \\]\n  \\[ P(46-60|x0,Some-college) = 0.2199 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ DE_{Some-college,46-60} = 0.2361 \\cdot 0.2199 \\cdot 0.2977 = 0.015 \\]\n- For education Some-college, hours-per-week >60:\n  \\[ P(Y=y|x1,>60,Some-college) - P(Y=y|x0,>60,Some-college) = 0.3508 - 0.141 = 0.2098 \\]\n  \\[ P(>60|x0,Some-college) = 0.0139 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ DE_{Some-college,>60} = 0.2098 \\cdot 0.0139 \\cdot 0.2977 = 0.00086 \\]\n- For education Bachelors, hours-per-week <=20:\n  \\[ P(Y=y|x1,<=20,Bachelors) - P(Y=y|x0,<=20,Bachelors) = 0.2008 - 0.1602 = 0.0406 \\]\n  \\[ P(<=20|x0,Bachelors) = 0.1027 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ DE_{Bachelors,<=20} = 0.0406 \\cdot 0.1027 \\cdot 0.1643 = 0.00067 \\]\n- For education Bachelors, hours-per-week 21-35:\n  \\[ P(Y=y|x1,21-35,Bachelors) - P(Y=y|x0,21-35,Bachelors) = 0.2094 - 0.2319 = -0.0225 \\]\n  \\[ P(21-35|x0,Bachelors) = 0.1334 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ DE_{Bachelors,21-35} = -0.0225 \\cdot 0.1334 \\cdot 0.1643 = -0.00049 \\]\n- For education Bachelors, hours-per-week 36-45:\n  \\[ P(Y=y|x1,36-45,Bachelors) - P(Y=y|x0,36-45,Bachelors) = 0.4939 - 0.1801 = 0.3138 \\]\n  \\[ P(36-45|x0,Bachelors) = 0.5834 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ DE_{Bachelors,36-45} = 0.3138 \\cdot 0.5834 \\cdot 0.1643 = 0.029 \\]\n- For education Bachelors, hours-per-week 46-60:\n  \\[ P(Y=y|x1,46-60,Bachelors) - P(Y=y|x0,46-60,Bachelors) = 0.6194 - 0.3317 = 0.2877 \\]\n  \\[ P(46-60|x0,Bachelors) = 0.1612 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ DE_{Bachelors,46-60} = 0.2877 \\cdot 0.1612 \\cdot 0.1643 = 0.0076 \\]\n- For education Bachelors, hours-per-week >60:\n  \\[ P(Y=y|x1,>60,Bachelors) - P(Y=y|x0,>60,Bachelors) = 0.5634 - 0.2857 = 0.2777 \\]\n  \\[ P(>60|x0,Bachelors) = 0.0193 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ DE_{Bachelors,>60} = 0.2777 \\cdot 0.0193 \\cdot 0.1643 = 0.00085 \\]\n- For education Grad, hours-per-week <=20:\n  \\[ P(Y=y|x1,<=20,Grad) - P(Y=y|x0,<=20,Grad) = 0.2968 - 0.2874 = 0.0094 \\]\n  \\[ P(<=20|x0,Grad) = 0.0785 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ DE_{Grad,<=20} = 0.0094 \\cdot 0.0785 \\cdot 0.0836 = 0.00006 \\]\n- For education Grad, hours-per-week 21-35:\n  \\[ P(Y=y|x1,21-35,Grad) - P(Y=y|x0,21-35,Grad) = 0.5729 - 0.3467 = 0.2262 \\]\n  \\[ P(21-35|x0,Grad) = 0.1361 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ DE_{Grad,21-35} = 0.2262 \\cdot 0.1361 \\cdot 0.0836 = 0.0025 \\]\n- For education Grad, hours-per-week 36-45:\n  \\[ P(Y=y|x1,36-45,Grad) - P(Y=y|x0,36-45,Grad) = 0.6891 - 0.324 = 0.3651 \\]\n  \\[ P(36-45|x0,Grad) = 0.5205 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ DE_{Grad,36-45} = 0.3651 \\cdot 0.5205 \\cdot 0.0836 = 0.0158 \\]\n- For education Grad, hours-per-week 46-60:\n  \\[ P(Y=y|x1,46-60,Grad) - P(Y=y|x0,46-60,Grad) = 0.7764 - 0.5983 = 0.1781 \\]\n  \\[ P(46-60|x0,Grad) = 0.2174 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ DE_{Grad,46-60} = 0.1781 \\cdot 0.2174 \\cdot 0.0836 = 0.0032 \\]\n- For education Grad, hours-per-week >60:\n  \\[ P(Y=y|x1,>60,Grad) - P(Y=y|x0,>60,Grad) = 0.73 - 0.3208 = 0.4092 \\]\n  \\[ P(>60|x0,Grad) = 0.0475 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ DE_{Grad,>60} = 0.4092 \\cdot 0.0475 \\cdot 0.0836 = 0.0016 \\]\n\nSumming these up:\n\\[ DE = 0.0004347 + 0.000508 + 0.00326 + 0.00066 + 0.00019 + 0.00116 + 0.00316 + 0.0346 + 0.0046 + 0.00076 + 0.0033 + 0.0041 + 0.043 + 0.015 + 0.00086 + 0.00067 - 0.00049 + 0.029 + 0.0076 + 0.00085 + 0.00006 + 0.0025 + 0.0158 + 0.0032 + 0.0016 = 0.184 \\]\n\n### IE (Interaction Effect)\n\\[ IE = \\sum_{z,w} P(Y=y|x0,w,z) \\cdot [P(w|x1,z) - P(w|x0,z)] \\cdot P(z) \\]\nFrom TABLE 2, TABLE 4, and TABLE 5:\n- For education <HS, hours-per-week <=20:\n  \\[ P(Y=y|x0,<=20,<HS) = 0.0019 \\]\n  \\[ P(<=20|x1,<HS) - P(<=20|x0,<HS) = 0.127 - 0.2693 = -0.1423 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ IE_{<HS,<=20} = 0.0019 \\cdot -0.1423 \\cdot 0.1312 = -0.000036 \\]\n- For education <HS, hours-per-week 21-35:\n  \\[ P(Y=y|x0,21-35,<HS) = 0.0158 \\]\n  \\[ P(21-35|x1,<HS) - P(21-35|x0,<HS) = 0.1279 - 0.2212 = -0.0933 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ IE_{<HS,21-35} = 0.0158 \\cdot -0.0933 \\cdot 0.1312 = -0.00019 \\]\n- For education <HS, hours-per-week 36-45:\n  \\[ P(Y=y|x0,36-45,<HS) = 0.0201 \\]\n  \\[ P(36-45|x1,<HS) - P(36-45|x0,<HS) = 0.5811 - 0.4478 = 0.1333 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ IE_{<HS,36-45} = 0.0201 \\cdot 0.1333 \\cdot 0.1312 = 0.00034 \\]\n- For education <HS, hours-per-week 46-60:\n  \\[ P(Y=y|x0,46-60,<HS) = 0.0526 \\]\n  \\[ P(46-60|x1,<HS) - P(46-60|x0,<HS) = 0.127 - 0.0471 = 0.08 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ IE_{<HS,46-60} = 0.0526 \\cdot 0.08 \\cdot 0.1312 = 0.00054 \\]\n- For education <HS, hours-per-week >60:\n  \\[ P(Y=y|x0,>60,<HS) = 0.1 \\]\n  \\[ P(>60|x1,<HS) - P(>60|x0,<HS) = 0.0368 - 0.0145 = 0.0223 \\]\n  \\[ P(<HS) = 0.1312 \\]\n  \\[ IE_{<HS,>60} = 0.1 \\cdot 0.0223 \\cdot 0.1312 = 0.00029 \\]\n- For education HS-grad, hours-per-week <=20:\n  \\[ P(Y=y|x0,<=20,HS-grad) = 0.0019 \\]\n  \\[ P(<=20|x1,HS-grad) - P(<=20|x0,HS-grad) = 0.0437 - 0.1158 = -0.0721 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ IE_{HS-grad,<=20} = 0.0019 \\cdot -0.0721 \\cdot 0.3232 = -0.00004 \\]\n- For education HS-grad, hours-per-week 21-35:\n  \\[ P(Y=y|x0,21-35,HS-grad) = 0.0158 \\]\n  \\[ P(21-35|x1,HS-grad) - P(21-35|x0,HS-grad) = 0.0819 - 0.1984 = -0.1165 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ IE_{HS-grad,21-35} = 0.0158 \\cdot -0.1165 \\cdot 0.3232 = -0.00058 \\]\n- For education HS-grad, hours-per-week 36-45:\n  \\[ P(Y=y|x0,36-45,HS-grad) = 0.0201 \\]\n  \\[ P(36-45|x1,HS-grad) - P(36-45|x0,HS-grad) = 0.631 - 0.6027 = 0.0283 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ IE_{HS-grad,36-45} = 0.0201 \\cdot 0.0283 \\cdot 0.3232 = 0.00018 \\]\n- For education HS-grad, hours-per-week 46-60:\n  \\[ P(Y=y|x0,46-60,HS-grad) = 0.1003 \\]\n  \\[ P(46-60|x1,HS-grad) - P(46-60|x0,HS-grad) = 0.2004 - 0.0702 = 0.1302 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ IE_{HS-grad,46-60} = 0.1003 \\cdot 0.1302 \\cdot 0.3232 = 0.0042 \\]\n- For education HS-grad, hours-per-week >60:\n  \\[ P(Y=y|x0,>60,HS-grad) = 0.0896 \\]\n  \\[ P(>60|x1,HS-grad) - P(>60|x0,HS-grad) = 0.0429 - 0.0129 = 0.03 \\]\n  \\[ P(HS-grad) = 0.3232 \\]\n  \\[ IE_{HS-grad,>60} = 0.0896 \\cdot 0.03 \\cdot 0.3232 = 0.00084 \\]\n- For education Some-college, hours-per-week <=20:\n  \\[ P(Y=y|x0,<=20,Some-college) = 0.0019 \\]\n  \\[ P(<=20|x1,Some-college) - P(<=20|x0,Some-college) = 0.0715 - 0.1667 = -0.0952 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ IE_{Some-college,<=20} = 0.0019 \\cdot -0.0952 \\cdot 0.2977 = -0.00005 \\]\n- For education Some-college, hours-per-week 21-35:\n  \\[ P(Y=y|x0,21-35,Some-college) = 0.0158 \\]\n  \\[ P(21-35|x1,Some-college) - P(21-35|x0,Some-college) = 0.098 - 0.1944 = -0.0964 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ IE_{Some-college,21-35} = 0.0158 \\cdot -0.0964 \\cdot 0.2977 = -0.00045 \\]\n- For education Some-college, hours-per-week 36-45:\n  \\[ P(Y=y|x0,36-45,Some-college) = 0.0201 \\]\n  \\[ P(36-45|x1,Some-college) - P(36-45|x0,Some-college) = 0.5683 - 0.5458 = 0.0225 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ IE_{Some-college,36-45} = 0.0201 \\cdot 0.0225 \\cdot 0.2977 = 0.00013 \\]\n- For education Some-college, hours-per-week 46-60:\n  \\[ P(Y=y|x0,46-60,Some-college) = 0.1682 \\]\n  \\[ P(46-60|x1,Some-college) - P(46-60|x0,Some-college) = 0.4043 - 0.2199 = 0.1844 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ IE_{Some-college,46-60} = 0.1682 \\cdot 0.1844 \\cdot 0.2977 = 0.009 \\]\n- For education Some-college, hours-per-week >60:\n  \\[ P(Y=y|x0,>60,Some-college) = 0.141 \\]\n  \\[ P(>60|x1,Some-college) - P(>60|x0,Some-college) = 0.3508 - 0.141 = 0.2098 \\]\n  \\[ P(Some-college) = 0.2977 \\]\n  \\[ IE_{Some-college,>60} = 0.141 \\cdot 0.2098 \\cdot 0.2977 = 0.0087 \\]\n- For education Bachelors, hours-per-week <=20:\n  \\[ P(Y=y|x0,<=20,Bachelors) = 0.1602 \\]\n  \\[ P(<=20|x1,Bachelors) - P(<=20|x0,Bachelors) = 0.0438 - 0.1027 = -0.0589 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ IE_{Bachelors,<=20} = 0.1602 \\cdot -0.0589 \\cdot 0.1643 = -0.0015 \\]\n- For education Bachelors, hours-per-week 21-35:\n  \\[ P(Y=y|x0,21-35,Bachelors) = 0.2319 \\]\n  \\[ P(21-35|x1,Bachelors) - P(21-35|x0,Bachelors) = 0.0652 - 0.1334 = -0.0682 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ IE_{Bachelors,21-35} = 0.2319 \\cdot -0.0682 \\cdot 0.1643 = -0.0026 \\]\n- For education Bachelors, hours-per-week 36-45:\n  \\[ P(Y=y|x0,36-45,Bachelors) = 0.1801 \\]\n  \\[ P(36-45|x1,Bachelors) - P(36-45|x0,Bachelors) = 0.5493 - 0.5834 = -0.0341 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ IE_{Bachelors,36-45} = 0.1801 \\cdot -0.0341 \\cdot 0.1643 = -0.001 \\]\n- For education Bachelors, hours-per-week 46-60:\n  \\[ P(Y=y|x0,46-60,Bachelors) = 0.3317 \\]\n  \\[ P(46-60|x1,Bachelors) - P(46-60|x0,Bachelors) = 0.3036 - 0.1612 = 0.1424 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ IE_{Bachelors,46-60} = 0.3317 \\cdot 0.1424 \\cdot 0.1643 = 0.0076 \\]\n- For education Bachelors, hours-per-week >60:\n  \\[ P(Y=y|x0,>60,Bachelors) = 0.2857 \\]\n  \\[ P(>60|x1,Bachelors) - P(>60|x0,Bachelors) = 0.0382 - 0.0193 = 0.0189 \\]\n  \\[ P(Bachelors) = 0.1643 \\]\n  \\[ IE_{Bachelors,>60} = 0.2857 \\cdot 0.0189 \\cdot 0.1643 = 0.0009 \\]\n- For education Grad, hours-per-week <=20:\n  \\[ P(Y=y|x0,<=20,Grad) = 0.2874 \\]\n  \\[ P(<=20|x1,Grad) - P(<=20|x0,Grad) = 0.0513 - 0.0785 = -0.0272 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ IE_{Grad,<=20} = 0.2874 \\cdot -0.0272 \\cdot 0.0836 = -0.00065 \\]\n- For education Grad, hours-per-week 21-35:\n  \\[ P(Y=y|x0,21-35,Grad) = 0.3467 \\]\n  \\[ P(21-35|x1,Grad) - P(21-35|x0,Grad) = 0.0637 - 0.1361 = -0.0724 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ IE_{Grad,21-35} = 0.3467 \\cdot -0.0724 \\cdot 0.0836 = -0.0021 \\]\n- For education Grad, hours-per-week 36-45:\n  \\[ P(Y=y|x0,36-45,Grad) = 0.324 \\]\n  \\[ P(36-45|x1,Grad) - P(36-45|x0,Grad) = 0.4403 - 0.5205 = -0.0802 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ IE_{Grad,36-45} = 0.324 \\cdot -0.0802 \\cdot 0.0836 = -0.0022 \\]\n- For education Grad, hours-per-week 46-60:\n  \\[ P(Y=y|x0,46-60,Grad) = 0.5983 \\]\n  \\[ P(46-60|x1,Grad) - P(46-60|x0,Grad) = 0.3783 - 0.2174 = 0.1609 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ IE_{Grad,46-60} = 0.5983 \\cdot 0.1609 \\cdot 0.0836 = 0.0078 \\]\n- For education Grad, hours-per-week >60:\n  \\[ P(Y=y|x0,>60,Grad) = 0.3208 \\]\n  \\[ P(>60|x1,Grad) - P(>60|x0,Grad) = 0.0663 - 0.0475 = 0.0188 \\]\n  \\[ P(Grad) = 0.0836 \\]\n  \\[ IE_{Grad,>60} = 0.3208 \\cdot 0.0188 \\cdot 0.0836 = 0.0005 \\]\n\nSumming these up:\n\\[ IE = -0.000036 - 0.00019 + 0.00034 + 0.00054 + 0.00029 - 0.00004 - 0.00058 + 0.00018 + 0.0042 + 0.00084 - 0.00005 - 0.00045 + 0.00013 + 0.009 + 0.0087 - 0.0015 - 0.0026 - 0.001 + 0.0076 + 0.0009 - 0.00065 - 0.0021 - 0.0022 + 0.0078 + 0.0005 = 0.018 \\]\n\n### Final Answer\n\\[ \\text{TV} = 0.1937 \\]\n\\[ \\text{TE} = 0.184852 \\]\n\\[ \\text{DE} = 0.184 \\]\n\\[ \\text{IE} = 0.018 \\]\n\nFINAL_JSON:\n{\n  \"TV\": 0.1937,\n  \"TE\": 0.184852,\n  \"DE\": 0.184,\n  \"IE\": 0.018\n}"
+    },
+    "B_report": {
+      "input_tokens": 1422,
+      "output_tokens": 856,
+      "total_tokens": 2278,
+      "finish_reason": "stop"
+    }
+  },
+  "timing": {
+    "fairmind_seconds": 0.0182,
+    "A_report_seconds": 12.0741,
+    "B_computation_seconds": 130.8352,
+    "B_report_seconds": 12.6157
+  },
+  "reports": {
+    "A_fairmind_numbers": "benchmark_results/complete/adult_20260822_003453_A_fairmind_numbers.tex",
+    "B_llm_numbers": "benchmark_results/complete/adult_20260822_003453_B_llm_numbers.tex"
+  }
+}
