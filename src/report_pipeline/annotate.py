@@ -1,14 +1,13 @@
-"""Annotazione del report generato con le risposte attese.
+"""Annotate a generated report with the expected answers.
 
-Il template che l'LLM riceve contiene solo i segnaposto delle sue risposte:
-le risposte attese NON possono comparirvi, altrimenti il modello le
-leggerebbe e le ricopierebbe, e il punteggio non misurerebbe piu' nulla.
+The expected answers cannot appear in the template the model receives: it
+would read them and copy them, and the score would stop measuring anything.
 
-Questo modulo interviene percio' a valle, sul documento gia' prodotto e
-gia' valutato: riscrive la sezione "Recap Questions" affiancando a ogni
-risposta del modello quella attesa e l'esito del confronto, e aggiunge una
-riga di riepilogo con il punteggio. Il file originale resta disponibile
-come evidenza di cio' che il modello ha effettivamente scritto.
+This module therefore runs downstream, on a document already generated and
+already scored. It rewrites the Recap Questions section, putting each model
+answer next to the expected one and the outcome of the comparison, and appends
+a summary line with the score. The original file stays on disk as evidence of
+what the model actually wrote.
 """
 
 from __future__ import annotations
@@ -17,12 +16,12 @@ import re
 
 from .validator import ANSWER_LINE_PATTERN, ScoreReport
 
-# La regex NON viene ridefinita qui: e' la stessa che il validator usa per
-# leggere le risposte. L'accoppiamento con score.results avviene per
-# posizione, quindi i due moduli devono trovare le stesse occorrenze, nello
-# stesso ordine. Con due copie divergenti un documento in cui solo alcune
-# risposte sono formattate diversamente farebbe slittare l'accoppiamento, e
-# ogni domanda mostrerebbe la risposta attesa di un'altra.
+# The pattern is not redefined here: it is the one the validator uses to read
+# the answers. Pairing with score.results happens by position, so both modules
+# have to find the same occurrences in the same order. With two diverging
+# copies, a document where only some answers are formatted differently would
+# shift the pairing, and every question would show the expected answer of
+# another one.
 _ANSWER_LINE = ANSWER_LINE_PATTERN
 
 _MISSING = "--"
@@ -35,16 +34,14 @@ def _verdict(correct: bool, llm_answer: str | None) -> str:
 
 
 def annotate_recap_answers(latex_text: str, score: ScoreReport) -> str:
-    """Affianca a ogni risposta dell'LLM quella attesa e l'esito.
+    """Put the expected answer and the outcome next to each model answer.
 
-    Sostituisce in ordine le occorrenze di ``\\textbf{Risposta:} X`` con
-    ``\\textbf{LLM:} X \\quad \\textbf{Attesa:} Y \\quad (esito)``. L'ordine
-    delle occorrenze nel documento e' lo stesso usato dal validator per
-    estrarle, quindi l'accoppiamento con ``score.results`` e' garantito.
+    Replaces the answer lines in order. The occurrences appear in the document
+    in the same order the validator read them, so the pairing with
+    ``score.results`` holds.
 
-    Se il documento contiene piu' risposte di quante ne siano state valutate
-    le eccedenti restano invariate, cosi' da non alterare silenziosamente un
-    documento malformato.
+    If the document carries more answers than were scored, the surplus is left
+    untouched: a malformed document must not be quietly tidied up.
     """
     results = list(score.results)
 
@@ -64,11 +61,10 @@ def annotate_recap_answers(latex_text: str, score: ScoreReport) -> str:
 
 
 def _append_summary(latex_text: str, score: ScoreReport) -> str:
-    """Aggiunge dopo l'elenco una riga con il punteggio complessivo.
+    """Append a line with the overall score after the list.
 
-    La riga viene inserita subito prima di ``\\end{document}``: e' il solo
-    punto di ancoraggio garantito, dal momento che la struttura interna del
-    documento dipende da cio' che il modello ha prodotto.
+    It goes immediately before ``\\end{document}``, the only anchor that is
+    guaranteed to be there: everything inside depends on what the model wrote.
     """
     summary = (
         "\n\\vspace{1em}\n"

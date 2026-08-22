@@ -1,11 +1,10 @@
-"""Chiamata all'LLM per la generazione del report LaTeX.
+"""LLM call for generating the LaTeX report.
 
-``src.llm.call_llm()`` non e' riutilizzabile qui perche' fa il parsing di un
-blocco JSON dalla risposta e solleva un errore se non lo trova: quella e' la
-firma giusta per il benchmark degli effetti (2_3), dove il modello deve
-restituire TV/TE/DE/IE, ma in questa pipeline l'output atteso e' il sorgente
-LaTeX completo. Questo modulo fa la stessa chiamata (stesso endpoint, stessa
-configurazione, ``temperature=0``) ma restituisce il testo grezzo.
+``src.llm.call_llm()`` cannot be reused here: it parses a JSON block out of
+the answer and raises when it finds none, which is right for the effects
+benchmark, where the model has to return TV/TE/DE/IE. Here the expected output
+is the LaTeX source itself. This module makes the same call, against the same
+endpoint and with the same configuration, and returns the raw text.
 """
 
 from __future__ import annotations
@@ -17,18 +16,20 @@ from openai import OpenAI
 
 from ..llm import LLM_CONFIGS
 
-# Un LLM tende a incapsulare l'output in un blocco markdown nonostante le
-# istruzioni contrarie: lo togliamo qui invece di penalizzare il report.
+# Models wrap the output in a markdown block despite instructions to the
+# contrary. Stripping it here beats penalising the report for it.
 _FENCE_PATTERN = re.compile(r"^\s*```(?:latex|tex)?\s*\n(.*?)\n?\s*```\s*$", re.DOTALL)
 
-# Deliberatamente permissivo. La versione precedente, ``<<([A-Z0-9_]+)>>``,
-# accettava solo token ben formati, e quindi non vedeva proprio i casi che
-# questo controllo esiste per trovare: quando la traduzione del template ha
-# escapato l'underscore dentro il token (``<<PROTECTED\_ATTR>>``), il
-# segnaposto non e' stato riempito da nessuno ed e' finito nel report, mentre
-# di qui usciva una lista vuota. Un token malformato e' un segnaposto non
-# riempito a tutti gli effetti, e va segnalato come tale.
-_PLACEHOLDER_PATTERN = re.compile(r"<<([^>\n]+)>>")
+# The earlier pattern, ``<<([A-Z0-9_]+)>>``, accepted only well formed tokens
+# and so missed the very case this check exists for: when the template
+# translation escaped the underscore inside a token (``<<PROTECTED\_ATTR>>``),
+# nobody filled the placeholder, it shipped in the report, and this returned an
+# empty list. A malformed token is an unfilled placeholder.
+#
+# The class takes letters, digits, underscore and the backslash of a bad
+# escape, but not dots or spaces: the prompt itself contains the literal
+# ``<<...>>`` as an example, and a wider class would report it as a slot.
+_PLACEHOLDER_PATTERN = re.compile(r"<<([A-Za-z0-9_\\]+)>>")
 
 
 def strip_markdown_fences(text: str) -> str:
@@ -37,10 +38,10 @@ def strip_markdown_fences(text: str) -> str:
 
 
 def extract_latex_document(text: str) -> str:
-    """Isola il documento da ``\\documentclass`` a ``\\end{document}``.
+    """Isolate the document from ``\\documentclass`` to ``\\end{document}``.
 
-    Serve a scartare eventuale testo di accompagnamento che il modello
-    aggiunge prima o dopo il sorgente, senza toccare il documento stesso.
+    Discards any prose the model adds before or after the source, without
+    touching the document itself.
     """
     cleaned = strip_markdown_fences(text)
     start = cleaned.find(r"\documentclass")
@@ -51,10 +52,10 @@ def extract_latex_document(text: str) -> str:
 
 
 def find_unfilled_placeholders(latex_text: str) -> list[str]:
-    """Segnaposto ``<<NOME>>`` rimasti nel documento.
+    """Placeholders left in the document.
 
-    Una lista non vuota significa che il modello non ha completato il
-    template: il report va considerato malformato.
+    A non-empty list means the model did not complete the template, and the
+    report counts as malformed.
     """
     return _PLACEHOLDER_PATTERN.findall(latex_text)
 
@@ -67,17 +68,16 @@ def call_llm_report(
     cache_prompt: bool = False,
     require_complete: bool = True,
 ) -> tuple[str, dict, float]:
-    """Invia i due prompt e restituisce ``(latex, usage, elapsed_seconds)``.
+    """Send both prompts and return ``(latex, usage, elapsed_seconds)``.
 
-    Il LaTeX e' gia' ripulito da fence markdown e da eventuale testo fuori
-    dal documento; NON viene validato qui (se ne occupa il validator).
+    The LaTeX comes back already stripped of markdown fences and of anything
+    outside the document. It is not validated here; the validator does that.
 
-    Con ``require_complete`` (default) una risposta troncata solleva un errore
-    invece di essere restituita: il troncamento per esaurimento di
-    ``max_tokens`` e' una modalita' di fallimento gia' osservata su questo
-    modello, e un report troncato produrrebbe comunque un punteggio, cioe' un
-    numero che sembra un risultato e non lo e'. Il controllo si disattiva
-    esplicitamente quando si vuole ispezionare l'output parziale.
+    With ``require_complete``, the default, a truncated answer raises instead
+    of being returned. Running out of ``max_tokens`` is a failure mode already
+    seen with this model, and a truncated report would still produce a score,
+    which is a number that looks like a result without being one. Turn the
+    check off explicitly to inspect partial output.
     """
     if config is None:
         config = LLM_CONFIGS[0]
@@ -93,10 +93,10 @@ def call_llm_report(
         ],
         temperature=0,
         max_tokens=max_tokens,
-        # Come in src.llm.call_llm: llama.cpp assegna la richiesta allo slot
-        # con il prefisso comune piu' lungo e ne riusa la KV cache, per cui
-        # richieste identiche possono divergere anche a temperatura nulla.
-        # Disattivata perche' un report non riproducibile non e' valutabile.
+        # As in src.llm.call_llm: llama.cpp routes a request to the slot with
+        # the longest common prefix and reuses its KV cache, so identical
+        # requests can diverge even at temperature zero. Disabled, because a
+        # report that cannot be reproduced cannot be assessed.
         extra_body={"cache_prompt": cache_prompt},
     )
     elapsed = time.perf_counter() - start

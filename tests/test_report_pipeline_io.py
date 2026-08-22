@@ -104,6 +104,19 @@ def test_finds_a_malformed_placeholder_too():
     assert find_unfilled_placeholders(r"x <<PROTECTED\_ATTR>> y") == [r"PROTECTED\_ATTR"]
 
 
+def test_the_literal_example_in_the_prompt_is_not_a_placeholder():
+    """Regression test for a false positive of the permissive pattern.
+
+    The instructions sent to the model contain the literal string ``<<...>>``
+    as an example of what a placeholder looks like. A pattern wide enough to
+    match anything between the angle brackets reported it as an unfilled
+    placeholder, which made the notebook print a ninth slot that does not
+    exist. Dots and spaces are therefore excluded from the name.
+    """
+    prompt_text = "Fill in the eight remaining <<...>> placeholders as instructed."
+    assert find_unfilled_placeholders(prompt_text) == []
+
+
 def test_a_complete_document_reports_nothing_left():
     assert find_unfilled_placeholders(MINIMAL_DOC) == []
 

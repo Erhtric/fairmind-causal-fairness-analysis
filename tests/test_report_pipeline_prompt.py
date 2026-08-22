@@ -17,6 +17,7 @@ import pytest
 
 from src.report_pipeline.prompt_builder import (
     _EFFECT_KEYS,
+    _LITERAL_KEYS,
     _METADATA_KEYS,
     ANSWER_PLACEHOLDERS,
     QUALITATIVE_PLACEHOLDERS,
@@ -24,6 +25,7 @@ from src.report_pipeline.prompt_builder import (
     escape_latex,
     load_template,
     prefill_template,
+    thresholds_note,
 )
 from src.report_pipeline.validator import GROUND_TRUTH_RULES, N_QUESTIONS
 
@@ -66,7 +68,7 @@ def test_every_placeholder_the_code_fills_exists_in_the_template():
     ``<<PROTECTED_ATTR>>`` long after the template had renamed it.
     """
     template = load_template()
-    expected = _METADATA_KEYS + _EFFECT_KEYS
+    expected = _METADATA_KEYS + _EFFECT_KEYS + _LITERAL_KEYS
     missing = [key for key in expected if f"<<{key}>>" not in template]
     assert missing == [], (
         f"prompt_builder fills {missing}, but template.tex has no such token. "
@@ -83,7 +85,11 @@ def test_every_placeholder_in_the_template_is_known_to_the_code():
     template = load_template()
     found = {m.strip("<>") for m in ANY_PLACEHOLDER.findall(template)}
     known = set(
-        _METADATA_KEYS + _EFFECT_KEYS + QUALITATIVE_PLACEHOLDERS + ANSWER_PLACEHOLDERS
+        _METADATA_KEYS
+        + _EFFECT_KEYS
+        + _LITERAL_KEYS
+        + QUALITATIVE_PLACEHOLDERS
+        + ANSWER_PLACEHOLDERS
     )
     assert found - known == set(), (
         f"template.tex contains tokens nobody fills: {sorted(found - known)}"
@@ -198,3 +204,43 @@ def test_build_prompts_returns_a_system_and_user_prompt(effects, context):
     assert "causal fairness reporting assistant" in system
     assert r"\documentclass" in user
     assert "<<QUALITATIVE_TOTAL>>" in user
+
+
+# ---------------------------------------------------------------------------
+# Thresholds declared inside the report
+# ---------------------------------------------------------------------------
+
+
+def test_the_report_states_the_thresholds_behind_the_answers(effects, context):
+    """A reader of the report must be able to see why an answer is YES.
+
+    The question that prompted this came from someone reading a generated
+    report without the code at hand: with DE at 0.013, is the answer still
+    YES? It is not, because the rule requires |DE| above 0.05, but nothing in
+    the document said so. The four constants now travel with the report.
+    """
+    prefilled = prefill_template(load_template(), effects, context, "2026-08-21")
+    for value in ("0.05", "0.005", "0.1"):
+        assert value in prefilled
+
+
+def test_the_thresholds_note_is_not_escaped(effects, context):
+    """It is our own text and carries deliberate math mode.
+
+    Running it through escape_latex would turn the dollar signs into literal
+    characters and the note would render as source code.
+    """
+    prefilled = prefill_template(load_template(), effects, context, "2026-08-21")
+    assert r"$|\mathrm{DE}| >" in prefilled
+    assert r"\$" not in thresholds_note()
+
+
+def test_the_thresholds_come_from_the_validator_not_a_copy():
+    """A second copy of the constants would drift from the rules that use them."""
+    from src.report_pipeline import validator
+
+    note = thresholds_note()
+    assert str(validator.THRESH_DE) in note
+    assert str(validator.EPS_IE) in note
+    assert str(validator.THRESH_TV) in note
+    assert str(validator.THRESH_SE_REL) in note

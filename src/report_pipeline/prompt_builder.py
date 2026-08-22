@@ -1,38 +1,56 @@
-"""Costruzione del prompt per la generazione del report LaTeX qualitativo.
+"""Prompt construction for the qualitative LaTeX report.
 
-Implementa i punti 1-3 del feedback del docente: i cinque effetti causali
-sono calcolati esclusivamente da FairMind (mai dall'LLM), inseriti in un
-template LaTeX a struttura rigida, e il modello ha la sola responsabilita'
-di riempire i blocchi di interpretazione qualitativa e la sezione finale
-"Recap Questions". Il template NON viene mai lasciato scrivere all'LLM per
-intero: solo i segnaposto ``<<...>>`` rimasti dopo il pre-riempimento dei
-dati numerici (fatto qui, in Python, non dal modello) sono editabili.
+The five effects are computed by FairMind alone and written into a rigid LaTeX
+template, so the model is only responsible for the qualitative blocks and the
+Recap Questions. The model never writes the template: the numbers are filled
+in here, in Python, and only the placeholders left after that are editable.
 """
 
 from pathlib import Path
 
+from .validator import EPS_IE, THRESH_DE, THRESH_SE_REL, THRESH_TV
+
 TEMPLATE_PATH = Path(__file__).parent / "template.tex"
 
-# Segnaposto che lo script pre-riempie con i dati esatti di FairMind, PRIMA
-# di mandare il template all'LLM. Il modello non li vede mai come vuoti.
+# Placeholders prefilled with the exact FairMind values before the template
+# reaches the model, which therefore never sees them empty.
 #
-# ATTENZIONE: i nomi qui sotto devono comparire nel template ESATTAMENTE come
-# sono scritti, underscore compreso e NON escapato. Il token viene sostituito
-# prima che LaTeX lo veda, quindi non va trattato come testo LaTeX; e' il
-# valore che ci finisce dentro a essere escapato, da escape_latex().
-# Scrivere ``<<PROTECTED\_ATTR>>`` nel template rende la replace() un no-op
-# silenzioso: il valore viene calcolato e buttato, e il segnaposto arriva al
-# modello, che lo riempie inventando. E' successo con la traduzione in
-# inglese (commit e13e428). Il contratto e' verificato da
-# tests/test_report_pipeline_prompt.py.
+# The names below must appear in the template exactly as written, underscore
+# included and not escaped. The token is replaced before LaTeX ever sees it,
+# so it is not LaTeX text; the value going into it is what gets escaped, by
+# escape_latex(). Writing ``<<PROTECTED\_ATTR>>`` in the template turns the
+# replace() into a silent no-op: the value is computed, discarded, and the
+# placeholder reaches the model, which fills it by inventing. That happened
+# with the English translation. tests/test_report_pipeline_prompt.py pins the
+# contract.
 _METADATA_KEYS = [
     "REPORT_DATE", "DATASET", "PROTECTED_ATTR", "X0", "X1",
     "OUTCOME_ATTR", "MEDIATOR", "CONFOUNDER",
 ]
 _EFFECT_KEYS = ["TV", "TE", "SE", "DE", "IE"]
 
-# Segnaposto che restano nel template dopo il pre-riempimento: solo questi
-# sono responsabilita' dell'LLM.
+# Placeholders filled with our own text rather than with data: they carry
+# deliberate math mode and must go in unescaped.
+_LITERAL_KEYS = ["THRESHOLDS"]
+
+
+def thresholds_note() -> str:
+    """The line that states, inside the report, the thresholds behind the answers.
+
+    Without it a reader cannot tell why an answer is YES rather than NO: the
+    thresholds lived only in the validator, and the question that made them
+    necessary came from someone reading a report without the code at hand.
+    """
+    return (
+        "The recap answers follow deterministic threshold rules applied to the "
+        "values above: direct discrimination when $|\\mathrm{DE}| > "
+        f"{THRESH_DE}$; a mediator channel counted as negligible when "
+        f"$|\\mathrm{{IE}}| < {EPS_IE}$; practical relevance when "
+        f"$|\\mathrm{{TV}}| > {THRESH_TV}$; a substantial spurious component "
+        f"when $|\\mathrm{{SE}}| / |\\mathrm{{TV}}| > {THRESH_SE_REL}$."
+    )
+
+# Placeholders surviving the prefill: these alone are the model's job.
 QUALITATIVE_PLACEHOLDERS = ["QUALITATIVE_TOTAL", "QUALITATIVE_DE", "QUALITATIVE_IE"]
 ANSWER_PLACEHOLDERS = ["ANSWER_Q1", "ANSWER_Q2", "ANSWER_Q3", "ANSWER_Q4", "ANSWER_Q5"]
 
@@ -52,14 +70,12 @@ _LATEX_SPECIAL_CHARS = {
 
 
 def escape_latex(text: str) -> str:
-    """Escapa i caratteri speciali di LaTeX in un valore inserito a runtime.
+    """Escape LaTeX special characters in a value injected at runtime.
 
-    I nomi di colonna del dataset (es. ``S2_gender``, ``T_income``) contengono
-    spesso underscore, che in LaTeX aprono un pedice fuori da modalita'
-    matematica e mandano in errore la compilazione (``Missing $ inserted``).
-    Va applicato a qualunque metadato che finisce nel template grezzo, non ai
-    valori numerici degli effetti (gia' formattati come float, nessun
-    carattere speciale possibile).
+    Column names such as ``S2_gender`` carry underscores, which outside math
+    mode open a subscript and break compilation with ``Missing $ inserted``.
+    Apply to any metadata reaching the raw template, but not to the effects,
+    already formatted as floats.
     """
     return "".join(_LATEX_SPECIAL_CHARS.get(ch, ch) for ch in text)
 
@@ -74,10 +90,10 @@ def prefill_template(
     context: dict[str, str],
     report_date: str,
 ) -> str:
-    """Sostituisce SOLO i segnaposto di metadati e valori numerici.
+    """Replace only the metadata, numeric and literal placeholders.
 
-    I segnaposto qualitativi (``QUALITATIVE_*``) e le risposte del recap
-    (``ANSWER_Q*``) restano intatti: sono quelli che l'LLM dovra' riempire.
+    ``QUALITATIVE_*`` and ``ANSWER_Q*`` are left untouched: those are the ones
+    the model has to fill.
     """
     filled = template
     values = {
@@ -94,6 +110,9 @@ def prefill_template(
         filled = filled.replace(f"<<{key}>>", escape_latex(str(values[key])))
     for key in _EFFECT_KEYS:
         filled = filled.replace(f"<<{key}>>", f"{effects[key]:.6f}")
+    literals = {"THRESHOLDS": thresholds_note()}
+    for key in _LITERAL_KEYS:
+        filled = filled.replace(f"<<{key}>>", literals[key])
     return filled
 
 
@@ -166,11 +185,11 @@ def build_prompts(
     context: dict[str, str],
     report_date: str,
 ) -> tuple[str, str]:
-    """Punto di ingresso principale: ritorna (system_prompt, user_prompt).
+    """Main entry point: returns ``(system_prompt, user_prompt)``.
 
-    ``effects`` deve avere le chiavi TV, TE, SE, DE, IE (float).
-    ``context`` deve avere le chiavi dataset, protected_attr, x0, x1,
-    outcome_attr, e opzionalmente mediator, confounder.
+    ``effects`` needs the keys TV, TE, SE, DE, IE. ``context`` needs dataset,
+    protected_attr, x0, x1 and outcome_attr, with mediator and confounder
+    optional.
     """
     template = load_template()
     prefilled = prefill_template(template, effects, context, report_date)
