@@ -67,7 +67,7 @@ job name and connect to it over HTTP.
 
 ## 3. Submission scripts
 
-All three live in `setup_thor/` and follow the same pattern: find the running
+All four live in `setup_thor/` and follow the same pattern: find the running
 server, export `LLAMA_HOST` / `LLAMA_PORT`, execute a notebook through
 `nbconvert` inside `jupyter_env.sif`.
 
@@ -76,6 +76,12 @@ server, export `LLAMA_HOST` / `LLAMA_PORT`, execute a notebook through
 | `run_benchmark.sbatch` | `2_3_benchmark_thor.ipynb` | 2 h | job fails |
 | `run_benchmark_multi.sbatch` | `2_4_benchmark_multi_dataset.ipynb` | 4 h | `--allow-errors`: job continues |
 | `run_report_pipeline.sbatch` | `2_6_report_pipeline.ipynb` | 1 h | job fails |
+| `run_complete_pipeline.sbatch` | `2_7_complete_report_pipeline.ipynb` | 2 h | job fails |
+
+`run_complete_pipeline.sbatch` asks for two hours rather than one because it makes
+three requests to the model instead of one, and the middle one enumerates twenty five
+pairs of confounder and mediator states step by step: on Adult that took 131 seconds
+and about 9700 output tokens, against eleven seconds for each report.
 
 The difference in the last column is deliberate. A benchmark sweep over ten
 datasets should not abort because one dataset fails, whereas a single reporting
