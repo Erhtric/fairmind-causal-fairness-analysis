@@ -1,0 +1,91 @@
+{
+  "dataset": "adult",
+  "timestamp": "20260820_123438",
+  "dry_run": false,
+  "config": {
+    "dataset_name": "adult",
+    "target_col": "T_income",
+    "target_val": ">50K",
+    "protected": "S2_gender",
+    "x0": "Female",
+    "x1": "Male",
+    "mediators": [
+      "hours-per-week"
+    ],
+    "confounders": [
+      "education"
+    ]
+  },
+  "fairmind_effects": {
+    "TV": 0.19371366845052762,
+    "TE": 0.18473619151063345,
+    "SE": 0.008977476939894175,
+    "DE": 0.13840366096700932,
+    "IE": 0.016868845599224108,
+    "IE_reverse": -0.04633253054362413
+  },
+  "ie_form_used_for_scoring": "IE_reverse",
+  "decomposition_check": {
+    "DE_minus_IE_reverse": 0.184736,
+    "TE": 0.184736
+  },
+  "report_tex": "benchmark_results/reports/adult_20260820_123438.tex",
+  "report_tex_annotated": "benchmark_results/reports/adult_20260820_123438_annotated.tex",
+  "latex_compiles": null,
+  "unfilled_placeholders": [],
+  "scoring": {
+    "score": 1.0,
+    "score_pct": "100.0%",
+    "n_correct": 5,
+    "n_total": 5,
+    "n_unparseable": 0,
+    "questions": [
+      {
+        "index": 1,
+        "llm_answer": "YES",
+        "ground_truth": "YES",
+        "correct": true
+      },
+      {
+        "index": 2,
+        "llm_answer": "NO",
+        "ground_truth": "NO",
+        "correct": true
+      },
+      {
+        "index": 3,
+        "llm_answer": "YES",
+        "ground_truth": "YES",
+        "correct": true
+      },
+      {
+        "index": 4,
+        "llm_answer": "NO",
+        "ground_truth": "NO",
+        "correct": true
+      },
+      {
+        "index": 5,
+        "llm_answer": "YES",
+        "ground_truth": "YES",
+        "correct": true
+      }
+    ]
+  },
+  "thresholds": {
+    "THRESH_DE": 0.05,
+    "EPS_IE": 0.005,
+    "THRESH_TV": 0.05,
+    "THRESH_SE_REL": 0.1
+  },
+  "token_usage": {
+    "input_tokens": 1314,
+    "output_tokens": 785,
+    "total_tokens": 2099,
+    "finish_reason": "stop"
+  },
+  "timing": {
+    "fairmind_seconds": 0.0185,
+    "llm_seconds": 10.5273
+  }
+}

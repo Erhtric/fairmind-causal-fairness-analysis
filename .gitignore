@@ -43,3 +43,11 @@ Thumbs.db
 
 # Project-specific
 copilot_*
+
+# LaTeX build artifacts from generated reports
+notebooks/**/benchmark_results/**/*.aux
+notebooks/**/benchmark_results/**/*.log
+notebooks/**/benchmark_results/**/*.fls
+notebooks/**/benchmark_results/**/*.fdb_latexmk
+notebooks/**/benchmark_results/**/*.synctex.gz
+notebooks/**/benchmark_results/**/*.pdf

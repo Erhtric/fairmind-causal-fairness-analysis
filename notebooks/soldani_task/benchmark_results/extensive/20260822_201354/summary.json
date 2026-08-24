@@ -1,0 +1,1928 @@
+{
+  "timestamp": "20260822_201354",
+  "dry_run": false,
+  "n_datasets": 10,
+  "n_completed": 10,
+  "records": [
+    {
+      "dataset": "adult",
+      "status": "ok",
+      "error": null,
+      "n_rows": 48842,
+      "fairmind_effects": {
+        "TV": 0.19371366845052762,
+        "TE": 0.18473619151063345,
+        "SE": 0.008977476939894175,
+        "DE": 0.13840366096700932,
+        "IE": 0.016868845599224108,
+        "IE_reverse": -0.04633253054362413
+      },
+      "fairmind_seconds": 0.019,
+      "llm_effects": {
+        "TV": 0.1937,
+        "TE": 0.184852,
+        "SE": 0.008848000000000023,
+        "DE": 0.184,
+        "IE": 0.018
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": 0.193714,
+          "llm": 0.1937,
+          "abs_error": 1.4e-05,
+          "rel_error_%": 0.01
+        },
+        {
+          "effect": "TE",
+          "fairmind": 0.184736,
+          "llm": 0.184852,
+          "abs_error": 0.000116,
+          "rel_error_%": 0.06
+        },
+        {
+          "effect": "SE",
+          "fairmind": 0.008977,
+          "llm": 0.008848,
+          "abs_error": 0.000129,
+          "rel_error_%": 1.44
+        },
+        {
+          "effect": "DE",
+          "fairmind": 0.138404,
+          "llm": 0.184,
+          "abs_error": 0.045596,
+          "rel_error_%": 32.94
+        },
+        {
+          "effect": "IE",
+          "fairmind": 0.016869,
+          "llm": 0.018,
+          "abs_error": 0.001131,
+          "rel_error_%": 6.71
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 12.01,
+        "B_computation": 131.32,
+        "B_report": 12.75
+      },
+      "output_tokens": {
+        "A_report": 878,
+        "B_computation": 9701,
+        "B_report": 856
+      }
+    },
+    {
+      "dataset": "census_income_kdd",
+      "status": "ok",
+      "error": null,
+      "n_rows": 200000,
+      "fairmind_effects": {
+        "TV": 0.08962024907057747,
+        "TE": 0.08106084406319566,
+        "SE": 0.00855940500738181,
+        "DE": 0.06449744845603234,
+        "IE": 0.005176647765124574,
+        "IE_reverse": -0.016563395607163342
+      },
+      "fairmind_seconds": 0.018,
+      "llm_effects": {
+        "TV": 0.0896,
+        "TE": 0.08075,
+        "SE": 0.008849999999999997,
+        "DE": 0.06285,
+        "IE": 0.00105
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": 0.08962,
+          "llm": 0.0896,
+          "abs_error": 2e-05,
+          "rel_error_%": 0.02
+        },
+        {
+          "effect": "TE",
+          "fairmind": 0.081061,
+          "llm": 0.08075,
+          "abs_error": 0.000311,
+          "rel_error_%": 0.38
+        },
+        {
+          "effect": "SE",
+          "fairmind": 0.008559,
+          "llm": 0.00885,
+          "abs_error": 0.000291,
+          "rel_error_%": 3.4
+        },
+        {
+          "effect": "DE",
+          "fairmind": 0.064497,
+          "llm": 0.06285,
+          "abs_error": 0.001647,
+          "rel_error_%": 2.55
+        },
+        {
+          "effect": "IE",
+          "fairmind": 0.005177,
+          "llm": 0.00105,
+          "abs_error": 0.004127,
+          "rel_error_%": 79.72
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 11.67,
+        "B_computation": 137.98,
+        "B_report": 13.35
+      },
+      "output_tokens": {
+        "A_report": 867,
+        "B_computation": 10134,
+        "B_report": 915
+      }
+    },
+    {
+      "dataset": "bank_marketing",
+      "status": "ok",
+      "error": null,
+      "n_rows": 45211,
+      "fairmind_effects": {
+        "TV": -0.04846635936677182,
+        "TE": -0.040313367917377774,
+        "SE": -0.008152991449394048,
+        "DE": -0.0394936376957577,
+        "IE": -0.0013105215653756719,
+        "IE_reverse": 0.0008197302216200741
+      },
+      "fairmind_seconds": 0.0177,
+      "llm_effects": {
+        "TV": -0.0484,
+        "TE": -0.0403,
+        "SE": -0.008099999999999996,
+        "DE": -0.0125,
+        "IE": -0.0001
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 0.6,
+          "score_pct": "60.0%",
+          "n_correct": 3,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 0.6,
+          "score_pct": "60.0%",
+          "n_correct": 3,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 0.8,
+          "score_pct": "80.0%",
+          "n_correct": 4,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": -0.048466,
+          "llm": -0.0484,
+          "abs_error": 6.6e-05,
+          "rel_error_%": 0.14
+        },
+        {
+          "effect": "TE",
+          "fairmind": -0.040313,
+          "llm": -0.0403,
+          "abs_error": 1.3e-05,
+          "rel_error_%": 0.03
+        },
+        {
+          "effect": "SE",
+          "fairmind": -0.008153,
+          "llm": -0.0081,
+          "abs_error": 5.3e-05,
+          "rel_error_%": 0.65
+        },
+        {
+          "effect": "DE",
+          "fairmind": -0.039494,
+          "llm": -0.0125,
+          "abs_error": 0.026994,
+          "rel_error_%": 68.35
+        },
+        {
+          "effect": "IE",
+          "fairmind": -0.001311,
+          "llm": -0.0001,
+          "abs_error": 0.001211,
+          "rel_error_%": 92.37
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 11.58,
+        "B_computation": 21.12,
+        "B_report": 12.16
+      },
+      "output_tokens": {
+        "A_report": 864,
+        "B_computation": 1613,
+        "B_report": 893
+      }
+    },
+    {
+      "dataset": "compas_two_year_recid",
+      "status": "ok",
+      "error": null,
+      "n_rows": 7214,
+      "fairmind_effects": {
+        "TV": 0.11978196257825235,
+        "TE": 0.09312110621352976,
+        "SE": 0.026660856364722596,
+        "DE": 0.025963851722534348,
+        "IE": 0.06677177815296131,
+        "IE_reverse": -0.06715725449099541
+      },
+      "fairmind_seconds": 0.0179,
+      "llm_effects": {
+        "TV": 0.1198,
+        "TE": 0.0932,
+        "SE": 0.0266,
+        "DE": 0.104,
+        "IE": 0.068
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 0.8,
+          "score_pct": "80.0%",
+          "n_correct": 4,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 0.4,
+          "score_pct": "40.0%",
+          "n_correct": 2,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": 0.119782,
+          "llm": 0.1198,
+          "abs_error": 1.8e-05,
+          "rel_error_%": 0.02
+        },
+        {
+          "effect": "TE",
+          "fairmind": 0.093121,
+          "llm": 0.0932,
+          "abs_error": 7.9e-05,
+          "rel_error_%": 0.08
+        },
+        {
+          "effect": "SE",
+          "fairmind": 0.026661,
+          "llm": 0.0266,
+          "abs_error": 6.1e-05,
+          "rel_error_%": 0.23
+        },
+        {
+          "effect": "DE",
+          "fairmind": 0.025964,
+          "llm": 0.104,
+          "abs_error": 0.078036,
+          "rel_error_%": 300.56
+        },
+        {
+          "effect": "IE",
+          "fairmind": 0.066772,
+          "llm": 0.068,
+          "abs_error": 0.001228,
+          "rel_error_%": 1.84
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 12.32,
+        "B_computation": 44.01,
+        "B_report": 12.0
+      },
+      "output_tokens": {
+        "A_report": 919,
+        "B_computation": 3323,
+        "B_report": 866
+      }
+    },
+    {
+      "dataset": "diabetes_130",
+      "status": "ok",
+      "error": null,
+      "n_rows": 101766,
+      "fairmind_effects": {
+        "TV": -0.01796647927309125,
+        "TE": -0.01795135121130509,
+        "SE": -1.5128061786162661e-05,
+        "DE": -0.01721408158447213,
+        "IE": -0.0013051583311064485,
+        "IE_reverse": 0.0007372696268329593
+      },
+      "fairmind_seconds": 0.0179,
+      "llm_effects": {
+        "TV": -0.018,
+        "TE": -0.0172,
+        "SE": -0.0007999999999999986,
+        "DE": -0.0008,
+        "IE": 1e-06
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 0.8,
+          "score_pct": "80.0%",
+          "n_correct": 4,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 0.8,
+          "score_pct": "80.0%",
+          "n_correct": 4,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": -0.017966,
+          "llm": -0.018,
+          "abs_error": 3.4e-05,
+          "rel_error_%": 0.19
+        },
+        {
+          "effect": "TE",
+          "fairmind": -0.017951,
+          "llm": -0.0172,
+          "abs_error": 0.000751,
+          "rel_error_%": 4.19
+        },
+        {
+          "effect": "SE",
+          "fairmind": -1.5e-05,
+          "llm": -0.0008,
+          "abs_error": 0.000785,
+          "rel_error_%": 5188.19
+        },
+        {
+          "effect": "DE",
+          "fairmind": -0.017214,
+          "llm": -0.0008,
+          "abs_error": 0.016414,
+          "rel_error_%": 95.35
+        },
+        {
+          "effect": "IE",
+          "fairmind": -0.001305,
+          "llm": 1e-06,
+          "abs_error": 0.001306,
+          "rel_error_%": 100.08
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 11.94,
+        "B_computation": 105.93,
+        "B_report": 12.81
+      },
+      "output_tokens": {
+        "A_report": 891,
+        "B_computation": 7786,
+        "B_report": 872
+      }
+    },
+    {
+      "dataset": "german_credit",
+      "status": "ok",
+      "error": null,
+      "n_rows": 1000,
+      "fairmind_effects": {
+        "TV": 0.07732255640916574,
+        "TE": 0.07857230421068528,
+        "SE": -0.0012497478015195407,
+        "DE": 0.05070843671704117,
+        "IE": 0.023170668348837298,
+        "IE_reverse": -0.027863867493644112
+      },
+      "fairmind_seconds": 0.018,
+      "llm_effects": {
+        "TV": 0.0773,
+        "TE": 0.07662,
+        "SE": 0.00068,
+        "DE": 0.00125,
+        "IE": -0.00125
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 0.6,
+          "score_pct": "60.0%",
+          "n_correct": 3,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": 0.077323,
+          "llm": 0.0773,
+          "abs_error": 2.3e-05,
+          "rel_error_%": 0.03
+        },
+        {
+          "effect": "TE",
+          "fairmind": 0.078572,
+          "llm": 0.07662,
+          "abs_error": 0.001952,
+          "rel_error_%": 2.48
+        },
+        {
+          "effect": "SE",
+          "fairmind": -0.00125,
+          "llm": 0.00068,
+          "abs_error": 0.00193,
+          "rel_error_%": 154.41
+        },
+        {
+          "effect": "DE",
+          "fairmind": 0.050708,
+          "llm": 0.00125,
+          "abs_error": 0.049458,
+          "rel_error_%": 97.53
+        },
+        {
+          "effect": "IE",
+          "fairmind": 0.023171,
+          "llm": -0.00125,
+          "abs_error": 0.024421,
+          "rel_error_%": 105.39
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 12.18,
+        "B_computation": 36.59,
+        "B_report": 11.86
+      },
+      "output_tokens": {
+        "A_report": 909,
+        "B_computation": 2773,
+        "B_report": 864
+      }
+    },
+    {
+      "dataset": "law_bar_pass",
+      "status": "ok",
+      "error": null,
+      "n_rows": 20512,
+      "fairmind_effects": {
+        "TV": 0.11605068044689593,
+        "TE": 0.10249829682623779,
+        "SE": 0.013552383620658137,
+        "DE": 0.09554645736900036,
+        "IE": 0.02245980368780698,
+        "IE_reverse": -0.00695183945723743
+      },
+      "fairmind_seconds": 0.0179,
+      "llm_effects": {
+        "TV": 0.1161,
+        "TE": 0.102,
+        "SE": 0.014100000000000001,
+        "DE": 0.0886,
+        "IE": 0.0326
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 0.8,
+          "score_pct": "80.0%",
+          "n_correct": 4,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": 0.116051,
+          "llm": 0.1161,
+          "abs_error": 4.9e-05,
+          "rel_error_%": 0.04
+        },
+        {
+          "effect": "TE",
+          "fairmind": 0.102498,
+          "llm": 0.102,
+          "abs_error": 0.000498,
+          "rel_error_%": 0.49
+        },
+        {
+          "effect": "SE",
+          "fairmind": 0.013552,
+          "llm": 0.0141,
+          "abs_error": 0.000548,
+          "rel_error_%": 4.04
+        },
+        {
+          "effect": "DE",
+          "fairmind": 0.095546,
+          "llm": 0.0886,
+          "abs_error": 0.006946,
+          "rel_error_%": 7.27
+        },
+        {
+          "effect": "IE",
+          "fairmind": 0.02246,
+          "llm": 0.0326,
+          "abs_error": 0.01014,
+          "rel_error_%": 45.15
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 11.77,
+        "B_computation": 45.14,
+        "B_report": 11.78
+      },
+      "output_tokens": {
+        "A_report": 880,
+        "B_computation": 3382,
+        "B_report": 851
+      }
+    },
+    {
+      "dataset": "oulad_final_result",
+      "status": "ok",
+      "error": null,
+      "n_rows": 31482,
+      "fairmind_effects": {
+        "TV": -0.02788388601234404,
+        "TE": -0.03657974266195241,
+        "SE": 0.008695856649608369,
+        "DE": -0.03446910827392363,
+        "IE": -0.002855689154191765,
+        "IE_reverse": 0.002110634388028776
+      },
+      "fairmind_seconds": 0.0212,
+      "llm_effects": {
+        "TV": -0.0278,
+        "TE": -0.0364,
+        "SE": 0.008600000000000003,
+        "DE": -0.0244,
+        "IE": -0.0001
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 0.6,
+          "score_pct": "60.0%",
+          "n_correct": 3,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 0.6,
+          "score_pct": "60.0%",
+          "n_correct": 3,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 0.6,
+          "score_pct": "60.0%",
+          "n_correct": 3,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": -0.027884,
+          "llm": -0.0278,
+          "abs_error": 8.4e-05,
+          "rel_error_%": 0.3
+        },
+        {
+          "effect": "TE",
+          "fairmind": -0.03658,
+          "llm": -0.0364,
+          "abs_error": 0.00018,
+          "rel_error_%": 0.49
+        },
+        {
+          "effect": "SE",
+          "fairmind": 0.008696,
+          "llm": 0.0086,
+          "abs_error": 9.6e-05,
+          "rel_error_%": 1.1
+        },
+        {
+          "effect": "DE",
+          "fairmind": -0.034469,
+          "llm": -0.0244,
+          "abs_error": 0.010069,
+          "rel_error_%": 29.21
+        },
+        {
+          "effect": "IE",
+          "fairmind": -0.002856,
+          "llm": -0.0001,
+          "abs_error": 0.002756,
+          "rel_error_%": 96.5
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 12.04,
+        "B_computation": 113.74,
+        "B_report": 12.83
+      },
+      "output_tokens": {
+        "A_report": 900,
+        "B_computation": 8448,
+        "B_report": 879
+      }
+    },
+    {
+      "dataset": "student_mat",
+      "status": "ok",
+      "error": null,
+      "n_rows": 395,
+      "fairmind_effects": {
+        "TV": 0.05708448832099888,
+        "TE": 0.04919887891076069,
+        "SE": 0.007885609410238192,
+        "DE": 0.0700051221810738,
+        "IE": -0.0038131661779089443,
+        "IE_reverse": 0.020806243270313107
+      },
+      "fairmind_seconds": 0.0179,
+      "llm_effects": {
+        "TV": 0.0571,
+        "TE": 0.051627,
+        "SE": 0.005472999999999999,
+        "DE": 0.006452,
+        "IE": 0.045999
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 0.8,
+          "score_pct": "80.0%",
+          "n_correct": 4,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 0.2,
+          "score_pct": "20.0%",
+          "n_correct": 1,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 1.0,
+          "score_pct": "100.0%",
+          "n_correct": 5,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": 0.057084,
+          "llm": 0.0571,
+          "abs_error": 1.6e-05,
+          "rel_error_%": 0.03
+        },
+        {
+          "effect": "TE",
+          "fairmind": 0.049199,
+          "llm": 0.051627,
+          "abs_error": 0.002428,
+          "rel_error_%": 4.94
+        },
+        {
+          "effect": "SE",
+          "fairmind": 0.007886,
+          "llm": 0.005473,
+          "abs_error": 0.002413,
+          "rel_error_%": 30.6
+        },
+        {
+          "effect": "DE",
+          "fairmind": 0.070005,
+          "llm": 0.006452,
+          "abs_error": 0.063553,
+          "rel_error_%": 90.78
+        },
+        {
+          "effect": "IE",
+          "fairmind": -0.003813,
+          "llm": 0.045999,
+          "abs_error": 0.049812,
+          "rel_error_%": 1306.32
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 11.75,
+        "B_computation": 43.37,
+        "B_report": 12.63
+      },
+      "output_tokens": {
+        "A_report": 877,
+        "B_computation": 3304,
+        "B_report": 917
+      }
+    },
+    {
+      "dataset": "student_por",
+      "status": "ok",
+      "error": null,
+      "n_rows": 649,
+      "fairmind_effects": {
+        "TV": -0.05956741496929463,
+        "TE": -0.07274630258100334,
+        "SE": 0.013178887611708712,
+        "DE": -0.0509022070349906,
+        "IE": -0.023579526334204792,
+        "IE_reverse": 0.021844095546012743
+      },
+      "fairmind_seconds": 0.0179,
+      "llm_effects": {
+        "TV": -0.0596,
+        "TE": -0.0794,
+        "SE": 0.019799999999999998,
+        "DE": -0.0348,
+        "IE": 0.0324
+      },
+      "scoring": {
+        "A_vs_fairmind": {
+          "score": 0.8,
+          "score_pct": "80.0%",
+          "n_correct": 4,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            }
+          ]
+        },
+        "B_vs_fairmind": {
+          "score": 0.6,
+          "score_pct": "60.0%",
+          "n_correct": 3,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            }
+          ]
+        },
+        "B_vs_llm_own": {
+          "score": 0.6,
+          "score_pct": "60.0%",
+          "n_correct": 3,
+          "n_total": 5,
+          "n_unparseable": 0,
+          "questions": [
+            {
+              "index": 1,
+              "llm_answer": "YES",
+              "ground_truth": "NO",
+              "correct": false
+            },
+            {
+              "index": 2,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            },
+            {
+              "index": 3,
+              "llm_answer": "YES",
+              "ground_truth": "YES",
+              "correct": true
+            },
+            {
+              "index": 4,
+              "llm_answer": "NO",
+              "ground_truth": "YES",
+              "correct": false
+            },
+            {
+              "index": 5,
+              "llm_answer": "NO",
+              "ground_truth": "NO",
+              "correct": true
+            }
+          ]
+        }
+      },
+      "discrepancies": [
+        {
+          "effect": "TV",
+          "fairmind": -0.059567,
+          "llm": -0.0596,
+          "abs_error": 3.3e-05,
+          "rel_error_%": 0.05
+        },
+        {
+          "effect": "TE",
+          "fairmind": -0.072746,
+          "llm": -0.0794,
+          "abs_error": 0.006654,
+          "rel_error_%": 9.15
+        },
+        {
+          "effect": "SE",
+          "fairmind": 0.013179,
+          "llm": 0.0198,
+          "abs_error": 0.006621,
+          "rel_error_%": 50.24
+        },
+        {
+          "effect": "DE",
+          "fairmind": -0.050902,
+          "llm": -0.0348,
+          "abs_error": 0.016102,
+          "rel_error_%": 31.63
+        },
+        {
+          "effect": "IE",
+          "fairmind": -0.02358,
+          "llm": 0.0324,
+          "abs_error": 0.05598,
+          "rel_error_%": 237.41
+        }
+      ],
+      "unfilled": {
+        "A": [],
+        "B": []
+      },
+      "timing": {
+        "A_report": 12.08,
+        "B_computation": 39.0,
+        "B_report": 12.34
+      },
+      "output_tokens": {
+        "A_report": 902,
+        "B_computation": 2966,
+        "B_report": 903
+      }
+    }
+  ]
+}

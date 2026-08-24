@@ -1,0 +1,75 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\title{Report di Causal Fairness Analysis}
+\author{Generato da FairMind + LLM}
+\date{2026-08-11}
+
+\begin{document}
+\maketitle
+
+\section{Configurazione dell'analisi}
+
+\begin{tabular}{ll}
+\toprule
+Dataset & adult \\
+Attributo protetto ($X$) & S2\_gender \\
+Confronto & Female $\to$ Male \\
+Outcome ($Y$) & T\_income (>50K) \\
+Mediatore ($W$) & hours-per-week \\
+Confondente ($Z$) & education \\
+\bottomrule
+\end{tabular}
+
+\section{Effetti causali (FairMind, valori esatti)}
+
+I cinque effetti seguenti sono calcolati da FairMind tramite inferenza esatta
+sulla rete bayesiana stimata. Questi valori sono definitivi e non vanno
+ricalcolati o alterati.
+
+\begin{tabular}{lr}
+\toprule
+Effetto & Valore \\
+\midrule
+Total Variation (TV) & 0.193714 \\
+Total Effect (TE) & 0.184736 \\
+Spurious Effect (SE) & 0.008977 \\
+Direct Effect (DE) & 0.138404 \\
+Indirect Effect (IE, forma inversa) & -0.046333 \\
+\bottomrule
+\end{tabular}
+
+\section{Interpretazione qualitativa}
+
+\subsection{Effetto totale e componente spuria (TV, TE, SE)}
+
+Il totale disparità tra i due gruppi è di 0.193714, di cui 0.184736 è un effetto causale genuino (TE) che sopravvive alla rimozione del confondente Z. La componente spuria (SE) è di 0.008977, che è causata dal confondente Z piuttosto che dall'attributo protetto X stesso.
+
+\subsection{Effetto diretto (DE)}
+
+Il 0.138404 del totale effetto è diretto, non passando attraverso il mediatore. Questo indica una discriminazione diretta contro il gruppo protetto, con un'entità significativa rispetto al totale effetto causale.
+
+\subsection{Effetto indiretto (IE)}
+
+L'effetto indiretto attraverso il mediatore è di -0.046333, che contrasta con l'effetto diretto. Questo suggerisce che il canale del mediatore agisce in modo a mitigare l'effetto diretto.
+
+\section{Recap Questions}
+
+\begin{enumerate}
+\item Esiste una discriminazione diretta nei confronti del gruppo protetto? \textbf{LLM:} SI \quad \textbf{Attesa:} SI \quad (corretto)
+\item L'effetto indiretto attraverso il mediatore mitiga l'effetto totale? \textbf{LLM:} SI \quad \textbf{Attesa:} SI \quad (corretto)
+\item L'effetto totale osservato supera la soglia di rilevanza pratica? \textbf{LLM:} SI \quad \textbf{Attesa:} SI \quad (corretto)
+\item La componente spuria (SE) contribuisce in modo sostanziale alla differenza osservata? \textbf{LLM:} NO \quad \textbf{Attesa:} NO \quad (corretto)
+\item L'effetto diretto è la componente dominante rispetto all'effetto indiretto? \textbf{LLM:} SI \quad \textbf{Attesa:} SI \quad (corretto)
+\end{enumerate}
+
+
+\vspace{1em}
+\noindent\textbf{Consistenza delle risposte:} 5/5 (100.0\%). Le risposte attese sono calcolate in modo deterministico dai soli valori numerici di FairMind, secondo regole a soglia, e sono state aggiunte al documento dopo la generazione: il modello non le ha mai viste.
+
+\end{document}

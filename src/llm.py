@@ -234,15 +234,24 @@ Here are the fairness decomposition results in JSON:
 
 LLM_CONFIGS = [
     {
-        "name": "Qwen2.5-7B",
-        "model": "qwen2.5-7b-instruct",
+        # The served model is Qwen2.5-14B-Instruct-Q4_K_M (verified 2026-08-10
+        # against /v1/models: n_params = 14 770 033 664). "model" is documental
+        # only: llama.cpp serves the single loaded model regardless of the name
+        # sent in the request.
+        "name": "Qwen2.5-14B",
+        "model": "qwen2.5-14b-instruct",
         "base_url": f"http://{os.environ.get('LLAMA_HOST', 'localhost')}:{os.environ.get('LLAMA_PORT', '8080')}/v1",
         "api_key": "not-needed",
     },
 ]
 
 
-def call_llm(prompt: str, config: dict | None = None, max_tokens: int = 4096) -> tuple[dict, dict, float]:
+def call_llm(
+    prompt: str,
+    config: dict | None = None,
+    max_tokens: int = 4096,
+    cache_prompt: bool = False,
+) -> tuple[dict, dict, float]:
     """Send a prompt to an LLM and parse the JSON result.
 
     Parameters
@@ -257,6 +266,15 @@ def call_llm(prompt: str, config: dict | None = None, max_tokens: int = 4096) ->
         work for many (z,w) combinations (high-cardinality confounders)
         can exceed the default before reaching the FINAL_JSON block,
         causing a truncated/unparseable response — raise this if so.
+    cache_prompt : bool
+        llama.cpp extension, off by default here for reproducibility. The server
+        keeps one KV cache per slot (4 slots on the Thor instance) and, when this
+        is on, routes a request to the slot sharing the longest common prefix and
+        reuses that cache instead of recomputing the prompt. Identical requests
+        then follow different numeric paths depending on what a slot happens to
+        hold: on 2026-08-10 the same prompt produced 8248 and 2786 output tokens
+        in different runs at temperature 0, and the shorter answers skipped terms.
+        Set it to True only to reproduce that behaviour deliberately.
 
     Returns
     -------
@@ -279,19 +297,29 @@ def call_llm(prompt: str, config: dict | None = None, max_tokens: int = 4096) ->
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
         max_tokens=max_tokens,
+        # Not an OpenAI field: passed through to llama.cpp untouched. A server
+        # that does not know it ignores it, so this stays safe elsewhere.
+        extra_body={"cache_prompt": cache_prompt},
     )
     elapsed = time.perf_counter() - start
+
+    raw = response.choices[0].message.content.strip()
 
     usage = {
         "input_tokens": response.usage.prompt_tokens,
         "output_tokens": response.usage.completion_tokens,
         "reasoning_tokens": None,
         "total_tokens": response.usage.total_tokens,
+        # The step-by-step working the prompt asks for, kept so that a wrong
+        # DE or IE can be traced to the term where the model diverges. Carried
+        # inside usage rather than as a fourth return value, which would break
+        # existing call sites (2_4 unpacks exactly three).
+        "raw_response": raw,
     }
-
-    raw = response.choices[0].message.content.strip()
     candidates = re.findall(r"\{[^{}]*\}", raw, re.DOTALL)
-    required_keys = ["TV", "TE", "SE", "DE", "IE"]
+    # SE non e' richiesta al modello (e' derivata come TV-TE lato chiamante,
+    # v. 2_3_benchmark_thor.ipynb): non e' tra le chiavi obbligatorie.
+    required_keys = ["TV", "TE", "DE", "IE"]
 
     json_str = None
     for candidate in reversed(candidates):

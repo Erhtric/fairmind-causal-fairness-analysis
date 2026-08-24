@@ -1,8 +1,0 @@
-\section{Exploratory Data Analysis del dataset Adult (21 giugno 2026)}
-\label{sec:eda}
-
-Il lavoro sulla cartella \texttt{notebooks/soldani\_task/} inizia il 21 giugno 2026 con due commit ravvicinati sullo stesso file, \texttt{1\_adult\_exploration.ipynb}: una prima versione di 106 righe (\texttt{b586f91}, 16:13, \emph{``ADDED: first task, adult dataset exploration''}) seguita 23 minuti dopo da un'estensione a 556 righe (\texttt{cc9c317}, 16:36, \emph{``ADDED: final exploratory analysis on adult dataset''}). Il messaggio del secondo commit (\emph{``first task''}) suggerisce che questa analisi esplorativa costituisse il primo compito assegnato nell'ambito della tesi.
-
-Il notebook analizza il dataset Adult Income (UCI), definendo i ruoli delle variabili nello Standard Fairness Model che verrà utilizzato per tutto il resto del progetto: l'attributo protetto \texttt{S2\_gender} ($X$), il target \texttt{T\_income} ($Y$), il mediatore \texttt{hours-per-week} ($W$) e il confondente \texttt{education} ($Z$). In questa fase viene anche calcolato manualmente un primo valore di Total Variation osservazionale (0.1945), che costituirà poi il termine di confronto ricorrente in tutti gli esperimenti successivi con FairMind e con i modelli LLM.
-
-Questa prima esplorazione stabilisce la configurazione dello Standard Fairness Model che rimarrà sostanzialmente invariata per il resto della tesi (si veda \S\ref{sec:openai} e seguenti), e getta le basi per il passo successivo: costruire una pipeline end-to-end che calcoli gli stessi effetti sia con FairMind sia con un LLM, confrontandoli.

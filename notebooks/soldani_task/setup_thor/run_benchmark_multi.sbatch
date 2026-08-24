@@ -11,6 +11,18 @@
 #SBATCH --output=benchmark_multi_%j.out
 #SBATCH --error=benchmark_multi_%j.err
 
+# set -u: un nome di variabile sbagliato diventa un errore invece di espandersi
+#   a stringa vuota (senza, un tipo in ${SLURM_JOB_ID} produrrebbe un file di
+#   output chiamato "..._.ipynb" senza che nessuno se ne accorga).
+# set -o pipefail: lo stato di una pipeline diventa quello del primo comando
+#   fallito, non quello dell'ultimo.
+#
+# NIENTE set -e, deliberatamente: questi script controllano gli exit code a
+# mano per stampare messaggi che dicono a quale passo tornare. Con -e il job
+# terminerebbe prima di stamparli, perdendo l'unica diagnostica utile.
+set -uo pipefail
+
+
 # === CONFIGURAZIONE ===
 SCRATCH=/mnt/beegfs/scratch/marco.soldani/causal_fairness
 JUPYTER_SIF=$SCRATCH/containers/jupyter_env.sif
@@ -59,8 +71,9 @@ apptainer exec --no-home \
     jupyter nbconvert --to notebook --execute --allow-errors \
         --output benchmark_multi_output_${SLURM_JOB_ID}.ipynb \
         2_4_benchmark_multi_dataset.ipynb
+status=$?
 
-if [ $? -ne 0 ]; then
+if [ $status -ne 0 ]; then
     echo "ERRORE: esecuzione del notebook fallita (vedi output sopra)."
     exit 1
 fi

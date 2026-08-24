@@ -1,0 +1,11 @@
+dataset,rows,A_vs_fairmind,B_vs_fairmind,B_vs_llm_own,DE_error_%
+adult,48842,100.0%,100.0%,100.0%,32.94
+census_income_kdd,200000,100.0%,100.0%,100.0%,2.55
+bank_marketing,45211,60.0%,60.0%,80.0%,68.35
+compas_two_year_recid,7214,80.0%,40.0%,100.0%,300.56
+diabetes_130,101766,80.0%,80.0%,100.0%,95.35
+german_credit,1000,100.0%,60.0%,100.0%,97.53
+law_bar_pass,20512,80.0%,100.0%,100.0%,7.27
+oulad_final_result,31482,60.0%,60.0%,60.0%,29.21
+student_mat,395,80.0%,20.0%,100.0%,90.78
+student_por,649,80.0%,60.0%,60.0%,31.63
