@@ -34,8 +34,9 @@ Both images are built once and live on scratch, under
 | `run_benchmark_multi.sbatch` | `2_4_benchmark_multi_dataset.ipynb` | no |
 | `run_report_pipeline.sbatch` | `2_6_report_pipeline.ipynb` | no |
 | `run_complete_pipeline.sbatch` | `2_7_complete_report_pipeline.ipynb` | no |
+| `run_extensive_benchmark.sbatch` | `2_8_extensive_benchmark.ipynb` | no |
 
-The four notebook jobs do **not** start a server of their own. They locate the
+The five notebook jobs do **not** start a server of their own. They locate the
 already-running `llama_server_gpu` job with `squeue`, read its node, and connect
 to it over HTTP. Start the server first, or they exit with an explanatory error.
 
