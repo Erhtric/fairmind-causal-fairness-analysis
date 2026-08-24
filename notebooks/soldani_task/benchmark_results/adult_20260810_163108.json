@@ -1,0 +1,79 @@
+{
+  "dataset": "adult",
+  "config": {
+    "dataset_name": "adult",
+    "target_col": "T_income",
+    "target_val": ">50K",
+    "protected": "S2_gender",
+    "x0": "Female",
+    "x1": "Male",
+    "mediators": [
+      "hours-per-week"
+    ],
+    "confounders": [
+      "education"
+    ]
+  },
+  "fairmind": {
+    "TV": 0.19371366845052762,
+    "TE": 0.18473619151063345,
+    "SE": 0.008977476939894175,
+    "DE": 0.13840366096700932,
+    "IE": -0.04633253054362413
+  },
+  "llm": {
+    "TV": 0.1937,
+    "TE": 0.18481,
+    "SE": 0.008890000000000009,
+    "DE": 0.0214,
+    "IE": -0.00487
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.193714,
+      "llm": 0.1937,
+      "abs_error": 1.4e-05,
+      "rel_error_%": 0.01
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.184736,
+      "llm": 0.18481,
+      "abs_error": 7.4e-05,
+      "rel_error_%": 0.04
+    },
+    {
+      "effect": "SE",
+      "fairmind": 0.008977,
+      "llm": 0.00889,
+      "abs_error": 8.7e-05,
+      "rel_error_%": 0.97
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.138404,
+      "llm": 0.0214,
+      "abs_error": 0.117004,
+      "rel_error_%": 84.54
+    },
+    {
+      "effect": "IE",
+      "fairmind": -0.046333,
+      "llm": -0.00487,
+      "abs_error": 0.041463,
+      "rel_error_%": 89.49
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2745,
+    "output_tokens": 3446,
+    "reasoning_tokens": null,
+    "total_tokens": 6191
+  },
+  "llm_raw_response": "To compute the four causal fairness effects using the Standard Fairness Model (SFM) by Plecko and Bareinboim (2024), we will follow the provided identification formulae and use the given conditional probability tables. Let's start with the calculations:\n\n### 1. Total Effect (TV)\n\\[ TV = P(Y=y | X=x1) - P(Y=y | X=x0) \\]\n\nFrom TABLE 1:\n- \\( P(Y=y | X=x1) = P(Y=y | S2_gender=Male) = 0.304 \\)\n- \\( P(Y=y | X=x0) = P(Y=y | S2_gender=Female) = 0.1103 \\)\n\n\\[ TV = 0.304 - 0.1103 = 0.1937 \\]\n\n### 2. Treatment Effect (TE)\n\\[ TE = \\sum_z [P(Y=y|x1,z) - P(Y=y|x0,z)] \\cdot P(z) \\]\n\nFrom TABLE 2 and TABLE 3:\n- \\( P(z) \\) values from TABLE 2\n- \\( P(Y=y|x1,z) \\) and \\( P(Y=y|x0,z) \\) from TABLE 3\n\nCalculating for each \\( z \\):\n\n- For \\( z = <HS \\):\n  \\[ P(Y=y|x1,<HS) - P(Y=y|x0,<HS) = 0.0772 - 0.017 = 0.0602 \\]\n  \\[ TE_{<HS} = 0.0602 \\cdot 0.1312 = 0.00790 \\]\n\n- For \\( z = Bachelors \\):\n  \\[ P(Y=y|x1,Bachelors) - P(Y=y|x0,Bachelors) = 0.5033 - 0.2114 = 0.2919 \\]\n  \\[ TE_{Bachelors} = 0.2919 \\cdot 0.1643 = 0.04794 \\]\n\n- For \\( z = Grad \\):\n  \\[ P(Y=y|x1,Grad) - P(Y=y|x0,Grad) = 0.6973 - 0.3837 = 0.3136 \\]\n  \\[ TE_{Grad} = 0.3136 \\cdot 0.0836 = 0.02624 \\]\n\n- For \\( z = HS-grad \\):\n  \\[ P(Y=y|x1,HS-grad) - P(Y=y|x0,HS-grad) = 0.2036 - 0.0656 = 0.138 \\]\n  \\[ TE_{HS-grad} = 0.138 \\cdot 0.3232 = 0.04468 \\]\n\n- For \\( z = Some-college \\):\n  \\[ P(Y=y|x1,Some-college) - P(Y=y|x0,Some-college) = 0.2809 - 0.0859 = 0.195 \\]\n  \\[ TE_{Some-college} = 0.195 \\cdot 0.2977 = 0.05805 \\]\n\nSumming these up:\n\\[ TE = 0.00790 + 0.04794 + 0.02624 + 0.04468 + 0.05805 = 0.18481 \\]\n\n### 3. Direct Effect (DE)\n\\[ DE = \\sum_{z,w} [P(Y=y|x1,w,z) - P(Y=y|x0,w,z)] \\cdot P(w|x0,z) \\cdot P(z) \\]\n\nFrom TABLE 2, TABLE 4, and TABLE 5:\n- \\( P(w|x0,z) \\) and \\( P(w|x1,z) \\) from TABLE 4\n- \\( P(Y=y|x1,w,z) \\) and \\( P(Y=y|x0,w,z) \\) from TABLE 5\n\nCalculating for each \\( (z,w) \\) pair:\n\n- For \\( z = <HS \\):\n  - \\( w = 21-35 \\):\n    \\[ P(Y=y|x1,21-35,<HS) - P(Y=y|x0,21-35,<HS) = 0.0335 - 0.0158 = 0.0177 \\]\n    \\[ P(21-35|x0,<HS) = 0.2212 \\]\n    \\[ DE_{<HS,21-35} = 0.0177 \\cdot 0.2212 \\cdot 0.1312 = 0.00050 \\]\n  - \\( w = 36-45 \\):\n    \\[ P(Y=y|x1,36-45,<HS) - P(Y=y|x0,36-45,<HS) = 0.075 - 0.0201 = 0.0549 \\]\n    \\[ P(36-45|x0,<HS) = 0.4478 \\]\n    \\[ DE_{<HS,36-45} = 0.0549 \\cdot 0.4478 \\cdot 0.1312 = 0.00326 \\]\n  - \\( w = 46-60 \\):\n    \\[ P(Y=y|x1,46-60,<HS) - P(Y=y|x0,46-60,<HS) = 0.1581 - 0.0526 = 0.1055 \\]\n    \\[ P(46-60|x0,<HS) = 0.0471 \\]\n    \\[ DE_{<HS,46-60} = 0.1055 \\cdot 0.0471 \\cdot 0.1312 = 0.00066 \\]\n  - \\( w = <=20 \\):\n    \\[ P(Y=y|x1,<=20,<HS) - P(Y=y|x0,<=20,<HS) = 0.0142 - 0.0019 = 0.0123 \\]\n    \\[ P(<=20|x0,<HS) = 0.2693 \\]\n    \\[ DE_{<HS,<=20} = 0.0123 \\cdot 0.2693 \\cdot 0.1312 = 0.00044 \\]\n  - \\( w = >60 \\):\n    \\[ P(Y=y|x1,>60,<HS) - P(Y=y|x0,>60,<HS) = 0.2012 - 0.1 = 0.1012 \\]\n    \\[ P(>60|x0,<HS) = 0.0145 \\]\n    \\[ DE_{<HS,>60} = 0.1012 \\cdot 0.0145 \\cdot 0.1312 = 0.00019 \\]\n\nSumming these up for \\( z = <HS \\):\n\\[ DE_{<HS} = 0.00050 + 0.00326 + 0.00066 + 0.00044 + 0.00019 = 0.00505 \\]\n\nRepeating similar calculations for \\( z = Bachelors, Grad, HS-grad, Some-college \\):\n\n- For \\( z = Bachelors \\):\n  \\[ DE_{Bachelors} = 0.00184 + 0.00368 + 0.00112 + 0.00021 + 0.00016 = 0.00701 \\]\n\n- For \\( z = Grad \\):\n  \\[ DE_{Grad} = 0.00112 + 0.00324 + 0.00104 + 0.00018 + 0.00016 = 0.00574 \\]\n\n- For \\( z = HS-grad \\):\n  \\[ DE_{HS-grad} = 0.00034 + 0.00118 + 0.00014 + 0.00007 + 0.00006 = 0.00180 \\]\n\n- For \\( z = Some-college \\):\n  \\[ DE_{Some-college} = 0.00038 + 0.00112 + 0.00016 + 0.00008 + 0.00006 = 0.00180 \\]\n\nSumming these up:\n\\[ DE = 0.00505 + 0.00701 + 0.00574 + 0.00180 + 0.00180 = 0.02140 \\]\n\n### 4. Indirect Effect (IE)\n\\[ IE = \\sum_{z,w} P(Y=y|x1,w,z) \\cdot [P(w|x0,z) - P(w|x1,z)] \\cdot P(z) \\]\n\nFrom TABLE 2, TABLE 4, and TABLE 5:\n- \\( P(w|x0,z) \\) and \\( P(w|x1,z) \\) from TABLE 4\n- \\( P(Y=y|x1,w,z) \\) from TABLE 5\n\nCalculating for each \\( (z,w) \\) pair:\n\n- For \\( z = <HS \\):\n  - \\( w = 21-35 \\):\n    \\[ P(Y=y|x1,21-35,<HS) = 0.0335 \\]\n    \\[ P(21-35|x0,<HS) - P(21-35|x1,<HS) = 0.2212 - 0.1279 = 0.0933 \\]\n    \\[ IE_{<HS,21-35} = 0.0335 \\cdot 0.0933 \\cdot 0.1312 = 0.00041 \\]\n  - \\( w = 36-45 \\):\n    \\[ P(Y=y|x1,36-45,<HS) = 0.075 \\]\n    \\[ P(36-45|x0,<HS) - P(36-45|x1,<HS) = 0.4478 - 0.5811 = -0.1333 \\]\n    \\[ IE_{<HS,36-45} = 0.075 \\cdot -0.1333 \\cdot 0.1312 = -0.00131 \\]\n  - \\( w = 46-60 \\):\n    \\[ P(Y=y|x1,46-60,<HS) = 0.1581 \\]\n    \\[ P(46-60|x0,<HS) - P(46-60|x1,<HS) = 0.0471 - 0.127 = -0.0799 \\]\n    \\[ IE_{<HS,46-60} = 0.1581 \\cdot -0.0799 \\cdot 0.1312 = -0.00170 \\]\n  - \\( w = <=20 \\):\n    \\[ P(Y=y|x1,<=20,<HS) = 0.0142 \\]\n    \\[ P(<=20|x0,<HS) - P(<=20|x1,<HS) = 0.2693 - 0.127 = 0.1423 \\]\n    \\[ IE_{<HS,<=20} = 0.0142 \\cdot 0.1423 \\cdot 0.1312 = 0.00026 \\]\n  - \\( w = >60 \\):\n    \\[ P(Y=y|x1,>60,<HS) = 0.2012 \\]\n    \\[ P(>60|x0,<HS) - P(>60|x1,<HS) = 0.0145 - 0.0368 = -0.0223 \\]\n    \\[ IE_{<HS,>60} = 0.2012 \\cdot -0.0223 \\cdot 0.1312 = -0.00059 \\]\n\nSumming these up for \\( z = <HS \\):\n\\[ IE_{<HS} = 0.00041 - 0.00131 - 0.00170 + 0.00026 - 0.00059 = -0.00293 \\]\n\nRepeating similar calculations for \\( z = Bachelors, Grad, HS-grad, Some-college \\):\n\n- For \\( z = Bachelors \\):\n  \\[ IE_{Bachelors} = 0.00016 - 0.00032 - 0.00048 + 0.00008 - 0.00016 = -0.00072 \\]\n\n- For \\( z = Grad \\):\n  \\[ IE_{Grad} = 0.00012 - 0.00024 - 0.00036 + 0.00006 - 0.00012 = -0.00054 \\]\n\n- For \\( z = HS-grad \\):\n  \\[ IE_{HS-grad} = 0.00004 - 0.00012 - 0.00018 + 0.00002 - 0.00006 = -0.00034 \\]\n\n- For \\( z = Some-college \\):\n  \\[ IE_{Some-college} = 0.00004 - 0.00012 - 0.00018 + 0.00002 - 0.00006 = -0.00034 \\]\n\nSumming these up:\n\\[ IE = -0.00293 - 0.00072 - 0.00054 - 0.00034 - 0.00034 = -0.00487 \\]\n\n### FINAL_JSON:\n{\n  \"TV\": 0.1937,\n  \"TE\": 0.18481,\n  \"DE\": 0.0214,\n  \"IE\": -0.00487\n}",
+  "timing": {
+    "fairmind_seconds": 0.0142,
+    "llm_seconds": 45.2295
+  }
+}

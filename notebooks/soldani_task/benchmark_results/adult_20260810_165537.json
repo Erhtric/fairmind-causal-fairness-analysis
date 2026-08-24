@@ -1,0 +1,79 @@
+{
+  "dataset": "adult",
+  "config": {
+    "dataset_name": "adult",
+    "target_col": "T_income",
+    "target_val": ">50K",
+    "protected": "S2_gender",
+    "x0": "Female",
+    "x1": "Male",
+    "mediators": [
+      "hours-per-week"
+    ],
+    "confounders": [
+      "education"
+    ]
+  },
+  "fairmind": {
+    "TV": 0.19371366845052762,
+    "TE": 0.18473619151063345,
+    "SE": 0.008977476939894175,
+    "DE": 0.13840366096700932,
+    "IE": -0.04633253054362413
+  },
+  "llm": {
+    "TV": 0.1937,
+    "TE": 0.2147,
+    "SE": -0.02099999999999999,
+    "DE": 0.139,
+    "IE": -0.1634
+  },
+  "discrepancies": [
+    {
+      "effect": "TV",
+      "fairmind": 0.193714,
+      "llm": 0.1937,
+      "abs_error": 1.4e-05,
+      "rel_error_%": 0.01
+    },
+    {
+      "effect": "TE",
+      "fairmind": 0.184736,
+      "llm": 0.2147,
+      "abs_error": 0.029964,
+      "rel_error_%": 16.22
+    },
+    {
+      "effect": "SE",
+      "fairmind": 0.008977,
+      "llm": -0.021,
+      "abs_error": 0.029977,
+      "rel_error_%": 333.92
+    },
+    {
+      "effect": "DE",
+      "fairmind": 0.138404,
+      "llm": 0.139,
+      "abs_error": 0.000596,
+      "rel_error_%": 0.43
+    },
+    {
+      "effect": "IE",
+      "fairmind": -0.046333,
+      "llm": -0.1634,
+      "abs_error": 0.117067,
+      "rel_error_%": 252.67
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2829,
+    "output_tokens": 5578,
+    "reasoning_tokens": null,
+    "total_tokens": 8407
+  },
+  "llm_raw_response": "Let's start by calculating the Total Effect (TE) using the provided identification formula:\n\n\\[ TE = \\sum_z [P(Y=y|x1,z) - P(Y=y|x0,z)] \\cdot P(z) \\]\n\nFrom TABLE 3, we have the conditional probabilities \\(P(Y=y|x1,z)\\) and \\(P(Y=y|x0,z)\\) for each education level \\(z\\). From TABLE 2, we have the marginal probabilities \\(P(z)\\).\n\n\\[ TE = [P(Y=y|x1,<HS) - P(Y=y|x0,<HS)] \\cdot P(<HS) + \\]\n\\[ [P(Y=y|x1,Bachelors) - P(Y=y|x0,Bachelors)] \\cdot P(Bachelors) + \\]\n\\[ [P(Y=y|x1,Grad) - P(Y=y|x0,Grad)] \\cdot P(Grad) + \\]\n\\[ [P(Y=y|x1,HS-grad) - P(Y=y|x0,HS-grad)] \\cdot P(HS-grad) + \\]\n\\[ [P(Y=y|x1,Some-college) - P(Y=y|x0,Some-college)] \\cdot P(Some-college) \\]\n\nSubstituting the values from the tables:\n\n\\[ TE = (0.304 - 0.017) \\cdot 0.1312 + (0.5033 - 0.2114) \\cdot 0.1643 + \\]\n\\[ (0.6973 - 0.3837) \\cdot 0.0836 + (0.2036 - 0.0656) \\cdot 0.3232 + \\]\n\\[ (0.2809 - 0.0859) \\cdot 0.2977 \\]\n\n\\[ TE = 0.287 \\cdot 0.1312 + 0.2919 \\cdot 0.1643 + 0.3136 \\cdot 0.0836 + 0.138 \\cdot 0.3232 + 0.195 \\cdot 0.2977 \\]\n\n\\[ TE = 0.0377 + 0.0479 + 0.0263 + 0.0447 + 0.0581 \\]\n\n\\[ TE = 0.2147 \\]\n\nNext, we calculate the Direct Effect (DE) using the identification formula:\n\n\\[ DE = \\sum_z \\sum_w [P(Y=y|x1,w,z) - P(Y=y|x0,w,z)] \\cdot P(w|x0,z) \\cdot P(z) \\]\n\nWe will compute each term for each combination of \\(z\\) and \\(w\\):\n\n1. For \\(z = <HS\\):\n\\[ DE_{<HS} = \\sum_w [P(Y=y|x1,w,<HS) - P(Y=y|x0,w,<HS)] \\cdot P(w|x0,<HS) \\cdot P(<HS) \\]\n\n\\[ DE_{<HS} = (0.0335 - 0.0158) \\cdot 0.2693 \\cdot 0.1312 + \\]\n\\[ (0.075 - 0.0201) \\cdot 0.4478 \\cdot 0.1312 + \\]\n\\[ (0.1581 - 0.0526) \\cdot 0.0471 \\cdot 0.1312 + \\]\n\\[ (0.0142 - 0.0019) \\cdot 0.2212 \\cdot 0.1312 + \\]\n\\[ (0.2012 - 0.1) \\cdot 0.0145 \\cdot 0.1312 \\]\n\n\\[ DE_{<HS} = 0.0177 \\cdot 0.2693 \\cdot 0.1312 + 0.0549 \\cdot 0.4478 \\cdot 0.1312 + \\]\n\\[ 0.1055 \\cdot 0.0471 \\cdot 0.1312 + 0.0123 \\cdot 0.2212 \\cdot 0.1312 + \\]\n\\[ 0.1012 \\cdot 0.0145 \\cdot 0.1312 \\]\n\n\\[ DE_{<HS} = 0.0006 + 0.0033 + 0.0006 + 0.0004 + 0.0002 \\]\n\n\\[ DE_{<HS} = 0.0051 \\]\n\n2. For \\(z = Bachelors\\):\n\\[ DE_{Bachelors} = \\sum_w [P(Y=y|x1,w,Bachelors) - P(Y=y|x0,w,Bachelors)] \\cdot P(w|x0,Bachelors) \\cdot P(Bachelors) \\]\n\n\\[ DE_{Bachelors} = (0.2094 - 0.2319) \\cdot 0.1027 \\cdot 0.1643 + \\]\n\\[ (0.4939 - 0.1801) \\cdot 0.5834 \\cdot 0.1643 + \\]\n\\[ (0.6194 - 0.3317) \\cdot 0.1612 \\cdot 0.1643 + \\]\n\\[ (0.2008 - 0.1602) \\cdot 0.1334 \\cdot 0.1643 + \\]\n\\[ (0.5634 - 0.2857) \\cdot 0.0193 \\cdot 0.1643 \\]\n\n\\[ DE_{Bachelors} = -0.0225 \\cdot 0.1027 \\cdot 0.1643 + 0.3138 \\cdot 0.5834 \\cdot 0.1643 + \\]\n\\[ 0.2877 \\cdot 0.1612 \\cdot 0.1643 + 0.0406 \\cdot 0.1334 \\cdot 0.1643 + \\]\n\\[ 0.2777 \\cdot 0.0193 \\cdot 0.1643 \\]\n\n\\[ DE_{Bachelors} = -0.0004 + 0.0293 + 0.0076 + 0.0009 + 0.0008 \\]\n\n\\[ DE_{Bachelors} = 0.0372 \\]\n\n3. For \\(z = Grad\\):\n\\[ DE_{Grad} = \\sum_w [P(Y=y|x1,w,Grad) - P(Y=y|x0,w,Grad)] \\cdot P(w|x0,Grad) \\cdot P(Grad) \\]\n\n\\[ DE_{Grad} = (0.5729 - 0.3467) \\cdot 0.0785 \\cdot 0.0836 + \\]\n\\[ (0.6891 - 0.324) \\cdot 0.5205 \\cdot 0.0836 + \\]\n\\[ (0.7764 - 0.5983) \\cdot 0.2174 \\cdot 0.0836 + \\]\n\\[ (0.2968 - 0.2874) \\cdot 0.1361 \\cdot 0.0836 + \\]\n\\[ (0.73 - 0.3208) \\cdot 0.0475 \\cdot 0.0836 \\]\n\n\\[ DE_{Grad} = 0.2262 \\cdot 0.0785 \\cdot 0.0836 + 0.3651 \\cdot 0.5205 \\cdot 0.0836 + \\]\n\\[ 0.1781 \\cdot 0.2174 \\cdot 0.0836 + 0.0094 \\cdot 0.1361 \\cdot 0.0836 + \\]\n\\[ 0.4092 \\cdot 0.0475 \\cdot 0.0836 \\]\n\n\\[ DE_{Grad} = 0.0015 + 0.0156 + 0.0032 + 0.0001 + 0.0015 \\]\n\n\\[ DE_{Grad} = 0.0219 \\]\n\n4. For \\(z = HS-grad\\):\n\\[ DE_{HS-grad} = \\sum_w [P(Y=y|x1,w,HS-grad) - P(Y=y|x0,w,HS-grad)] \\cdot P(w|x0,HS-grad) \\cdot P(HS-grad) \\]\n\n\\[ DE_{HS-grad} = (0.065 - 0.0454) \\cdot 0.1158 \\cdot 0.3232 + \\]\n\\[ (0.1964 - 0.0705) \\cdot 0.6027 \\cdot 0.3232 + \\]\n\\[ (0.3055 - 0.1003) \\cdot 0.0702 \\cdot 0.3232 + \\]\n\\[ (0.0342 - 0.0507) \\cdot 0.1984 \\cdot 0.3232 + \\]\n\\[ (0.2717 - 0.0896) \\cdot 0.0129 \\cdot 0.3232 \\]\n\n\\[ DE_{HS-grad} = 0.0196 \\cdot 0.1158 \\cdot 0.3232 + 0.1259 \\cdot 0.6027 \\cdot 0.3232 + \\]\n\\[ 0.2052 \\cdot 0.0702 \\cdot 0.3232 + -0.0165 \\cdot 0.1984 \\cdot 0.3232 + \\]\n\\[ 0.1821 \\cdot 0.0129 \\cdot 0.3232 \\]\n\n\\[ DE_{HS-grad} = 0.0007 + 0.0244 + 0.0046 + -0.0010 + 0.0007 \\]\n\n\\[ DE_{HS-grad} = 0.0354 \\]\n\n5. For \\(z = Some-college\\):\n\\[ DE_{Some-college} = \\sum_w [P(Y=y|x1,w,Some-college) - P(Y=y|x0,w,Some-college)] \\cdot P(w|x0,Some-college) \\cdot P(Some-college) \\]\n\n\\[ DE_{Some-college} = (0.086 - 0.0491) \\cdot 0.1667 \\cdot 0.2977 + \\]\n\\[ (0.2881 - 0.0955) \\cdot 0.5458 \\cdot 0.2977 + \\]\n\\[ (0.4043 - 0.1682) \\cdot 0.0792 \\cdot 0.2977 + \\]\n\\[ (0.0698 - 0.0541) \\cdot 0.1944 \\cdot 0.2977 + \\]\n\\[ (0.3508 - 0.141) \\cdot 0.0139 \\cdot 0.2977 \\]\n\n\\[ DE_{Some-college} = 0.0369 \\cdot 0.1667 \\cdot 0.2977 + 0.1926 \\cdot 0.5458 \\cdot 0.2977 + \\]\n\\[ 0.2361 \\cdot 0.0792 \\cdot 0.2977 + 0.0157 \\cdot 0.1944 \\cdot 0.2977 + \\]\n\\[ 0.2098 \\cdot 0.0139 \\cdot 0.2977 \\]\n\n\\[ DE_{Some-college} = 0.0017 + 0.0302 + 0.0056 + 0.0009 + 0.0010 \\]\n\n\\[ DE_{Some-college} = 0.0394 \\]\n\nSumming up all the terms for DE:\n\n\\[ DE = 0.0051 + 0.0372 + 0.0219 + 0.0354 + 0.0394 \\]\n\n\\[ DE = 0.139 \\]\n\nNext, we calculate the Indirect Effect (IE) using the identification formula:\n\n\\[ IE = \\sum_z \\sum_w P(Y=y|x1,w,z) \\cdot [P(w|x0,z) - P(w|x1,z)] \\cdot P(z) \\]\n\nWe will compute each term for each combination of \\(z\\) and \\(w\\):\n\n1. For \\(z = <HS\\):\n\\[ IE_{<HS} = \\sum_w P(Y=y|x1,w,<HS) \\cdot [P(w|x0,<HS) - P(w|x1,<HS)] \\cdot P(<HS) \\]\n\n\\[ IE_{<HS} = 0.0335 \\cdot (0.2693 - 0.127) \\cdot 0.1312 + \\]\n\\[ 0.075 \\cdot (0.4478 - 0.5811) \\cdot 0.1312 + \\]\n\\[ 0.1581 \\cdot (0.0471 - 0.127) \\cdot 0.1312 + \\]\n\\[ 0.0142 \\cdot (0.2212 - 0.127) \\cdot 0.1312 + \\]\n\\[ 0.2012 \\cdot (0.0145 - 0.0368) \\cdot 0.1312 \\]\n\n\\[ IE_{<HS} = 0.0335 \\cdot 0.1423 \\cdot 0.1312 + 0.075 \\cdot -0.1333 \\cdot 0.1312 + \\]\n\\[ 0.1581 \\cdot -0.08 \\cdot 0.1312 + 0.0142 \\cdot 0.0942 \\cdot 0.1312 + \\]\n\\[ 0.2012 \\cdot -0.0223 \\cdot 0.1312 \\]\n\n\\[ IE_{<HS} = 0.0006 + -0.0013 + -0.0016 + 0.0002 + -0.0006 \\]\n\n\\[ IE_{<HS} = -0.0037 \\]\n\n2. For \\(z = Bachelors\\):\n\\[ IE_{Bachelors} = \\sum_w P(Y=y|x1,w,Bachelors) \\cdot [P(w|x0,Bachelors) - P(w|x1,Bachelors)] \\cdot P(Bachelors) \\]\n\n\\[ IE_{Bachelors} = 0.2094 \\cdot (0.1027 - 0.0652) \\cdot 0.1643 + \\]\n\\[ 0.4939 \\cdot (0.5834 - 0.5493) \\cdot 0.1643 + \\]\n\\[ 0.6194 \\cdot (0.1612 - 0.3036) \\cdot 0.1643 + \\]\n\\[ 0.2008 \\cdot (0.1334 - 0.0438) \\cdot 0.1643 + \\]\n\\[ 0.5634 \\cdot (0.0193 - 0.0382) \\cdot 0.1643 \\]\n\n\\[ IE_{Bachelors} = 0.2094 \\cdot 0.0375 \\cdot 0.1643 + 0.4939 \\cdot 0.0341 \\cdot 0.1643 + \\]\n\\[ 0.6194 \\cdot -0.1424 \\cdot 0.1643 + 0.2008 \\cdot 0.0896 \\cdot 0.1643 + \\]\n\\[ 0.5634 \\cdot -0.0189 \\cdot 0.1643 \\]\n\n\\[ IE_{Bachelors} = 0.0013 + 0.0026 + -0.0164 + 0.0028 + -0.0016 \\]\n\n\\[ IE_{Bachelors} = -0.0013 \\]\n\n3. For \\(z = Grad\\):\n\\[ IE_{Grad} = \\sum_w P(Y=y|x1,w,Grad) \\cdot [P(w|x0,Grad) - P(w|x1,Grad)] \\cdot P(Grad) \\]\n\n\\[ IE_{Grad} = 0.5729 \\cdot (0.0785 - 0.0637) \\cdot 0.0836 + \\]\n\\[ 0.6891 \\cdot (0.5205 - 0.4403) \\cdot 0.0836 + \\]\n\\[ 0.7764 \\cdot (0.2174 - 0.3783) \\cdot 0.0836 + \\]\n\\[ 0.2968 \\cdot (0.1361 - 0.0513) \\cdot 0.0836 + \\]\n\\[ 0.73 \\cdot (0.0475 - 0.0663) \\cdot 0.0836 \\]\n\n\\[ IE_{Grad} = 0.5729 \\cdot 0.0148 \\cdot 0.0836 + 0.6891 \\cdot 0.0802 \\cdot 0.0836 + \\]\n\\[ 0.7764 \\cdot -0.1609 \\cdot 0.0836 + 0.2968 \\cdot 0.0848 \\cdot 0.0836 + \\]\n\\[ 0.73 \\cdot -0.0188 \\cdot 0.0836 \\]\n\n\\[ IE_{Grad} = 0.0007 + 0.0045 + -0.1016 + 0.0021 + -0.0011 \\]\n\n\\[ IE_{Grad} = -0.0954 \\]\n\n4. For \\(z = HS-grad\\):\n\\[ IE_{HS-grad} = \\sum_w P(Y=y|x1,w,HS-grad) \\cdot [P(w|x0,HS-grad) - P(w|x1,HS-grad)] \\cdot P(HS-grad) \\]\n\n\\[ IE_{HS-grad} = 0.065 \\cdot (0.1158 - 0.0819) \\cdot 0.3232 + \\]\n\\[ 0.1964 \\cdot (0.6027 - 0.631) \\cdot 0.3232 + \\]\n\\[ 0.3055 \\cdot (0.0702 - 0.2004) \\cdot 0.3232 + \\]\n\\[ 0.0342 \\cdot (0.1984 - 0.0437) \\cdot 0.3232 + \\]\n\\[ 0.2717 \\cdot (0.0129 - 0.2717) \\cdot 0.3232 \\]\n\n\\[ IE_{HS-grad} = 0.065 \\cdot 0.0339 \\cdot 0.3232 + 0.1964 \\cdot -0.0283 \\cdot 0.3232 + \\]\n\\[ 0.3055 \\cdot -0.1302 \\cdot 0.3232 + 0.0342 \\cdot 0.1547 \\cdot 0.3232 + \\]\n\\[ 0.2717 \\cdot -0.2588 \\cdot 0.3232 \\]\n\n\\[ IE_{HS-grad} = 0.0007 + -0.0017 + -0.0131 + 0.0017 + -0.0228 \\]\n\n\\[ IE_{HS-grad} = -0.0352 \\]\n\n5. For \\(z = Some-college\\):\n\\[ IE_{Some-college} = \\sum_w P(Y=y|x1,w,Some-college) \\cdot [P(w|x0,Some-college) - P(w|x1,Some-college)] \\cdot P(Some-college) \\]\n\n\\[ IE_{Some-college} = 0.086 \\cdot (0.1667 - 0.098) \\cdot 0.2977 + \\]\n\\[ 0.2881 \\cdot (0.5458 - 0.5683) \\cdot 0.2977 + \\]\n\\[ 0.4043 \\cdot (0.0792 - 0.2199) \\cdot 0.2977 + \\]\n\\[ 0.0698 \\cdot (0.1667 - 0.0715) \\cdot 0.2977 + \\]\n\\[ 0.3508 \\cdot (0.0139 - 0.0423) \\cdot 0.2977 \\]\n\n\\[ IE_{Some-college} = 0.086 \\cdot 0.0687 \\cdot 0.2977 + 0.2881 \\cdot -0.0225 \\cdot 0.2977 + \\]\n\\[ 0.4043 \\cdot -0.1407 \\cdot 0.2977 + 0.0698 \\cdot 0.0952 \\cdot 0.2977 + \\]\n\\[ 0.3508 \\cdot -0.0284 \\cdot 0.2977 \\]\n\n\\[ IE_{Some-college} = 0.0018 + -0.0018 + -0.0161 + 0.0020 + -0.0027 \\]\n\n\\[ IE_{Some-college} = -0.0278 \\]\n\nSumming up all the terms for IE:\n\n\\[ IE = -0.0037 + -0.0013 + -0.0954 + -0.0352 + -0.0278 \\]\n\n\\[ IE = -0.1634 \\]\n\nFinally, we calculate the Total Variance (TV):\n\n\\[ TV = P(Y=y | X=x1) - P(Y=y | X=x0) \\]\n\nFrom TABLE 1:\n\n\\[ TV = 0.304 - 0.1103 \\]\n\n\\[ TV = 0.1937 \\]\n\nWe have computed 25 terms for both DE and IE.\n\nFINAL_JSON:\n{\n  \"TV\": 0.1937,\n  \"TE\": 0.2147,\n  \"DE\": 0.139,\n  \"IE\": -0.1634\n}",
+  "timing": {
+    "fairmind_seconds": 0.0141,
+    "llm_seconds": 73.8124
+  }
+}
